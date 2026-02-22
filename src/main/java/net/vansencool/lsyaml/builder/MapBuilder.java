@@ -25,6 +25,9 @@ public class MapBuilder {
     private @Nullable String anchor;
     private @Nullable MapNode baseNode;
 
+    /**
+     * Creates a new MapBuilder with default settings.
+     */
     public MapBuilder() {
         this.entries = new ArrayList<>();
         this.style = CollectionStyle.BLOCK;

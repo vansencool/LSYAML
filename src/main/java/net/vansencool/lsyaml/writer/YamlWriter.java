@@ -19,6 +19,10 @@ public class YamlWriter {
     private boolean preserveEmptyLines;
     private boolean preserveQuoteStyles;
 
+    /**
+     * Creates a new YamlWriter with default settings.
+     * Default indent size is 2 spaces, and all preservation options are enabled.
+     */
     public YamlWriter() {
         this.indentSize = 2;
         this.preserveComments = true;

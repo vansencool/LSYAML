@@ -22,6 +22,9 @@ public class ScalarBuilder {
     private @Nullable String anchor;
     private @Nullable String tag;
 
+    /**
+     * Creates a new ScalarBuilder with default settings.
+     */
     public ScalarBuilder() {
         this.value = null;
         this.style = ScalarStyle.PLAIN;

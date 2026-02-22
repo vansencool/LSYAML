@@ -223,7 +223,9 @@ public final class ParseIssue {
      * Severity level of the issue.
      */
     public enum Severity {
+        /** Indicates a critical problem that prevents parsing from succeeding. */
         ERROR,
+        /** Indicates a non-critical issue that may not prevent parsing but should be noted. */
         WARNING
     }
 }

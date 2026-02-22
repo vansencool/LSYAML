@@ -28,6 +28,9 @@ public class MapNode extends AbstractYamlNode {
     private boolean multiLineFlow;
     private int flowIndent;
 
+    /**
+     * Creates a new empty MapNode with block style.
+     */
     public MapNode() {
         super();
         this.entries = new LinkedHashMap<>();
@@ -36,6 +39,11 @@ public class MapNode extends AbstractYamlNode {
         this.flowIndent = 2;
     }
 
+    /**
+     * Creates a new empty MapNode with the given collection style.
+     *
+     * @param style the collection style to use
+     */
     public MapNode(@NotNull CollectionStyle style) {
         super();
         this.entries = new LinkedHashMap<>();
@@ -44,6 +52,11 @@ public class MapNode extends AbstractYamlNode {
         this.flowIndent = 2;
     }
 
+    /**
+     * Creates a new empty MapNode with the given metadata.
+     *
+     * @param metadata the node metadata to use
+     */
     public MapNode(@NotNull NodeMetadata metadata) {
         super(metadata);
         this.entries = new LinkedHashMap<>();
@@ -827,6 +840,12 @@ public class MapNode extends AbstractYamlNode {
         private int emptyLinesBefore;
         private @Nullable MapNode resolvedMergeMap;
 
+        /**
+         * Creates a new MapEntry with the given key and value, using plain style for the key.
+         *
+         * @param key   the key
+         * @param value the value node
+         */
         public MapEntry(@NotNull String key, @NotNull YamlNode value) {
             this.key = key;
             this.value = value;
@@ -836,6 +855,13 @@ public class MapNode extends AbstractYamlNode {
             this.emptyLinesBefore = 0;
         }
 
+        /**
+         * Creates a new MapEntry with the given key, value, and key style.
+         *
+         * @param key      the key
+         * @param value    the value node
+         * @param keyStyle the scalar style to use for the key when emitting
+         */
         public MapEntry(@NotNull String key, @NotNull YamlNode value, @NotNull ScalarStyle keyStyle) {
             this.key = key;
             this.value = value;
@@ -845,59 +871,124 @@ public class MapNode extends AbstractYamlNode {
             this.emptyLinesBefore = 0;
         }
 
+        /**
+         * Returns the key of this entry.
+         *
+         * @return the key
+         */
         @NotNull
         public String getKey() {
             return key;
         }
 
+        /**
+         * Sets the key of this entry. It is recommended to use {@link MapNode#renameKey}.
+         *
+         * @param key the new key
+         */
         public void setKey(@NotNull String key) {
             this.key = key;
         }
 
+        /**
+         * Returns the value node of this entry.
+         *
+         * @return the value node
+         */
         @NotNull
         public YamlNode getValue() {
             return value;
         }
 
+        /**
+         * Sets the value node of this entry.
+         *
+         * @param value the new value node
+         */
         public void setValue(@NotNull YamlNode value) {
             this.value = value;
         }
 
+        /**
+         * Returns the scalar style used for the key when emitting.
+         *
+         * @return the key scalar style
+         */
         @NotNull
         public ScalarStyle getKeyStyle() {
             return keyStyle;
         }
 
+        /**
+         * Sets the scalar style to use for the key when emitting.
+         *
+         * @param keyStyle the key scalar style
+         */
         public void setKeyStyle(@NotNull ScalarStyle keyStyle) {
             this.keyStyle = keyStyle;
         }
 
+        /**
+         * Returns the list of comments before this entry.
+         *
+         * @return list of comment texts (without #)
+         */
         @NotNull
         public List<String> getCommentsBefore() {
             return commentsBefore;
         }
 
+        /**
+         * Sets the comments before this entry, replacing existing ones.
+         *
+         * @param comments the comment texts (without #)
+         */
         public void setCommentsBefore(@NotNull List<String> comments) {
             this.commentsBefore = new ArrayList<>(comments);
         }
 
+        /**
+         * Adds a comment before this entry.
+         *
+         * @param comment the comment text (without #)
+         */
         public void addCommentBefore(@NotNull String comment) {
             this.commentsBefore.add(comment);
         }
 
+        /**
+         * Returns the inline comment for this entry, or null if none.
+         *
+         * @return the inline comment text (without #), or null
+         */
         @Nullable
         public String getInlineComment() {
             return inlineComment;
         }
 
+        /**
+         * Sets the inline comment for this entry. Pass null to remove an existing inline comment.
+         *
+         * @param inlineComment the comment text (without #), or null to remove
+         */
         public void setInlineComment(@Nullable String inlineComment) {
             this.inlineComment = inlineComment;
         }
 
+        /**
+         * Returns the number of blank lines before this entry.
+         *
+         * @return the number of empty lines
+         */
         public int getEmptyLinesBefore() {
             return emptyLinesBefore;
         }
 
+        /**
+         * Sets the number of blank lines before this entry. Negative values are treated as zero.
+         *
+         * @param count the number of empty lines
+         */
         public void setEmptyLinesBefore(int count) {
             this.emptyLinesBefore = Math.max(0, count);
         }
@@ -921,6 +1012,11 @@ public class MapNode extends AbstractYamlNode {
             this.resolvedMergeMap = resolvedMergeMap;
         }
 
+        /**
+         * Formats the key according to the specified key style and content.
+         *
+         * @return the formatted key string
+         */
         @NotNull
         public String formatKey() {
             return switch (keyStyle) {
@@ -942,6 +1038,11 @@ public class MapNode extends AbstractYamlNode {
             return str.startsWith("-") || str.startsWith("[") || str.startsWith("{");
         }
 
+        /**
+         * Creates a deep copy of this MapEntry, including the value node and all metadata.
+         *
+         * @return a copy of this entry
+         */
         @NotNull
         public MapEntry copy() {
             MapEntry copy = new MapEntry(key, value.copy(), keyStyle);

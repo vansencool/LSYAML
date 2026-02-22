@@ -17,6 +17,10 @@ public class NodeMetadata {
     private @Nullable String anchor;
     private @Nullable String alias;
 
+    /**
+     * Creates a new NodeMetadata instance with default values.
+     * Line and column are set to -1 (unknown), indentation is 0, and no anchor or alias.
+     */
     public NodeMetadata() {
         this.line = -1;
         this.column = -1;
@@ -26,6 +30,13 @@ public class NodeMetadata {
         this.alias = null;
     }
 
+    /**
+     * Creates a new NodeMetadata instance with the specified line, column, and indentation.
+     *
+     * @param line        the line number (1-based)
+     * @param column      the column number (1-based)
+     * @param indentation the indentation level in spaces
+     */
     public NodeMetadata(int line, int column, int indentation) {
         this.line = line;
         this.column = column;

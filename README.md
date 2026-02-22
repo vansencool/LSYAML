@@ -79,9 +79,9 @@ String yaml = """
 YamlNode node = LSYAML.parse(yaml);
 
 // Easy path-based access
-String name = node.getString("app.name");       // "MyApp"
+String name = node.getString("app.name"); // "MyApp"
 String version = node.getString("app.version"); // "1.0.0"
-Boolean debug = node.getBoolean("app.debug");   // true
+Boolean debug = node.getBoolean("app.debug"); // true
 
 // Or navigate manually
 MapNode app = node.get("app").asMap();
@@ -106,6 +106,7 @@ String output = config.toYaml();
 ## Config Binding API
 
 Bind YAML files directly to Java static fields - the easiest way to manage configuration.
+
 Uppercase field names are automatically converted to lowercase YAML keys.
 
 ```java

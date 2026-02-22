@@ -13,13 +13,22 @@ import java.util.List;
 @SuppressWarnings("unused")
 public abstract class AbstractYamlNode implements YamlNode {
 
+    /** Metadata about this node, such as its position in the source document. */
     protected @NotNull NodeMetadata metadata;
+    /** Comments that appear before this node in the YAML document. Each string represents a line of comment (without the leading #). */
     protected @NotNull List<String> commentsBefore;
+    /** Comments that appear after this node. Each string represents a line of comment (without the leading #). */
     protected @NotNull List<String> trailingComments;
+    /** An optional comment that appears on the same line as this node. */
     protected @Nullable String inlineComment;
+    /** Number of empty lines that appear before this node. */
     protected int emptyLinesBefore;
+    /** Number of empty lines that appear after this node. */
     protected int trailingEmptyLines;
 
+    /**
+     * Creates a new AbstractYamlNode with default metadata and no comments.
+     */
     protected AbstractYamlNode() {
         this.metadata = new NodeMetadata();
         this.commentsBefore = new ArrayList<>();
@@ -29,6 +38,11 @@ public abstract class AbstractYamlNode implements YamlNode {
         this.trailingEmptyLines = 0;
     }
 
+    /**
+     * Creates a new AbstractYamlNode with the specified metadata and no comments.
+     *
+     * @param metadata the metadata to associate with this node
+     */
     protected AbstractYamlNode(@NotNull NodeMetadata metadata) {
         this.metadata = metadata;
         this.commentsBefore = new ArrayList<>();

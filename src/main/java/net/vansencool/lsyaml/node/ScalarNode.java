@@ -17,6 +17,9 @@ public class ScalarNode extends AbstractYamlNode {
     private @Nullable String rawValue;
     private @Nullable String tag;
 
+    /**
+     * Creates a new scalar node with null value and plain style.
+     */
     public ScalarNode() {
         super();
         this.value = null;
@@ -25,6 +28,11 @@ public class ScalarNode extends AbstractYamlNode {
         this.tag = null;
     }
 
+    /**
+     * Creates a new scalar node with the given value and plain style.
+     *
+     * @param value the scalar value (string, number, boolean, or null)
+     */
     public ScalarNode(@Nullable Object value) {
         super();
         this.value = value;
@@ -33,6 +41,12 @@ public class ScalarNode extends AbstractYamlNode {
         this.tag = null;
     }
 
+    /**
+     * Creates a new scalar node with the given value and style.
+     *
+     * @param value the scalar value (string, number, boolean, or null)
+     * @param style the quoting style to use when emitting this scalar
+     */
     public ScalarNode(@Nullable Object value, @NotNull ScalarStyle style) {
         super();
         this.value = value;
@@ -41,6 +55,13 @@ public class ScalarNode extends AbstractYamlNode {
         this.tag = null;
     }
 
+    /**
+     * Creates a new scalar node with the given value, style, and metadata.
+     *
+     * @param value    the scalar value (string, number, boolean, or null)
+     * @param style    the quoting style to use when emitting this scalar
+     * @param metadata the metadata for this node (position, comments, etc.)
+     */
     public ScalarNode(@Nullable Object value, @NotNull ScalarStyle style, @NotNull NodeMetadata metadata) {
         super(metadata);
         this.value = value;
