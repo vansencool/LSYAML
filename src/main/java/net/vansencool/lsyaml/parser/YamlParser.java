@@ -100,7 +100,8 @@ public class YamlParser {
             return new MapNode();
         }
 
-        this.lines = yaml.split("\n", -1);
+        String normalized = yaml.replace("\r\n", "\n").replace("\r", "\n");
+        this.lines = normalized.split("\n", -1);
 
         if (options.isStrict()) {
             validateStrict(issues);

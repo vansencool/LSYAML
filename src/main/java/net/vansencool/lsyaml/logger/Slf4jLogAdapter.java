@@ -23,7 +23,7 @@ public final class Slf4jLogAdapter implements LogAdapter {
 
     @Override
     public void debug(@NotNull String message) {
-        logger.debug(message);
+        logger.info("[DEBUG] {}", message);
     }
 
     @Override
