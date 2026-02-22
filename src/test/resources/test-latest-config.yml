@@ -1,0 +1,9 @@
+name: Latest Server
+# Latest port setting
+port: 8080
+# Feature flags section
+features:
+  # Enable the API
+  enabled: true
+  # Max API requests
+  limit: 1000

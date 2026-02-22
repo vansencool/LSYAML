@@ -4,12 +4,14 @@ import net.vansencool.lsyaml.LSYAML;
 import net.vansencool.lsyaml.binding.watcher.ConfigWatcher;
 import net.vansencool.lsyaml.binding.watcher.WatcherOptions;
 import net.vansencool.lsyaml.builder.MapBuilder;
+import net.vansencool.lsyaml.logger.LSYAMLLogger;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.YamlNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -96,6 +98,7 @@ public final class ConfigLoader {
     private static final @NotNull Map<Class<?>, MapNode> loadedNodes = new ConcurrentHashMap<>();
     private static final @NotNull Map<Class<?>, Map<Field, Object>> defaultValues = new ConcurrentHashMap<>();
     private static final @NotNull Map<Class<?>, Path> configPaths = new ConcurrentHashMap<>();
+    private static final @NotNull Map<Class<?>, String> latestConfigs = new ConcurrentHashMap<>();
     private static volatile boolean autoWatchingEnabled = false;
 
     private ConfigLoader() {
@@ -125,6 +128,71 @@ public final class ConfigLoader {
      */
     public static boolean isAutoWatchingEnabled() {
         return autoWatchingEnabled;
+    }
+
+    /**
+     * Registers a "latest" config for the given class from a raw YAML string.
+     * On every load or reload, the user's on-disk config is merged with this source so that
+     * keys present in the latest config but absent from the user's file are automatically added.
+     * The latest config's comments and spacing always take priority; the user's values are preserved.
+     *
+     * @param cls  the config class
+     * @param yaml the latest config YAML string
+     */
+    public static void setLatestConfig(@NotNull Class<?> cls, @NotNull String yaml) {
+        latestConfigs.put(cls, yaml);
+    }
+
+    /**
+     * Registers a "latest" config for the given class from an {@link InputStream}.
+     * The stream is read and closed immediately.
+     *
+     * @param cls    the config class
+     * @param stream an open input stream of the latest config YAML
+     * @throws UncheckedIOException if the stream cannot be read
+     */
+    public static void setLatestConfig(@NotNull Class<?> cls, @NotNull InputStream stream) {
+        try (stream) {
+            setLatestConfig(cls, new String(stream.readAllBytes(), StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read latest config stream for " + cls.getSimpleName(), e);
+        }
+    }
+
+    /**
+     * Removes any previously registered latest config for the given class.
+     *
+     * @param cls the config class
+     */
+    public static void clearLatestConfig(@NotNull Class<?> cls) {
+        latestConfigs.remove(cls);
+    }
+
+    /**
+     * Opens a classpath resource relative to the given class and returns it as an {@link InputStream}.
+     * Useful for passing to {@link #setLatestConfig(Class, InputStream)}.
+     *
+     * <p><b>Example:</b></p>
+     * <pre>{@code
+     * ConfigLoader.setLatestConfig(MyConfig.class,
+     *     ConfigLoader.getResource(MyConfig.class, "defaults/config.yml"));
+     * }</pre>
+     *
+     * @param relativeTo  class whose classloader is used to locate the resource
+     * @param resourcePath classpath path to the resource
+     * @return an open input stream for the resource
+     * @throws IllegalArgumentException if the resource cannot be found
+     */
+    @NotNull
+    public static InputStream getResource(@NotNull Class<?> relativeTo, @NotNull String resourcePath) {
+        InputStream stream = relativeTo.getClassLoader().getResourceAsStream(resourcePath);
+        if (stream == null) {
+            stream = relativeTo.getResourceAsStream("/" + resourcePath);
+        }
+        if (stream == null) {
+            throw new IllegalArgumentException("Resource not found: " + resourcePath);
+        }
+        return stream;
     }
 
     /**
@@ -167,15 +235,16 @@ public final class ConfigLoader {
             throw new IllegalArgumentException("Class " + cls.getName() + " is not annotated with @ConfigFile");
         }
 
+        registerLatestConfigFromAnnotation(cls);
         saveDefaults(cls);
 
         Path file = Path.of(fileAnn.value());
         configPaths.put(cls, file);
 
         if (!Files.exists(file)) {
-            MapNode built = buildFromDefaults(cls);
-            LSYAML.writeToFile(built, file);
-            loadedNodes.put(cls, built);
+            MapNode base = resolveLatestSource(cls);
+            LSYAML.writeToFile(base, file);
+            loadedNodes.put(cls, base);
         }
 
         apply(cls);
@@ -290,6 +359,7 @@ public final class ConfigLoader {
         loadedNodes.clear();
         defaultValues.clear();
         configPaths.clear();
+        latestConfigs.clear();
         if (autoWatchingEnabled) {
             ConfigWatcher.unwatchAll();
         }
@@ -442,8 +512,104 @@ public final class ConfigLoader {
             return;
         }
 
-        loadedNodes.put(cls, mapNode);
-        applyNode(cls, mapNode);
+        MapNode latestSource = resolveLatestSource(cls);
+        boolean needsWrite = hasMissingKeys(mapNode, latestSource);
+        if (needsWrite) LSYAMLLogger.info("Config file is missing keys from the latest config. Merging missing keys into: " + file.getFileName());
+        MapNode merged = mergeNodes(mapNode, latestSource);
+
+        if (needsWrite) {
+            LSYAML.writeToFile(merged, file);
+            LSYAMLLogger.info("Merged new keys into config: " + file.getFileName());
+        }
+
+        loadedNodes.put(cls, merged);
+        applyNode(cls, merged);
+    }
+
+    private static void registerLatestConfigFromAnnotation(@NotNull Class<?> cls) {
+        if (latestConfigs.containsKey(cls)) {
+            return;
+        }
+        LatestConfig ann = cls.getAnnotation(LatestConfig.class);
+        if (ann == null) {
+            return;
+        }
+        InputStream stream = cls.getClassLoader().getResourceAsStream(ann.value());
+        if (stream == null) {
+            stream = cls.getResourceAsStream("/" + ann.value());
+        }
+        if (stream == null) {
+            LSYAMLLogger.warn("@LatestConfig resource not found for " + cls.getSimpleName() + ": " + ann.value());
+            return;
+        }
+        setLatestConfig(cls, stream);
+    }
+
+    @NotNull
+    private static MapNode resolveLatestSource(@NotNull Class<?> cls) {
+        String yaml = latestConfigs.get(cls);
+        if (yaml != null) {
+            YamlNode node = LSYAML.parse(yaml);
+            if (node instanceof MapNode mapNode) {
+                return mapNode;
+            }
+        }
+        return buildFromDefaults(cls);
+    }
+
+    @NotNull
+    private static MapNode mergeNodes(@NotNull MapNode user, @NotNull MapNode latest) {
+        MapNode merged = new MapNode(user.getMetadata());
+        merged.setEmptyLinesBefore(user.getEmptyLinesBefore());
+        merged.setCommentsBefore(user.getCommentsBefore());
+        merged.setStyle(user.getStyle());
+
+        for (MapNode.MapEntry userEntry : user.entries()) {
+            String key = userEntry.getKey();
+            MapNode.MapEntry latestEntry = latest.getEntry(key);
+
+            MapNode.MapEntry mergedEntry;
+            if (latestEntry != null) {
+                YamlNode value = userEntry.getValue();
+                if (value instanceof MapNode userMap && latestEntry.getValue() instanceof MapNode latestMap) {
+                    value = mergeNodes(userMap, latestMap);
+                }
+                mergedEntry = new MapNode.MapEntry(key, value, userEntry.getKeyStyle());
+                mergedEntry.setCommentsBefore(latestEntry.getCommentsBefore());
+                mergedEntry.setEmptyLinesBefore(latestEntry.getEmptyLinesBefore());
+                mergedEntry.setInlineComment(latestEntry.getInlineComment());
+            } else {
+                mergedEntry = userEntry.copy();
+            }
+
+            merged.putEntry(mergedEntry);
+        }
+
+        for (MapNode.MapEntry latestEntry : latest.entries()) {
+            if (user.get(latestEntry.getKey()) == null) {
+                merged.putEntry(latestEntry.copy());
+            }
+        }
+
+        merged.setTrailingComments(latest.getTrailingComments());
+        merged.setTrailingEmptyLines(latest.getTrailingEmptyLines());
+
+        return merged;
+    }
+
+    private static boolean hasMissingKeys(@NotNull MapNode user, @NotNull MapNode latest) {
+        for (MapNode.MapEntry entry : latest.entries()) {
+            if (user.get(entry.getKey()) == null) {
+                return true;
+            }
+            YamlNode userVal = user.get(entry.getKey());
+            if (entry.getValue() instanceof MapNode latestMap && userVal instanceof MapNode userMap) {
+                if (hasMissingKeys(userMap, latestMap)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static void applyNode(@NotNull Class<?> cls, @NotNull MapNode node) {
