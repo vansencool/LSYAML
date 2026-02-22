@@ -23,6 +23,7 @@ public class ListBuilder {
     private @Nullable String inlineComment;
     private int emptyLinesBefore;
     private @Nullable String anchor;
+    private @Nullable ListNode baseNode;
 
     public ListBuilder() {
         this.items = new ArrayList<>();
@@ -31,6 +32,7 @@ public class ListBuilder {
         this.inlineComment = null;
         this.emptyLinesBefore = 0;
         this.anchor = null;
+        this.baseNode = null;
     }
 
     /**
@@ -41,6 +43,27 @@ public class ListBuilder {
     @NotNull
     public static ListBuilder create() {
         return new ListBuilder();
+    }
+
+    /**
+     * Creates a ListBuilder that wraps an existing ListNode.
+     * Changes made through the builder will modify the existing node.
+     *
+     * @param node the existing ListNode to wrap
+     * @return a builder wrapping the node
+     */
+    @NotNull
+    public static ListBuilder from(@NotNull ListNode node) {
+        ListBuilder builder = new ListBuilder();
+        builder.baseNode = node;
+        builder.style = node.getStyle();
+        builder.commentsBefore.addAll(node.getCommentsBefore());
+        builder.inlineComment = node.getInlineComment();
+        builder.emptyLinesBefore = node.getEmptyLinesBefore();
+        if (node.getMetadata().hasAnchor()) {
+            builder.anchor = node.getMetadata().getAnchor();
+        }
+        return builder;
     }
 
     /**
@@ -248,12 +271,19 @@ public class ListBuilder {
 
     /**
      * Builds the ListNode.
+     * If this builder was created from an existing node, returns the modified node.
      *
      * @return the constructed ListNode
      */
     @NotNull
     public ListNode build() {
-        ListNode list = new ListNode(style);
+        ListNode list;
+        if (baseNode != null) {
+            list = baseNode;
+            list.setStyle(style);
+        } else {
+            list = new ListNode(style);
+        }
         list.setCommentsBefore(commentsBefore);
         list.setInlineComment(inlineComment);
         list.setEmptyLinesBefore(emptyLinesBefore);
@@ -266,6 +296,21 @@ public class ListBuilder {
         }
 
         return list;
+    }
+
+    /**
+     * Applies changes to the base node without returning a new node.
+     * Only works if this builder was created with from().
+     *
+     * @return the modified ListNode
+     * @throws IllegalStateException if not created from an existing node
+     */
+    @NotNull
+    public ListNode apply() {
+        if (baseNode == null) {
+            throw new IllegalStateException("apply() can only be called on builders created with from()");
+        }
+        return build();
     }
 
     /**

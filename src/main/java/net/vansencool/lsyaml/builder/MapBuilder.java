@@ -23,6 +23,7 @@ public class MapBuilder {
     private @Nullable String inlineComment;
     private int emptyLinesBefore;
     private @Nullable String anchor;
+    private @Nullable MapNode baseNode;
 
     public MapBuilder() {
         this.entries = new ArrayList<>();
@@ -31,6 +32,7 @@ public class MapBuilder {
         this.inlineComment = null;
         this.emptyLinesBefore = 0;
         this.anchor = null;
+        this.baseNode = null;
     }
 
     /**
@@ -41,6 +43,27 @@ public class MapBuilder {
     @NotNull
     public static MapBuilder create() {
         return new MapBuilder();
+    }
+
+    /**
+     * Creates a MapBuilder that wraps an existing MapNode.
+     * Changes made through the builder will modify the existing node.
+     *
+     * @param node the existing MapNode to wrap
+     * @return a builder wrapping the node
+     */
+    @NotNull
+    public static MapBuilder from(@NotNull MapNode node) {
+        MapBuilder builder = new MapBuilder();
+        builder.baseNode = node;
+        builder.style = node.getStyle();
+        builder.commentsBefore.addAll(node.getCommentsBefore());
+        builder.inlineComment = node.getInlineComment();
+        builder.emptyLinesBefore = node.getEmptyLinesBefore();
+        if (node.getMetadata().hasAnchor()) {
+            builder.anchor = node.getMetadata().getAnchor();
+        }
+        return builder;
     }
 
     /**
@@ -257,13 +280,44 @@ public class MapBuilder {
     }
 
     /**
+     * Creates a nested map builder for the given key.
+     * Use goBack() to return to this builder.
+     *
+     * @param key the key for the nested map
+     * @return a nested map builder
+     */
+    @NotNull
+    public NestedMapBuilder map(@NotNull String key) {
+        return new NestedMapBuilder(this, key);
+    }
+
+    /**
+     * Creates a nested list builder for the given key.
+     * Use goBack() to return to this builder.
+     *
+     * @param key the key for the nested list
+     * @return a nested list builder
+     */
+    @NotNull
+    public NestedListBuilder list(@NotNull String key) {
+        return new NestedListBuilder(this, key);
+    }
+
+    /**
      * Builds the MapNode.
+     * If this builder was created from an existing node, returns the modified node.
      *
      * @return the constructed MapNode
      */
     @NotNull
     public MapNode build() {
-        MapNode map = new MapNode(style);
+        MapNode map;
+        if (baseNode != null) {
+            map = baseNode;
+            map.setStyle(style);
+        } else {
+            map = new MapNode(style);
+        }
         map.setCommentsBefore(commentsBefore);
         map.setInlineComment(inlineComment);
         map.setEmptyLinesBefore(emptyLinesBefore);
@@ -276,6 +330,34 @@ public class MapBuilder {
         }
 
         return map;
+    }
+
+    /**
+     * Applies changes to the base node without returning a new node.
+     * Only works if this builder was created with from().
+     *
+     * @return the modified MapNode
+     * @throws IllegalStateException if not created from an existing node
+     */
+    @NotNull
+    public MapNode apply() {
+        if (baseNode == null) {
+            throw new IllegalStateException("apply() can only be called on builders created with from()");
+        }
+        return build();
+    }
+
+    /**
+     * Returns to the parent builder.
+     * This is only valid for nested builders created via map() or list().
+     * Override in NestedMapBuilder to provide actual implementation.
+     *
+     * @return the parent builder
+     * @throws IllegalStateException if called on a non-nested builder
+     */
+    @NotNull
+    public MapBuilder goBack() {
+        throw new IllegalStateException("goBack() can only be called on nested builders created via map()");
     }
 
     /**

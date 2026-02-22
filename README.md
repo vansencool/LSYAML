@@ -102,9 +102,10 @@ for (String key : config.keys()) {
 ```java
 MapNode config = LSYAML.parseMap(yaml);
 
-// Navigate to nested map and modify
-MapNode pool = config.get("database").asMap().get("pool").asMap();
-pool.put("max", new ScalarNode("50"));
+// Navigate to nested map and modify directly (put returns the node for chaining)
+config.getMap("database").getMap("pool")
+    .put("min", 5)
+    .put("max", 100);
 
 // Comments and formatting preserved!
 String output = config.toYaml();
