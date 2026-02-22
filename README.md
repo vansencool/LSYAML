@@ -4,9 +4,9 @@
 ### *Lightning fast, format-preserving YAML parser for Java*
 
 **A modern YAML library built for speed and flexibility**
-  
+
 Fast, readable, flexible, format-preserving.  
-Parses small configs instantly, scales to complex documents effortlessly.
+LSYAML offers lightning-fast parsing while retaining the original formatting of your YAML files.
 
 </div>
 
@@ -16,7 +16,6 @@ Parses small configs instantly, scales to complex documents effortlessly.
 
 - Very fast parsing (**~2x faster** than SnakeYAML)
 - **Full format preservation** - comments, empty lines, indentation retained
-- **Inline comments** supported (`key: value # comment`)
 - **Strict and lenient** parsing modes with detailed error reporting
 - **Runtime editing** of YAML nodes
 - **Path-based access** - `node.getString("database.credentials.username")`
@@ -107,24 +106,8 @@ MapNode config = LSYAML.parseMap(yaml);
 MapNode pool = config.get("database").asMap().get("pool").asMap();
 pool.put("max", new ScalarNode("50"));
 
-// Write back - comments and formatting preserved!
+// Comments and formatting preserved!
 String output = config.toYaml();
-```
-
----
-
-## Strict Mode
-
-Enable strict parsing for detailed error reporting.
-
-```java
-ParseResult result = LSYAML.parseDetailed(yaml, ParseOptions.strict());
-
-if (!result.isSuccess()) {
-    for (ParseIssue issue : result.getIssues()) {
-        System.out.println(issue.getFormattedMessage());
-    }
-}
 ```
 
 ---
