@@ -8,6 +8,14 @@
 Fast, readable, flexible, format-preserving.  
 LSYAML offers lightning-fast parsing while retaining the original formatting of your YAML files.
 
+<details>
+  <summary><strong>Project Status</strong></summary>
+  <br/>
+  LSYAML is under continuous development, progressing toward a stable 2.0.0 release.
+  Core functionality is stable, with incremental API refinements planned.
+
+  Documentation is currently in progress.
+</details>
 </div>
 
 ---
@@ -39,7 +47,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'net.vansencool:LSYAML:1.1.7'
+    implementation 'net.vansencool:LSYAML:1.2.0'
 }
 ```
 
@@ -58,7 +66,7 @@ dependencies {
 <dependency>
     <groupId>net.vansencool</groupId>
     <artifactId>LSYAML</artifactId>
-    <version>1.1.7</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 

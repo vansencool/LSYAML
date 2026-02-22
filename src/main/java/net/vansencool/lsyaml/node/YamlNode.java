@@ -203,21 +203,21 @@ public interface YamlNode {
      * Gets a child node by key. Only works for map nodes.
      *
      * @param key the key to look up
-     * @return the child node, or null if not found or not a map
+     * @return the child node, or throws IllegalStateException if not a map, or null if key not found
      */
     @Nullable
     default YamlNode get(@NotNull String key) {
         if (this instanceof MapNode map) {
             return map.get(key);
         }
-        return null;
+        throw new IllegalStateException("Node is not a map, it is: " + getType());
     }
 
     /**
      * Gets a child node by index. Only works for list nodes.
      *
      * @param index the index to look up
-     * @return the child node, or null if out of bounds or not a list
+     * @return the child node, throws IllegalStateException if not a list, or null if index out of bounds
      */
     @Nullable
     default YamlNode get(int index) {
@@ -226,7 +226,7 @@ public interface YamlNode {
                 return list.get(index);
             }
         }
-        return null;
+        throw new IllegalStateException("Node is not a list, it is: " + getType());
     }
 
     /**
@@ -258,6 +258,45 @@ public interface YamlNode {
     }
 
     /**
+     * Gets a string value at the given path, returning a default if missing.
+     *
+     * @param path         the dot-separated path
+     * @param defaultValue the value to return if missing
+     * @return the string value
+     */
+    @NotNull
+    default String getString(@NotNull String path, @NotNull String defaultValue) {
+        String val = getString(path);
+        return val != null ? val : defaultValue;
+    }
+
+    /**
+     * Gets a string value for a literal key (not path-based).
+     * Use this when your key contains dots that should not be treated as path separators.
+     *
+     * @param key the literal key
+     * @return the string value, or null if not found
+     */
+    @Nullable
+    default String getStringLiteral(@NotNull String key) {
+        YamlNode child = get(key);
+        return child != null ? child.getString() : null;
+    }
+
+    /**
+     * Gets a string value for a literal key, returning a default if missing.
+     *
+     * @param key          the literal key
+     * @param defaultValue the value to return if missing
+     * @return the string value
+     */
+    @NotNull
+    default String getStringLiteral(@NotNull String key, @NotNull String defaultValue) {
+        String val = getStringLiteral(key);
+        return val != null ? val : defaultValue;
+    }
+
+    /**
      * Gets an integer value of this scalar node.
      *
      * @return the integer value, or null if not a scalar or not parseable
@@ -283,6 +322,42 @@ public interface YamlNode {
     default Integer getInt(@NotNull String path) {
         YamlNode node = getPath(path);
         return node != null ? node.getInt() : null;
+    }
+
+    /**
+     * Gets an integer value at the given path, returning a default if missing.
+     *
+     * @param path         the dot-separated path
+     * @param defaultValue the value to return if missing or not parseable
+     * @return the integer value
+     */
+    default int getInt(@NotNull String path, int defaultValue) {
+        Integer val = getInt(path);
+        return val != null ? val : defaultValue;
+    }
+
+    /**
+     * Gets an integer value for a literal key (not path-based).
+     *
+     * @param key the literal key
+     * @return the integer value, or null if not found or not parseable
+     */
+    @Nullable
+    default Integer getIntLiteral(@NotNull String key) {
+        YamlNode child = get(key);
+        return child != null ? child.getInt() : null;
+    }
+
+    /**
+     * Gets an integer value for a literal key, returning a default if missing.
+     *
+     * @param key          the literal key
+     * @param defaultValue the value to return if missing or not parseable
+     * @return the integer value
+     */
+    default int getIntLiteral(@NotNull String key, int defaultValue) {
+        Integer val = getIntLiteral(key);
+        return val != null ? val : defaultValue;
     }
 
     /**
@@ -314,6 +389,42 @@ public interface YamlNode {
     }
 
     /**
+     * Gets a long value at the given path, returning a default if missing.
+     *
+     * @param path         the dot-separated path
+     * @param defaultValue the value to return if missing or not parseable
+     * @return the long value
+     */
+    default long getLong(@NotNull String path, long defaultValue) {
+        Long val = getLong(path);
+        return val != null ? val : defaultValue;
+    }
+
+    /**
+     * Gets a long value for a literal key (not path-based).
+     *
+     * @param key the literal key
+     * @return the long value, or null if not found or not parseable
+     */
+    @Nullable
+    default Long getLongLiteral(@NotNull String key) {
+        YamlNode child = get(key);
+        return child != null ? child.getLong() : null;
+    }
+
+    /**
+     * Gets a long value for a literal key, returning a default if missing.
+     *
+     * @param key          the literal key
+     * @param defaultValue the value to return if missing or not parseable
+     * @return the long value
+     */
+    default long getLongLiteral(@NotNull String key, long defaultValue) {
+        Long val = getLongLiteral(key);
+        return val != null ? val : defaultValue;
+    }
+
+    /**
      * Gets a double value of this scalar node.
      *
      * @return the double value, or null if not a scalar or not parseable
@@ -339,6 +450,42 @@ public interface YamlNode {
     default Double getDouble(@NotNull String path) {
         YamlNode node = getPath(path);
         return node != null ? node.getDouble() : null;
+    }
+
+    /**
+     * Gets a double value at the given path, returning a default if missing.
+     *
+     * @param path         the dot-separated path
+     * @param defaultValue the value to return if missing or not parseable
+     * @return the double value
+     */
+    default double getDouble(@NotNull String path, double defaultValue) {
+        Double val = getDouble(path);
+        return val != null ? val : defaultValue;
+    }
+
+    /**
+     * Gets a double value for a literal key (not path-based).
+     *
+     * @param key the literal key
+     * @return the double value, or null if not found or not parseable
+     */
+    @Nullable
+    default Double getDoubleLiteral(@NotNull String key) {
+        YamlNode child = get(key);
+        return child != null ? child.getDouble() : null;
+    }
+
+    /**
+     * Gets a double value for a literal key, returning a default if missing.
+     *
+     * @param key          the literal key
+     * @param defaultValue the value to return if missing or not parseable
+     * @return the double value
+     */
+    default double getDoubleLiteral(@NotNull String key, double defaultValue) {
+        Double val = getDoubleLiteral(key);
+        return val != null ? val : defaultValue;
     }
 
     /**
@@ -369,6 +516,42 @@ public interface YamlNode {
     default Boolean getBoolean(@NotNull String path) {
         YamlNode node = getPath(path);
         return node != null ? node.getBoolean() : null;
+    }
+
+    /**
+     * Gets a boolean value at the given path, returning a default if missing.
+     *
+     * @param path         the dot-separated path
+     * @param defaultValue the value to return if missing or not a boolean
+     * @return the boolean value
+     */
+    default boolean getBoolean(@NotNull String path, boolean defaultValue) {
+        Boolean val = getBoolean(path);
+        return val != null ? val : defaultValue;
+    }
+
+    /**
+     * Gets a boolean value for a literal key (not path-based).
+     *
+     * @param key the literal key
+     * @return the boolean value, or null if not found or not a boolean
+     */
+    @Nullable
+    default Boolean getBooleanLiteral(@NotNull String key) {
+        YamlNode child = get(key);
+        return child != null ? child.getBoolean() : null;
+    }
+
+    /**
+     * Gets a boolean value for a literal key, returning a default if missing.
+     *
+     * @param key          the literal key
+     * @param defaultValue the value to return if missing or not a boolean
+     * @return the boolean value
+     */
+    default boolean getBooleanLiteral(@NotNull String key, boolean defaultValue) {
+        Boolean val = getBooleanLiteral(key);
+        return val != null ? val : defaultValue;
     }
 
     /**
@@ -433,5 +616,278 @@ public interface YamlNode {
             return map.containsKey(key);
         }
         return false;
+    }
+
+    /**
+     * Checks if a value exists at the given dot-separated path.
+     *
+     * @param path the dot-separated path
+     * @return true if a value exists at the path
+     */
+    default boolean containsPath(@NotNull String path) {
+        return getPath(path) != null;
+    }
+
+    /**
+     * Gets a nested map at the given path.
+     *
+     * @param path the dot-separated path
+     * @return the map node, or null if not found or not a map
+     */
+    @Nullable
+    default MapNode getMap(@NotNull String path) {
+        YamlNode node = getPath(path);
+        return node instanceof MapNode map ? map : null;
+    }
+
+    /**
+     * Gets a nested map at the given path, returning a default if missing.
+     *
+     * @param path         the dot-separated path
+     * @param defaultValue the value to return if missing or not a map
+     * @return the map node
+     */
+    @NotNull
+    default MapNode getMap(@NotNull String path, @NotNull MapNode defaultValue) {
+        MapNode result = getMap(path);
+        return result != null ? result : defaultValue;
+    }
+
+    /**
+     * Gets a nested map for a literal key (not path-based).
+     *
+     * @param key the literal key
+     * @return the map node, or null if not found or not a map
+     */
+    @Nullable
+    default MapNode getMapLiteral(@NotNull String key) {
+        YamlNode child = get(key);
+        return child instanceof MapNode map ? map : null;
+    }
+
+    /**
+     * Gets a nested map for a literal key, returning a default if missing.
+     *
+     * @param key          the literal key
+     * @param defaultValue the value to return if missing or not a map
+     * @return the map node
+     */
+    @NotNull
+    default MapNode getMapLiteral(@NotNull String key, @NotNull MapNode defaultValue) {
+        MapNode result = getMapLiteral(key);
+        return result != null ? result : defaultValue;
+    }
+
+    /**
+     * Gets a nested list at the given path.
+     *
+     * @param path the dot-separated path
+     * @return the list node, or null if not found or not a list
+     */
+    @Nullable
+    default ListNode getList(@NotNull String path) {
+        YamlNode node = getPath(path);
+        return node instanceof ListNode list ? list : null;
+    }
+
+    /**
+     * Gets a nested list at the given path, returning a default if missing.
+     *
+     * @param path         the dot-separated path
+     * @param defaultValue the value to return if missing or not a list
+     * @return the list node
+     */
+    @NotNull
+    default ListNode getList(@NotNull String path, @NotNull ListNode defaultValue) {
+        ListNode result = getList(path);
+        return result != null ? result : defaultValue;
+    }
+
+    /**
+     * Gets a nested list for a literal key (not path-based).
+     *
+     * @param key the literal key
+     * @return the list node, or null if not found or not a list
+     */
+    @Nullable
+    default ListNode getListLiteral(@NotNull String key) {
+        YamlNode child = get(key);
+        return child instanceof ListNode list ? list : null;
+    }
+
+    /**
+     * Gets a nested list for a literal key, returning a default if missing.
+     *
+     * @param key          the literal key
+     * @param defaultValue the value to return if missing or not a list
+     * @return the list node
+     */
+    @NotNull
+    default ListNode getListLiteral(@NotNull String key, @NotNull ListNode defaultValue) {
+        ListNode result = getListLiteral(key);
+        return result != null ? result : defaultValue;
+    }
+
+    /**
+     * Sets a string value at the given path, creating intermediate maps as needed.
+     * Only works if this node is a MapNode.
+     *
+     * @param path  the dot-separated path
+     * @param value the value to set
+     */
+    default void setString(@NotNull String path, @NotNull String value) {
+        setAtPath(path, new ScalarNode(value));
+    }
+
+    /**
+     * Sets an integer value at the given path, creating intermediate maps as needed.
+     *
+     * @param path  the dot-separated path
+     * @param value the value to set
+     */
+    default void setInt(@NotNull String path, int value) {
+        setAtPath(path, new ScalarNode(value));
+    }
+
+    /**
+     * Sets a long value at the given path, creating intermediate maps as needed.
+     *
+     * @param path  the dot-separated path
+     * @param value the value to set
+     */
+    default void setLong(@NotNull String path, long value) {
+        setAtPath(path, new ScalarNode(value));
+    }
+
+    /**
+     * Sets a double value at the given path, creating intermediate maps as needed.
+     *
+     * @param path  the dot-separated path
+     * @param value the value to set
+     */
+    default void setDouble(@NotNull String path, double value) {
+        setAtPath(path, new ScalarNode(value));
+    }
+
+    /**
+     * Sets a boolean value at the given path, creating intermediate maps as needed.
+     *
+     * @param path  the dot-separated path
+     * @param value the value to set
+     */
+    default void setBoolean(@NotNull String path, boolean value) {
+        setAtPath(path, new ScalarNode(value));
+    }
+
+    /**
+     * Sets a string value for a literal key (not path-based).
+     *
+     * @param key   the literal key
+     * @param value the value to set
+     */
+    default void setStringLiteral(@NotNull String key, @NotNull String value) {
+        if (this instanceof MapNode map) {
+            map.put(key, value);
+        }
+    }
+
+    /**
+     * Sets an integer value for a literal key (not path-based).
+     *
+     * @param key   the literal key
+     * @param value the value to set
+     */
+    default void setIntLiteral(@NotNull String key, int value) {
+        if (this instanceof MapNode map) {
+            map.put(key, value);
+        }
+    }
+
+    /**
+     * Sets a long value for a literal key (not path-based).
+     *
+     * @param key   the literal key
+     * @param value the value to set
+     */
+    default void setLongLiteral(@NotNull String key, long value) {
+        if (this instanceof MapNode map) {
+            map.put(key, value);
+        }
+    }
+
+    /**
+     * Sets a double value for a literal key (not path-based).
+     *
+     * @param key   the literal key
+     * @param value the value to set
+     */
+    default void setDoubleLiteral(@NotNull String key, double value) {
+        if (this instanceof MapNode map) {
+            map.put(key, value);
+        }
+    }
+
+    /**
+     * Sets a boolean value for a literal key (not path-based).
+     *
+     * @param key   the literal key
+     * @param value the value to set
+     */
+    default void setBooleanLiteral(@NotNull String key, boolean value) {
+        if (this instanceof MapNode map) {
+            map.put(key, value);
+        }
+    }
+
+    /**
+     * Sets a node value at the given path, creating intermediate maps as needed.
+     * Only works if this node is a MapNode.
+     *
+     * @param path  the dot-separated path
+     * @param value the value to set
+     */
+    default void setAtPath(@NotNull String path, @NotNull YamlNode value) {
+        if (!(this instanceof MapNode root)) return;
+
+        String[] parts = path.split("\\.", -1);
+        MapNode current = root;
+
+        for (int i = 0; i < parts.length - 1; i++) {
+            YamlNode next = current.get(parts[i]);
+            if (next instanceof MapNode nextMap) {
+                current = nextMap;
+            } else {
+                MapNode child = new MapNode();
+                current.put(parts[i], child);
+                current = child;
+            }
+        }
+
+        current.put(parts[parts.length - 1], value);
+    }
+
+    /**
+     * Removes the value at the given path.
+     * Only works if this node is a MapNode.
+     *
+     * @param path the dot-separated path
+     * @return the removed value, or null if not found
+     */
+    @Nullable
+    default YamlNode removeAtPath(@NotNull String path) {
+        String[] parts = path.split("\\.", -1);
+        if (parts.length == 1) {
+            if (this instanceof MapNode map) {
+                return map.remove(path);
+            }
+            return null;
+        }
+
+        String parentPath = path.substring(0, path.lastIndexOf('.'));
+        YamlNode parent = getPath(parentPath);
+        if (parent instanceof MapNode parentMap) {
+            return parentMap.remove(parts[parts.length - 1]);
+        }
+        return null;
     }
 }
