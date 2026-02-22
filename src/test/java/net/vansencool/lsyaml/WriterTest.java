@@ -1,13 +1,12 @@
 package net.vansencool.lsyaml;
 
-import net.vansencool.lsyaml.metadata.CollectionStyle;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
-import net.vansencool.lsyaml.writer.YamlWriter;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings("all")
 class WriterTest {
 
     @Test

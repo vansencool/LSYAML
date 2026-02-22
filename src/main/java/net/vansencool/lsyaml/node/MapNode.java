@@ -12,27 +12,36 @@ import java.util.*;
  * Represents a YAML mapping (key-value pairs).
  * Preserves insertion order and all formatting metadata.
  */
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class MapNode extends AbstractYamlNode {
 
     private final @NotNull LinkedHashMap<String, MapEntry> entries;
     private @NotNull CollectionStyle style;
+    private boolean multiLineFlow;
+    private int flowIndent;
 
     public MapNode() {
         super();
         this.entries = new LinkedHashMap<>();
         this.style = CollectionStyle.BLOCK;
+        this.multiLineFlow = false;
+        this.flowIndent = 2;
     }
 
     public MapNode(@NotNull CollectionStyle style) {
         super();
         this.entries = new LinkedHashMap<>();
         this.style = style;
+        this.multiLineFlow = false;
+        this.flowIndent = 2;
     }
 
     public MapNode(@NotNull NodeMetadata metadata) {
         super(metadata);
         this.entries = new LinkedHashMap<>();
         this.style = CollectionStyle.BLOCK;
+        this.multiLineFlow = false;
+        this.flowIndent = 2;
     }
 
     @Override
@@ -58,6 +67,42 @@ public class MapNode extends AbstractYamlNode {
      */
     public void setStyle(@NotNull CollectionStyle style) {
         this.style = style;
+    }
+
+    /**
+     * Returns whether this flow-style map should be formatted across multiple lines.
+     *
+     * @return true if multi-line flow
+     */
+    public boolean isMultiLineFlow() {
+        return multiLineFlow;
+    }
+
+    /**
+     * Sets whether this flow-style map should be formatted across multiple lines.
+     *
+     * @param multiLineFlow true to use multi-line formatting
+     */
+    public void setMultiLineFlow(boolean multiLineFlow) {
+        this.multiLineFlow = multiLineFlow;
+    }
+
+    /**
+     * Returns the indentation for multi-line flow content.
+     *
+     * @return the flow indent
+     */
+    public int getFlowIndent() {
+        return flowIndent;
+    }
+
+    /**
+     * Sets the indentation for multi-line flow content.
+     *
+     * @param flowIndent the indent to use
+     */
+    public void setFlowIndent(int flowIndent) {
+        this.flowIndent = flowIndent;
     }
 
     /**
@@ -302,6 +347,154 @@ public class MapNode extends AbstractYamlNode {
     }
 
     /**
+     * Gets a fluent modifier for an entry. Creates the entry if it doesn't exist.
+     *
+     * @param key the key to modify
+     * @return an entry modifier for fluent configuration
+     */
+    @NotNull
+    public EntryModifier modify(@NotNull String key) {
+        return new EntryModifier(this, key);
+    }
+
+    /**
+     * Inserts an entry before the specified existing key.
+     *
+     * @param key the key to insert
+     * @param value the value
+     * @param beforeKey the key to insert before
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode insertBefore(@NotNull String key, @NotNull YamlNode value, @NotNull String beforeKey) {
+        return insertBefore(new MapEntry(key, value), beforeKey);
+    }
+
+    /**
+     * Inserts an entry before the specified existing key.
+     *
+     * @param entry the entry to insert
+     * @param beforeKey the key to insert before
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode insertBefore(@NotNull MapEntry entry, @NotNull String beforeKey) {
+        if (!entries.containsKey(beforeKey)) {
+            return putEntry(entry);
+        }
+        LinkedHashMap<String, MapEntry> newEntries = new LinkedHashMap<>();
+        for (Map.Entry<String, MapEntry> e : entries.entrySet()) {
+            if (e.getKey().equals(beforeKey)) {
+                newEntries.put(entry.getKey(), entry);
+            }
+            newEntries.put(e.getKey(), e.getValue());
+        }
+        entries.clear();
+        entries.putAll(newEntries);
+        return this;
+    }
+
+    /**
+     * Inserts an entry after the specified existing key.
+     *
+     * @param key the key to insert
+     * @param value the value
+     * @param afterKey the key to insert after
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode insertAfter(@NotNull String key, @NotNull YamlNode value, @NotNull String afterKey) {
+        return insertAfter(new MapEntry(key, value), afterKey);
+    }
+
+    /**
+     * Inserts an entry after the specified existing key.
+     *
+     * @param entry the entry to insert
+     * @param afterKey the key to insert after
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode insertAfter(@NotNull MapEntry entry, @NotNull String afterKey) {
+        if (!entries.containsKey(afterKey)) {
+            return putEntry(entry);
+        }
+        LinkedHashMap<String, MapEntry> newEntries = new LinkedHashMap<>();
+        for (Map.Entry<String, MapEntry> e : entries.entrySet()) {
+            newEntries.put(e.getKey(), e.getValue());
+            if (e.getKey().equals(afterKey)) {
+                newEntries.put(entry.getKey(), entry);
+            }
+        }
+        entries.clear();
+        entries.putAll(newEntries);
+        return this;
+    }
+
+    /**
+     * Renames a key while preserving the entry's position and metadata.
+     *
+     * @param oldKey the current key name
+     * @param newKey the new key name
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode renameKey(@NotNull String oldKey, @NotNull String newKey) {
+        if (!entries.containsKey(oldKey) || oldKey.equals(newKey)) {
+            return this;
+        }
+        LinkedHashMap<String, MapEntry> newEntries = new LinkedHashMap<>();
+        for (Map.Entry<String, MapEntry> e : entries.entrySet()) {
+            if (e.getKey().equals(oldKey)) {
+                MapEntry entry = e.getValue();
+                entry.setKey(newKey);
+                newEntries.put(newKey, entry);
+            } else {
+                newEntries.put(e.getKey(), e.getValue());
+            }
+        }
+        entries.clear();
+        entries.putAll(newEntries);
+        return this;
+    }
+
+    /**
+     * Adds a trailing comment at the end of this map.
+     *
+     * @param comment the comment text (without #)
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode addTrailingComment(@NotNull String comment) {
+        trailingComments.add(comment);
+        return this;
+    }
+
+    /**
+     * Sets all trailing comments, replacing existing ones.
+     *
+     * @param comments the comment texts (without #)
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode setTrailingComments(@NotNull String... comments) {
+        trailingComments.clear();
+        trailingComments.addAll(Arrays.asList(comments));
+        return this;
+    }
+
+    /**
+     * Clears all trailing comments.
+     *
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode clearTrailingComments() {
+        trailingComments.clear();
+        return this;
+    }
+
+    /**
      * Removes an entry by key.
      *
      * @param key the key to remove
@@ -325,6 +518,8 @@ public class MapNode extends AbstractYamlNode {
     public YamlNode copy() {
         MapNode copy = new MapNode(metadata.copy());
         copy.style = this.style;
+        copy.multiLineFlow = this.multiLineFlow;
+        copy.flowIndent = this.flowIndent;
         for (MapEntry entry : entries.values()) {
             copy.putEntry(entry.copy());
         }
@@ -343,7 +538,7 @@ public class MapNode extends AbstractYamlNode {
         }
 
         if (style == CollectionStyle.FLOW) {
-            sb.append(toFlowYaml());
+            sb.append(toFlowYaml(indent, currentLevel));
             sb.append(buildInlineComment());
         } else {
             sb.append(toBlockYaml(indent, currentLevel));
@@ -352,20 +547,50 @@ public class MapNode extends AbstractYamlNode {
         return sb.toString();
     }
 
-    private @NotNull String toFlowYaml() {
+    @NotNull
+    String toYamlWithoutAnchor(int indent, int currentLevel) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(buildCommentPrefix(indent, currentLevel));
+
+        if (style == CollectionStyle.FLOW) {
+            sb.append(toFlowYaml(indent, currentLevel));
+            sb.append(buildInlineComment());
+        } else {
+            sb.append(toBlockYaml(indent, currentLevel));
+        }
+
+        return sb.toString();
+    }
+
+    private @NotNull String toFlowYaml(int indent, int currentLevel) {
+        if (multiLineFlow) {
+            return toMultiLineFlowYaml(indent, currentLevel);
+        }
         StringBuilder sb = new StringBuilder("{");
         boolean first = true;
         for (MapEntry entry : entries.values()) {
             if (!first) sb.append(", ");
             first = false;
             sb.append(entry.formatKey()).append(": ");
-            if (entry.getValue() instanceof ScalarNode) {
-                sb.append(entry.getValue().toYaml(2, 0));
-            } else {
-                sb.append(entry.getValue().toYaml(2, 0));
-            }
+            sb.append(entry.getValue().toYaml(2, 0));
         }
         sb.append("}");
+        return sb.toString();
+    }
+
+    private @NotNull String toMultiLineFlowYaml(int indent, int currentLevel) {
+        StringBuilder sb = new StringBuilder("{\n");
+        int parentLevel = Math.max(0, currentLevel - 1);
+        String entryIndent = " ".repeat(indent * parentLevel + indent);
+        String closingIndent = " ".repeat(indent * parentLevel);
+        boolean first = true;
+        for (MapEntry entry : entries.values()) {
+            if (!first) sb.append(",\n");
+            first = false;
+            sb.append(entryIndent).append(entry.formatKey()).append(": ");
+            sb.append(entry.getValue().toYaml(indent, currentLevel));
+        }
+        sb.append("\n").append(closingIndent).append("}");
         return sb.toString();
     }
 
@@ -380,9 +605,7 @@ public class MapNode extends AbstractYamlNode {
             }
             first = false;
 
-            for (int i = 0; i < entry.getEmptyLinesBefore(); i++) {
-                sb.append("\n");
-            }
+            sb.append("\n".repeat(Math.max(0, entry.getEmptyLinesBefore())));
 
             for (String comment : entry.getCommentsBefore()) {
                 sb.append(indentStr).append("#").append(comment).append("\n");
@@ -391,11 +614,28 @@ public class MapNode extends AbstractYamlNode {
             sb.append(indentStr).append(entry.formatKey()).append(":");
 
             YamlNode value = entry.getValue();
-            if (value instanceof MapNode || value instanceof ListNode) {
+            if (value instanceof MapNode mapValue && mapValue.getStyle() == CollectionStyle.FLOW) {
+                sb.append(" ");
+                if (entry.getInlineComment() != null) {
+                    sb.append("#").append(entry.getInlineComment()).append("\n").append(indentStr);
+                }
+                sb.append(value.toYaml(indent, currentLevel + 1));
+            } else if (value instanceof ListNode listValue && listValue.getStyle() == CollectionStyle.FLOW) {
+                sb.append(" ");
+                if (entry.getInlineComment() != null) {
+                    sb.append("#").append(entry.getInlineComment()).append("\n").append(indentStr);
+                }
+                sb.append(value.toYaml(indent, currentLevel + 1));
+            } else if (value instanceof MapNode || value instanceof ListNode) {
+                if (value.getMetadata().hasAnchor()) {
+                    sb.append(" &").append(value.getMetadata().getAnchor());
+                }
                 if (entry.getInlineComment() != null) {
                     sb.append(" #").append(entry.getInlineComment());
                 }
-                sb.append(value.toYaml(indent, currentLevel + 1));
+                sb.append(((value instanceof MapNode)
+                    ? ((MapNode) value).toYamlWithoutAnchor(indent, currentLevel + 1)
+                    : ((ListNode) value).toYamlWithoutAnchor(indent, currentLevel + 1)));
             } else {
                 sb.append(" ").append(value.toYaml(indent, currentLevel + 1));
                 if (entry.getInlineComment() != null) {
@@ -403,6 +643,8 @@ public class MapNode extends AbstractYamlNode {
                 }
             }
         }
+
+        sb.append(buildTrailingComments(indent, currentLevel));
 
         return sb.toString();
     }
@@ -501,25 +743,23 @@ public class MapNode extends AbstractYamlNode {
 
         @NotNull
         public String formatKey() {
-            switch (keyStyle) {
-                case SINGLE_QUOTED:
-                    return "'" + key.replace("'", "''") + "'";
-                case DOUBLE_QUOTED:
-                    return "\"" + key.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
-                default:
+            return switch (keyStyle) {
+                case SINGLE_QUOTED -> "'" + key.replace("'", "''") + "'";
+                case DOUBLE_QUOTED -> "\"" + key.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+                default -> {
                     if (needsQuoting(key)) {
-                        return "\"" + key.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+                        yield "\"" + key.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
                     }
-                    return key;
-            }
+                    yield key;
+                }
+            };
         }
 
         private boolean needsQuoting(@NotNull String str) {
             if (str.isEmpty()) return true;
             if (str.contains(": ") || str.contains(" #") || str.contains("\n")) return true;
             if (str.startsWith("&") || str.startsWith("*") || str.startsWith("!")) return true;
-            if (str.startsWith("-") || str.startsWith("[") || str.startsWith("{")) return true;
-            return false;
+            return str.startsWith("-") || str.startsWith("[") || str.startsWith("{");
         }
 
         @NotNull

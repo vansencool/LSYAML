@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
  * Metadata associated with a YAML node.
  * Contains position information, formatting details, and style preferences.
  */
+@SuppressWarnings("unused")
 public class NodeMetadata {
 
     private int line;

@@ -9,6 +9,7 @@ import java.util.List;
  * Represents a parsing issue with detailed location and context information.
  * Used by strict mode to provide comprehensive error reporting.
  */
+@SuppressWarnings("unused")
 public final class ParseIssue {
 
     /**
@@ -83,10 +84,9 @@ public final class ParseIssue {
                 before = List.of(java.util.Arrays.copyOfRange(lines, startBefore, endBefore));
             }
 
-            int startAfter = line;
             int endAfter = Math.min(lines.length, line + 2);
-            if (startAfter < endAfter) {
-                after = List.of(java.util.Arrays.copyOfRange(lines, startAfter, endAfter));
+            if (line < endAfter) {
+                after = List.of(java.util.Arrays.copyOfRange(lines, line, endAfter));
             }
         }
 

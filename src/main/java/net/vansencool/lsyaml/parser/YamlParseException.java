@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Exception thrown when YAML parsing fails.
  */
+@SuppressWarnings("unused")
 public class YamlParseException extends RuntimeException {
 
     private final int line;

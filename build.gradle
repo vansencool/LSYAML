@@ -33,8 +33,15 @@ task benchmark(type: JavaExec) {
 }
 
 java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
     withSourcesJar()
     withJavadocJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
 }
 
 publishing {

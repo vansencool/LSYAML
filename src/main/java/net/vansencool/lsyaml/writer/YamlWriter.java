@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * YAML writer with configurable formatting options.
  */
+@SuppressWarnings("unused")
 public class YamlWriter {
 
     private int indentSize;
@@ -89,7 +90,7 @@ public class YamlWriter {
         } else if (node instanceof ListNode) {
             writeList(sb, (ListNode) node, level, isRoot);
         } else if (node instanceof ScalarNode) {
-            writeScalar(sb, (ScalarNode) node, level);
+            writeScalar(sb, (ScalarNode) node);
         }
     }
 
@@ -97,14 +98,12 @@ public class YamlWriter {
         String indent = " ".repeat(indentSize * level);
 
         if (preserveEmptyLines && map.getEmptyLinesBefore() > 0 && !isRoot) {
-            for (int i = 0; i < map.getEmptyLinesBefore(); i++) {
-                sb.append("\n");
-            }
+            sb.append("\n".repeat(Math.max(0, map.getEmptyLinesBefore())));
         }
 
         if (preserveComments) {
             for (String comment : map.getCommentsBefore()) {
-                if (!isRoot || sb.length() > 0) {
+                if (!isRoot || !sb.isEmpty()) {
                     sb.append(indent);
                 }
                 sb.append("#").append(comment).append("\n");
@@ -131,9 +130,7 @@ public class YamlWriter {
             first = false;
 
             if (preserveEmptyLines && entry.getEmptyLinesBefore() > 0) {
-                for (int i = 0; i < entry.getEmptyLinesBefore(); i++) {
-                    sb.append("\n");
-                }
+                sb.append("\n".repeat(Math.max(0, entry.getEmptyLinesBefore())));
             }
 
             if (preserveComments) {
@@ -177,9 +174,7 @@ public class YamlWriter {
         String indent = " ".repeat(indentSize * level);
 
         if (preserveEmptyLines && list.getEmptyLinesBefore() > 0 && !isRoot) {
-            for (int i = 0; i < list.getEmptyLinesBefore(); i++) {
-                sb.append("\n");
-            }
+            sb.append("\n".repeat(Math.max(0, list.getEmptyLinesBefore())));
         }
 
         if (preserveComments) {
@@ -204,9 +199,7 @@ public class YamlWriter {
             sb.append("\n");
 
             if (preserveEmptyLines && entry.getEmptyLinesBefore() > 0) {
-                for (int i = 0; i < entry.getEmptyLinesBefore(); i++) {
-                    sb.append("\n");
-                }
+                sb.append("\n".repeat(Math.max(0, entry.getEmptyLinesBefore())));
             }
 
             if (preserveComments) {
@@ -245,7 +238,7 @@ public class YamlWriter {
         sb.append("]");
     }
 
-    private void writeScalar(@NotNull StringBuilder sb, @NotNull ScalarNode scalar, int level) {
+    private void writeScalar(@NotNull StringBuilder sb, @NotNull ScalarNode scalar) {
         if (scalar.getMetadata().isAlias()) {
             sb.append("*").append(scalar.getMetadata().getAlias());
             return;
@@ -285,17 +278,16 @@ public class YamlWriter {
             return key;
         }
 
-        switch (style) {
-            case SINGLE_QUOTED:
-                return "'" + key.replace("'", "''") + "'";
-            case DOUBLE_QUOTED:
-                return "\"" + escapeDoubleQuoted(key) + "\"";
-            default:
+        return switch (style) {
+            case SINGLE_QUOTED -> "'" + key.replace("'", "''") + "'";
+            case DOUBLE_QUOTED -> "\"" + escapeDoubleQuoted(key) + "\"";
+            default -> {
                 if (needsQuoting(key)) {
-                    return "\"" + escapeDoubleQuoted(key) + "\"";
+                    yield "\"" + escapeDoubleQuoted(key) + "\"";
                 }
-                return key;
-        }
+                yield key;
+            }
+        };
     }
 
     @NotNull
@@ -309,22 +301,18 @@ public class YamlWriter {
         String strValue = value.toString();
         ScalarStyle style = preserveQuoteStyles ? scalar.getStyle() : ScalarStyle.PLAIN;
 
-        switch (style) {
-            case SINGLE_QUOTED:
-                return "'" + strValue.replace("'", "''") + "'";
-            case DOUBLE_QUOTED:
-                return "\"" + escapeDoubleQuoted(strValue) + "\"";
-            case LITERAL:
-                return formatLiteralBlock(strValue);
-            case FOLDED:
-                return formatFoldedBlock(strValue);
-            case PLAIN:
-            default:
+        return switch (style) {
+            case SINGLE_QUOTED -> "'" + strValue.replace("'", "''") + "'";
+            case DOUBLE_QUOTED -> "\"" + escapeDoubleQuoted(strValue) + "\"";
+            case LITERAL -> formatLiteralBlock(strValue);
+            case FOLDED -> formatFoldedBlock(strValue);
+            default -> {
                 if (needsQuoting(strValue) && !(value instanceof Number) && !(value instanceof Boolean)) {
-                    return "\"" + escapeDoubleQuoted(strValue) + "\"";
+                    yield "\"" + escapeDoubleQuoted(strValue) + "\"";
                 }
-                return strValue;
-        }
+                yield strValue;
+            }
+        };
     }
 
     @NotNull

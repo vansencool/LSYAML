@@ -4,14 +4,13 @@ import net.vansencool.lsyaml.node.YamlNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
  * Result of parsing YAML with detailed issue reporting.
  * Provides access to the parsed node and any issues encountered.
  */
+@SuppressWarnings("unused")
 public final class ParseResult {
 
     private final YamlNode node;
@@ -20,7 +19,7 @@ public final class ParseResult {
 
     private ParseResult(@Nullable YamlNode node, @NotNull List<ParseIssue> issues, boolean success) {
         this.node = node;
-        this.issues = Collections.unmodifiableList(new ArrayList<>(issues));
+        this.issues = List.copyOf(issues);
         this.success = success;
     }
 

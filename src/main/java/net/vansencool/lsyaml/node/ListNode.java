@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -13,27 +14,36 @@ import java.util.List;
  * Represents a YAML sequence (list).
  * Preserves order and all formatting metadata.
  */
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
 
     private final @NotNull List<ListEntry> entries;
     private @NotNull CollectionStyle style;
+    private boolean multiLineFlow;
+    private int flowIndent;
 
     public ListNode() {
         super();
         this.entries = new ArrayList<>();
         this.style = CollectionStyle.BLOCK;
+        this.multiLineFlow = false;
+        this.flowIndent = 2;
     }
 
     public ListNode(@NotNull CollectionStyle style) {
         super();
         this.entries = new ArrayList<>();
         this.style = style;
+        this.multiLineFlow = false;
+        this.flowIndent = 2;
     }
 
     public ListNode(@NotNull NodeMetadata metadata) {
         super(metadata);
         this.entries = new ArrayList<>();
         this.style = CollectionStyle.BLOCK;
+        this.multiLineFlow = false;
+        this.flowIndent = 2;
     }
 
     @Override
@@ -59,6 +69,42 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      */
     public void setStyle(@NotNull CollectionStyle style) {
         this.style = style;
+    }
+
+    /**
+     * Returns whether this flow-style list should be formatted across multiple lines.
+     *
+     * @return true if multi-line flow
+     */
+    public boolean isMultiLineFlow() {
+        return multiLineFlow;
+    }
+
+    /**
+     * Sets whether this flow-style list should be formatted across multiple lines.
+     *
+     * @param multiLineFlow true to use multi-line formatting
+     */
+    public void setMultiLineFlow(boolean multiLineFlow) {
+        this.multiLineFlow = multiLineFlow;
+    }
+
+    /**
+     * Returns the indentation for multi-line flow content.
+     *
+     * @return the flow indent
+     */
+    public int getFlowIndent() {
+        return flowIndent;
+    }
+
+    /**
+     * Sets the indentation for multi-line flow content.
+     *
+     * @param flowIndent the indent to use
+     */
+    public void setFlowIndent(int flowIndent) {
+        this.flowIndent = flowIndent;
     }
 
     /**
@@ -216,6 +262,80 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
     }
 
     /**
+     * Gets a fluent modifier for an entry at the given index.
+     *
+     * @param index the index to modify
+     * @return a list entry modifier for fluent configuration
+     * @throws IndexOutOfBoundsException if index is invalid
+     */
+    @NotNull
+    public ListEntryModifier modify(int index) {
+        return new ListEntryModifier(this, index);
+    }
+
+    /**
+     * Adds a value with a comment before it.
+     *
+     * @param value the value to add
+     * @param commentBefore the comment text (without #)
+     * @return this list for chaining
+     */
+    @NotNull
+    public ListNode addWithComment(@NotNull YamlNode value, @NotNull String commentBefore) {
+        ListEntry entry = new ListEntry(value);
+        entry.addCommentBefore(commentBefore);
+        return addEntry(entry);
+    }
+
+    /**
+     * Adds a string value with a comment before it.
+     *
+     * @param value the string value
+     * @param commentBefore the comment text (without #)
+     * @return this list for chaining
+     */
+    @NotNull
+    public ListNode addWithComment(@NotNull String value, @NotNull String commentBefore) {
+        return addWithComment(new ScalarNode(value), commentBefore);
+    }
+
+    /**
+     * Adds a trailing comment at the end of this list.
+     *
+     * @param comment the comment text (without #)
+     * @return this list for chaining
+     */
+    @NotNull
+    public ListNode addTrailingComment(@NotNull String comment) {
+        trailingComments.add(comment);
+        return this;
+    }
+
+    /**
+     * Sets all trailing comments, replacing existing ones.
+     *
+     * @param comments the comment texts (without #)
+     * @return this list for chaining
+     */
+    @NotNull
+    public ListNode setTrailingComments(@NotNull String... comments) {
+        trailingComments.clear();
+        trailingComments.addAll(Arrays.asList(comments));
+        return this;
+    }
+
+    /**
+     * Clears all trailing comments.
+     *
+     * @return this list for chaining
+     */
+    @NotNull
+    public ListNode clearTrailingComments() {
+        trailingComments.clear();
+        return this;
+    }
+
+    /**
      * Inserts a value at the given index.
      *
      * @param index the index
@@ -270,6 +390,8 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
     public YamlNode copy() {
         ListNode copy = new ListNode(metadata.copy());
         copy.style = this.style;
+        copy.multiLineFlow = this.multiLineFlow;
+        copy.flowIndent = this.flowIndent;
         for (ListEntry entry : entries) {
             copy.addEntry(entry.copy());
         }
@@ -288,7 +410,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
         }
 
         if (style == CollectionStyle.FLOW) {
-            sb.append(toFlowYaml());
+            sb.append(toFlowYaml(indent, currentLevel));
             sb.append(buildInlineComment());
         } else {
             sb.append(toBlockYaml(indent, currentLevel));
@@ -297,7 +419,25 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
         return sb.toString();
     }
 
-    private @NotNull String toFlowYaml() {
+    @NotNull
+    String toYamlWithoutAnchor(int indent, int currentLevel) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(buildCommentPrefix(indent, currentLevel));
+
+        if (style == CollectionStyle.FLOW) {
+            sb.append(toFlowYaml(indent, currentLevel));
+            sb.append(buildInlineComment());
+        } else {
+            sb.append(toBlockYaml(indent, currentLevel));
+        }
+
+        return sb.toString();
+    }
+
+    private @NotNull String toFlowYaml(int indent, int currentLevel) {
+        if (multiLineFlow) {
+            return toMultiLineFlowYaml(indent, currentLevel);
+        }
         StringBuilder sb = new StringBuilder("[");
         boolean first = true;
         for (ListEntry entry : entries) {
@@ -309,6 +449,21 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
         return sb.toString();
     }
 
+    private @NotNull String toMultiLineFlowYaml(int indent, int currentLevel) {
+        StringBuilder sb = new StringBuilder("[\n");
+        int parentLevel = Math.max(0, currentLevel - 1);
+        String entryIndent = " ".repeat(indent * parentLevel + indent);
+        String closingIndent = " ".repeat(indent * parentLevel);
+        boolean first = true;
+        for (ListEntry entry : entries) {
+            if (!first) sb.append(",\n");
+            first = false;
+            sb.append(entryIndent).append(entry.getValue().toYaml(indent, currentLevel));
+        }
+        sb.append("\n").append(closingIndent).append("]");
+        return sb.toString();
+    }
+
     private @NotNull String toBlockYaml(int indent, int currentLevel) {
         StringBuilder sb = new StringBuilder();
         String indentStr = " ".repeat(indent * currentLevel);
@@ -316,9 +471,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
         for (ListEntry entry : entries) {
             sb.append("\n");
 
-            for (int i = 0; i < entry.getEmptyLinesBefore(); i++) {
-                sb.append("\n");
-            }
+            sb.append("\n".repeat(Math.max(0, entry.getEmptyLinesBefore())));
 
             for (String comment : entry.getCommentsBefore()) {
                 sb.append(indentStr).append("#").append(comment).append("\n");
@@ -328,10 +481,15 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
 
             YamlNode value = entry.getValue();
             if (value instanceof MapNode || value instanceof ListNode) {
+                if (value.getMetadata().hasAnchor()) {
+                    sb.append(" &").append(value.getMetadata().getAnchor());
+                }
                 if (entry.getInlineComment() != null) {
                     sb.append(" #").append(entry.getInlineComment());
                 }
-                String nested = value.toYaml(indent, currentLevel + 1);
+                String nested = (value instanceof MapNode) 
+                    ? ((MapNode) value).toYamlWithoutAnchor(indent, currentLevel + 1)
+                    : ((ListNode) value).toYamlWithoutAnchor(indent, currentLevel + 1);
                 if (nested.startsWith("\n")) {
                     sb.append(nested);
                 } else {
@@ -344,6 +502,8 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
                 }
             }
         }
+
+        sb.append(buildTrailingComments(indent, currentLevel));
 
         return sb.toString();
     }

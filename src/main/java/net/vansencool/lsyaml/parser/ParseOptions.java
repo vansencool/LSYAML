@@ -5,12 +5,13 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Options for configuring YAML parsing behavior.
  */
+@SuppressWarnings("unused")
 public final class ParseOptions {
 
     private static final ParseOptions DEFAULT = new ParseOptions(true);
     private static final ParseOptions LENIENT = new ParseOptions(false);
 
-    private boolean strict;
+    private final boolean strict;
 
     private ParseOptions(boolean strict) {
         this.strict = strict;

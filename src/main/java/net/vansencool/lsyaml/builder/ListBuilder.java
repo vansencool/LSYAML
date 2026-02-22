@@ -14,11 +14,12 @@ import java.util.List;
 /**
  * Builder for creating ListNode instances with fluent API.
  */
+@SuppressWarnings("unused")
 public class ListBuilder {
 
     private final @NotNull List<ItemBuilder> items;
     private @NotNull CollectionStyle style;
-    private @NotNull List<String> commentsBefore;
+    private final @NotNull List<String> commentsBefore;
     private @Nullable String inlineComment;
     private int emptyLinesBefore;
     private @Nullable String anchor;
@@ -273,7 +274,7 @@ public class ListBuilder {
     public class ItemBuilder {
 
         private @Nullable YamlNode value;
-        private @NotNull List<String> commentsBefore;
+        private final @NotNull List<String> commentsBefore;
         private @Nullable String inlineComment;
         private int emptyLinesBefore;
 

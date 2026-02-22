@@ -10,6 +10,7 @@ import java.util.List;
  * Base interface for all YAML nodes.
  * Every element in a YAML document implements this interface.
  */
+@SuppressWarnings("unused")
 public interface YamlNode {
 
     /**

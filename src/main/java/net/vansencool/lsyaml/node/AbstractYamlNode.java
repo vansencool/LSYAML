@@ -10,25 +10,32 @@ import java.util.List;
 /**
  * Abstract base class for YAML nodes providing common functionality.
  */
+@SuppressWarnings("unused")
 public abstract class AbstractYamlNode implements YamlNode {
 
     protected @NotNull NodeMetadata metadata;
     protected @NotNull List<String> commentsBefore;
+    protected @NotNull List<String> trailingComments;
     protected @Nullable String inlineComment;
     protected int emptyLinesBefore;
+    protected int trailingEmptyLines;
 
     protected AbstractYamlNode() {
         this.metadata = new NodeMetadata();
         this.commentsBefore = new ArrayList<>();
+        this.trailingComments = new ArrayList<>();
         this.inlineComment = null;
         this.emptyLinesBefore = 0;
+        this.trailingEmptyLines = 0;
     }
 
     protected AbstractYamlNode(@NotNull NodeMetadata metadata) {
         this.metadata = metadata;
         this.commentsBefore = new ArrayList<>();
+        this.trailingComments = new ArrayList<>();
         this.inlineComment = null;
         this.emptyLinesBefore = 0;
+        this.trailingEmptyLines = 0;
     }
 
     @Override
@@ -79,6 +86,23 @@ public abstract class AbstractYamlNode implements YamlNode {
         this.emptyLinesBefore = Math.max(0, count);
     }
 
+    @NotNull
+    public List<String> getTrailingComments() {
+        return trailingComments;
+    }
+
+    public void setTrailingComments(@NotNull List<String> comments) {
+        this.trailingComments = new ArrayList<>(comments);
+    }
+
+    public int getTrailingEmptyLines() {
+        return trailingEmptyLines;
+    }
+
+    public void setTrailingEmptyLines(int count) {
+        this.trailingEmptyLines = Math.max(0, count);
+    }
+
     @Override
     @NotNull
     public String toYaml() {
@@ -89,9 +113,7 @@ public abstract class AbstractYamlNode implements YamlNode {
         StringBuilder sb = new StringBuilder();
         String indentStr = " ".repeat(indent * currentLevel);
 
-        for (int i = 0; i < emptyLinesBefore; i++) {
-            sb.append("\n");
-        }
+        sb.append("\n".repeat(Math.max(0, emptyLinesBefore)));
 
         for (String comment : commentsBefore) {
             sb.append(indentStr).append("#").append(comment).append("\n");
@@ -107,9 +129,25 @@ public abstract class AbstractYamlNode implements YamlNode {
         return "";
     }
 
+    protected @NotNull String buildTrailingComments(int indent, int currentLevel) {
+        if (trailingComments.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        String indentStr = " ".repeat(indent * currentLevel);
+
+        for (String comment : trailingComments) {
+            sb.append("\n").append(indentStr).append("#").append(comment);
+        }
+
+        return sb.toString();
+    }
+
     protected void copyCommentsTo(@NotNull AbstractYamlNode target) {
         target.commentsBefore = new ArrayList<>(this.commentsBefore);
+        target.trailingComments = new ArrayList<>(this.trailingComments);
         target.inlineComment = this.inlineComment;
         target.emptyLinesBefore = this.emptyLinesBefore;
+        target.trailingEmptyLines = this.trailingEmptyLines;
     }
 }

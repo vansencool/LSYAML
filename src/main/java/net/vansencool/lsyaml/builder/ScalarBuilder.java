@@ -11,11 +11,12 @@ import java.util.List;
 /**
  * Builder for creating ScalarNode instances with fluent API.
  */
+@SuppressWarnings("unused")
 public class ScalarBuilder {
 
     private @Nullable Object value;
     private @NotNull ScalarStyle style;
-    private @NotNull List<String> commentsBefore;
+    private final @NotNull List<String> commentsBefore;
     private @Nullable String inlineComment;
     private int emptyLinesBefore;
     private @Nullable String anchor;

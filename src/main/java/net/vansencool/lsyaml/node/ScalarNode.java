@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents a scalar value in YAML (string, number, boolean, null).
  */
+@SuppressWarnings({"unused", "DataFlowIssue"})
 public class ScalarNode extends AbstractYamlNode {
 
     private @Nullable Object value;
@@ -74,12 +75,42 @@ public class ScalarNode extends AbstractYamlNode {
 
     /**
      * Returns the value as a string.
+     * For folded block scalars (>), newlines are replaced with spaces.
      *
      * @return string representation, or null if value is null
      */
     @Nullable
     public String getStringValue() {
-        return value != null ? value.toString() : null;
+        if (value == null) {
+            return null;
+        }
+        String str = value.toString();
+        if (style == ScalarStyle.FOLDED) {
+            return foldString(str);
+        }
+        return str;
+    }
+
+    @NotNull
+    private String foldString(@NotNull String text) {
+        StringBuilder result = new StringBuilder();
+        String[] lines = text.split("\n", -1);
+        boolean previousWasBlank = false;
+
+        for (String line : lines) {
+            if (line.isEmpty()) {
+                result.append("\n");
+                previousWasBlank = true;
+            } else {
+                if (!result.isEmpty() && !previousWasBlank) {
+                    result.append(" ");
+                }
+                result.append(line);
+                previousWasBlank = false;
+            }
+        }
+        
+        return result.toString().trim();
     }
 
     /**
@@ -243,22 +274,18 @@ public class ScalarNode extends AbstractYamlNode {
 
         String strValue = value.toString();
 
-        switch (style) {
-            case SINGLE_QUOTED:
-                return "'" + strValue.replace("'", "''") + "'";
-            case DOUBLE_QUOTED:
-                return "\"" + escapeDoubleQuoted(strValue) + "\"";
-            case LITERAL:
-                return formatLiteralBlock(strValue);
-            case FOLDED:
-                return formatFoldedBlock(strValue);
-            case PLAIN:
-            default:
+        return switch (style) {
+            case SINGLE_QUOTED -> "'" + strValue.replace("'", "''") + "'";
+            case DOUBLE_QUOTED -> "\"" + escapeDoubleQuoted(strValue) + "\"";
+            case LITERAL -> formatLiteralBlock(strValue);
+            case FOLDED -> formatFoldedBlock(strValue);
+            default -> {
                 if (needsQuoting(strValue)) {
-                    return "\"" + escapeDoubleQuoted(strValue) + "\"";
+                    yield "\"" + escapeDoubleQuoted(strValue) + "\"";
                 }
-                return strValue;
-        }
+                yield strValue;
+            }
+        };
     }
 
     private @NotNull String escapeDoubleQuoted(@NotNull String str) {

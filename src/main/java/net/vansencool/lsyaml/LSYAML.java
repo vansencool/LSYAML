@@ -23,8 +23,7 @@ import java.nio.file.Path;
  * LSYAML - A fast, format-preserving YAML parser and generator.
  * <p>
  * This is the main entry point for the LSYAML library. It provides static methods
- * for parsing, writing, and building YAML documents while preserving all formatting,
- * comments, and metadata.
+ * for parsing, writing, and building YAML documents. The library is designed to be easy to use while also offering advanced features for handling complex YAML structures and preserving formatting.
  * </p>
  *
  * <h2>Parsing YAML</h2>
@@ -53,9 +52,10 @@ import java.nio.file.Path;
  * LSYAML.writeToFile(node, Path.of("config.yaml"));
  * }</pre>
  */
+@SuppressWarnings("unused")
 public final class LSYAML {
 
-    private static final YamlParser DEFAULT_PARSER = new YamlParser();
+    private static final ThreadLocal<YamlParser> PARSER = ThreadLocal.withInitial(YamlParser::new);
     private static final YamlWriter DEFAULT_WRITER = new YamlWriter();
 
     private LSYAML() {
@@ -69,7 +69,7 @@ public final class LSYAML {
      */
     @NotNull
     public static YamlNode parse(@NotNull String yaml) {
-        return DEFAULT_PARSER.parse(yaml);
+        return PARSER.get().parse(yaml);
     }
 
     /**
@@ -81,7 +81,7 @@ public final class LSYAML {
      */
     @NotNull
     public static YamlNode parse(@NotNull String yaml, @NotNull ParseOptions options) {
-        return DEFAULT_PARSER.parseWithOptions(yaml, options);
+        return PARSER.get().parseWithOptions(yaml, options);
     }
 
     /**
@@ -93,7 +93,7 @@ public final class LSYAML {
      */
     @NotNull
     public static ParseResult parseDetailed(@NotNull String yaml) {
-        return DEFAULT_PARSER.parseDetailed(yaml, ParseOptions.defaults());
+        return PARSER.get().parseDetailed(yaml, ParseOptions.defaults());
     }
 
     /**
@@ -105,7 +105,7 @@ public final class LSYAML {
      */
     @NotNull
     public static ParseResult parseDetailed(@NotNull String yaml, @NotNull ParseOptions options) {
-        return DEFAULT_PARSER.parseDetailed(yaml, options);
+        return PARSER.get().parseDetailed(yaml, options);
     }
 
     /**

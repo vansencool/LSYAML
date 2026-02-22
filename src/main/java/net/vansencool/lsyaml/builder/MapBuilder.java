@@ -2,7 +2,6 @@ package net.vansencool.lsyaml.builder;
 
 import net.vansencool.lsyaml.metadata.CollectionStyle;
 import net.vansencool.lsyaml.metadata.ScalarStyle;
-import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
@@ -15,11 +14,12 @@ import java.util.List;
 /**
  * Builder for creating MapNode instances with fluent API.
  */
+@SuppressWarnings("unused")
 public class MapBuilder {
 
     private final @NotNull List<EntryBuilder> entries;
     private @NotNull CollectionStyle style;
-    private @NotNull List<String> commentsBefore;
+    private final @NotNull List<String> commentsBefore;
     private @Nullable String inlineComment;
     private int emptyLinesBefore;
     private @Nullable String anchor;
@@ -286,7 +286,7 @@ public class MapBuilder {
         private @NotNull String key;
         private @Nullable YamlNode value;
         private @NotNull ScalarStyle keyStyle;
-        private @NotNull List<String> commentsBefore;
+        private final @NotNull List<String> commentsBefore;
         private @Nullable String inlineComment;
         private int emptyLinesBefore;
 
@@ -306,6 +306,24 @@ public class MapBuilder {
             this.commentsBefore = new ArrayList<>();
             this.inlineComment = null;
             this.emptyLinesBefore = 0;
+        }
+
+        /**
+         * Gets the key for this entry.
+         *
+         * @return the key
+         */
+        public @NotNull String getKey() {
+            return key;
+        }
+
+        /**
+         * Sets the key for this entry.
+         *
+         * @param key the key
+         */
+        public void setKey(@NotNull String key) {
+            this.key = key;
         }
 
         /**
