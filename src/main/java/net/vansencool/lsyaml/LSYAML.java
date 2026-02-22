@@ -3,12 +3,12 @@ package net.vansencool.lsyaml;
 import net.vansencool.lsyaml.builder.ListBuilder;
 import net.vansencool.lsyaml.builder.MapBuilder;
 import net.vansencool.lsyaml.builder.ScalarBuilder;
+import net.vansencool.lsyaml.exceptions.YamlParseException;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.YamlNode;
 import net.vansencool.lsyaml.parser.ParseOptions;
 import net.vansencool.lsyaml.parser.ParseResult;
-import net.vansencool.lsyaml.exceptions.YamlParseException;
 import net.vansencool.lsyaml.parser.YamlParser;
 import net.vansencool.lsyaml.writer.YamlWriter;
 import org.jetbrains.annotations.NotNull;
@@ -75,7 +75,7 @@ public final class LSYAML {
     /**
      * Parses a YAML string with custom options.
      *
-     * @param yaml the YAML content
+     * @param yaml    the YAML content
      * @param options parse options (use ParseOptions.lenient() to disable strict mode)
      * @return the root node
      */
@@ -99,7 +99,7 @@ public final class LSYAML {
     /**
      * Parses a YAML string and returns detailed results with custom options.
      *
-     * @param yaml the YAML content
+     * @param yaml    the YAML content
      * @param options parse options
      * @return the parse result with node and any issues
      */
@@ -285,7 +285,7 @@ public final class LSYAML {
     /**
      * Merges two maps, with values from the second map taking precedence.
      *
-     * @param base the base map
+     * @param base     the base map
      * @param override the override map
      * @return a new merged MapNode
      */

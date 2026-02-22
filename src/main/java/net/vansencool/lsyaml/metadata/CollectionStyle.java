@@ -8,8 +8,8 @@ public enum CollectionStyle {
     /**
      * Block style collection.
      * Example:
-     *   key1: value1
-     *   key2: value2
+     * key1: value1
+     * key2: value2
      */
     BLOCK,
 

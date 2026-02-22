@@ -2,7 +2,10 @@ package net.vansencool.lsyaml.writer;
 
 import net.vansencool.lsyaml.metadata.CollectionStyle;
 import net.vansencool.lsyaml.metadata.ScalarStyle;
-import net.vansencool.lsyaml.node.*;
+import net.vansencool.lsyaml.node.ListNode;
+import net.vansencool.lsyaml.node.MapNode;
+import net.vansencool.lsyaml.node.ScalarNode;
+import net.vansencool.lsyaml.node.YamlNode;
 import org.jetbrains.annotations.NotNull;
 
 /**

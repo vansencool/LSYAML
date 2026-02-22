@@ -56,14 +56,14 @@ public abstract class AbstractYamlNode implements YamlNode {
     }
 
     @Override
-    @Nullable
-    public String getInlineComment() {
-        return inlineComment;
+    public void setCommentsBefore(@NotNull List<String> comments) {
+        this.commentsBefore = new ArrayList<>(comments);
     }
 
     @Override
-    public void setCommentsBefore(@NotNull List<String> comments) {
-        this.commentsBefore = new ArrayList<>(comments);
+    @Nullable
+    public String getInlineComment() {
+        return inlineComment;
     }
 
     @Override

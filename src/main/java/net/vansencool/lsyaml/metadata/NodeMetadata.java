@@ -140,15 +140,6 @@ public class NodeMetadata {
     }
 
     /**
-     * Sets the alias name.
-     *
-     * @param alias the alias name
-     */
-    public void setAlias(@Nullable String alias) {
-        this.alias = alias;
-    }
-
-    /**
      * Checks if this node has an anchor.
      *
      * @return true if an anchor is defined
@@ -164,6 +155,15 @@ public class NodeMetadata {
      */
     public boolean isAlias() {
         return alias != null && !alias.isEmpty();
+    }
+
+    /**
+     * Sets the alias name.
+     *
+     * @param alias the alias name
+     */
+    public void setAlias(@Nullable String alias) {
+        this.alias = alias;
     }
 
     /**

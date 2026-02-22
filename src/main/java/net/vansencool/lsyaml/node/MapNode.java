@@ -8,7 +8,13 @@ import net.vansencool.lsyaml.node.type.NodeType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Represents a YAML mapping (key-value pairs).
@@ -203,7 +209,7 @@ public class MapNode extends AbstractYamlNode {
     /**
      * Gets an integer value for a key.
      *
-     * @param key the key
+     * @param key          the key
      * @param defaultValue default if not found
      * @return the integer value
      */
@@ -222,7 +228,7 @@ public class MapNode extends AbstractYamlNode {
     /**
      * Gets a boolean value for a key.
      *
-     * @param key the key
+     * @param key          the key
      * @param defaultValue default if not found
      * @return the boolean value
      */
@@ -268,7 +274,7 @@ public class MapNode extends AbstractYamlNode {
      * Puts a value with the given key.
      * If the key already exists, the entry's comments and metadata are preserved.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the value node
      * @return this map for chaining
      */
@@ -286,7 +292,7 @@ public class MapNode extends AbstractYamlNode {
     /**
      * Puts a string value.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the string value
      * @return this map for chaining
      */
@@ -298,7 +304,7 @@ public class MapNode extends AbstractYamlNode {
     /**
      * Puts an integer value.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the integer value
      * @return this map for chaining
      */
@@ -310,7 +316,7 @@ public class MapNode extends AbstractYamlNode {
     /**
      * Puts a long value.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the long value
      * @return this map for chaining
      */
@@ -322,7 +328,7 @@ public class MapNode extends AbstractYamlNode {
     /**
      * Puts a double value.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the double value
      * @return this map for chaining
      */
@@ -334,7 +340,7 @@ public class MapNode extends AbstractYamlNode {
     /**
      * Puts a boolean value.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the boolean value
      * @return this map for chaining
      */
@@ -369,8 +375,8 @@ public class MapNode extends AbstractYamlNode {
     /**
      * Inserts an entry before the specified existing key.
      *
-     * @param key the key to insert
-     * @param value the value
+     * @param key       the key to insert
+     * @param value     the value
      * @param beforeKey the key to insert before
      * @return this map for chaining
      */
@@ -382,7 +388,7 @@ public class MapNode extends AbstractYamlNode {
     /**
      * Inserts an entry before the specified existing key.
      *
-     * @param entry the entry to insert
+     * @param entry     the entry to insert
      * @param beforeKey the key to insert before
      * @return this map for chaining
      */
@@ -406,8 +412,8 @@ public class MapNode extends AbstractYamlNode {
     /**
      * Inserts an entry after the specified existing key.
      *
-     * @param key the key to insert
-     * @param value the value
+     * @param key      the key to insert
+     * @param value    the value
      * @param afterKey the key to insert after
      * @return this map for chaining
      */
@@ -419,7 +425,7 @@ public class MapNode extends AbstractYamlNode {
     /**
      * Inserts an entry after the specified existing key.
      *
-     * @param entry the entry to insert
+     * @param entry    the entry to insert
      * @param afterKey the key to insert after
      * @return this map for chaining
      */
@@ -643,8 +649,8 @@ public class MapNode extends AbstractYamlNode {
                     sb.append(" #").append(entry.getInlineComment());
                 }
                 sb.append(((value instanceof MapNode)
-                    ? ((MapNode) value).toYamlWithoutAnchor(indent, currentLevel + 1)
-                    : ((ListNode) value).toYamlWithoutAnchor(indent, currentLevel + 1)));
+                        ? ((MapNode) value).toYamlWithoutAnchor(indent, currentLevel + 1)
+                        : ((ListNode) value).toYamlWithoutAnchor(indent, currentLevel + 1)));
             } else {
                 sb.append(" ").append(value.toYaml(indent, currentLevel + 1));
                 if (entry.getInlineComment() != null) {

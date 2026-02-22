@@ -110,7 +110,7 @@ public class ScalarNode extends AbstractYamlNode {
                 previousWasBlank = false;
             }
         }
-        
+
         return result.toString().trim();
     }
 

@@ -38,7 +38,7 @@ public final class ParseResult {
     /**
      * Creates a successful result with warnings.
      *
-     * @param node the parsed node
+     * @param node     the parsed node
      * @param warnings the warnings encountered
      * @return the result
      */
@@ -61,7 +61,7 @@ public final class ParseResult {
     /**
      * Creates a result with node and issues.
      *
-     * @param node the parsed node (may be partial)
+     * @param node   the parsed node (may be partial)
      * @param issues all issues encountered
      * @return the result
      */
@@ -179,7 +179,7 @@ public final class ParseResult {
 
         StringBuilder sb = new StringBuilder();
         sb.append(getErrorCount()).append(" error(s), ")
-          .append(getWarningCount()).append(" warning(s)\n");
+                .append(getWarningCount()).append(" warning(s)\n");
 
         for (ParseIssue issue : issues) {
             sb.append(issue.format());

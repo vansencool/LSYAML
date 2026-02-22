@@ -18,8 +18,8 @@ import java.util.List;
 public class MapBuilder {
 
     private final @NotNull List<EntryBuilder> entries;
-    private @NotNull CollectionStyle style;
     private final @NotNull List<String> commentsBefore;
+    private @NotNull CollectionStyle style;
     private @Nullable String inlineComment;
     private int emptyLinesBefore;
     private @Nullable String anchor;
@@ -151,7 +151,7 @@ public class MapBuilder {
     /**
      * Adds a string value entry.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the value
      * @return this builder
      */
@@ -164,7 +164,7 @@ public class MapBuilder {
     /**
      * Adds an integer value entry.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the value
      * @return this builder
      */
@@ -177,7 +177,7 @@ public class MapBuilder {
     /**
      * Adds a long value entry.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the value
      * @return this builder
      */
@@ -190,7 +190,7 @@ public class MapBuilder {
     /**
      * Adds a double value entry.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the value
      * @return this builder
      */
@@ -203,7 +203,7 @@ public class MapBuilder {
     /**
      * Adds a boolean value entry.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the value
      * @return this builder
      */
@@ -216,7 +216,7 @@ public class MapBuilder {
     /**
      * Adds a node value entry.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the value node
      * @return this builder
      */
@@ -229,7 +229,7 @@ public class MapBuilder {
     /**
      * Adds a nested map entry.
      *
-     * @param key the key
+     * @param key     the key
      * @param builder the map builder
      * @return this builder
      */
@@ -242,7 +242,7 @@ public class MapBuilder {
     /**
      * Adds a nested list entry.
      *
-     * @param key the key
+     * @param key     the key
      * @param builder the list builder
      * @return this builder
      */
@@ -255,7 +255,7 @@ public class MapBuilder {
     /**
      * Adds a scalar entry with specific style and optional comment.
      *
-     * @param key the key
+     * @param key   the key
      * @param value the value
      * @param style the scalar style
      * @return this builder
@@ -365,10 +365,10 @@ public class MapBuilder {
      */
     public class EntryBuilder {
 
+        private final @NotNull List<String> commentsBefore;
         private @NotNull String key;
         private @Nullable YamlNode value;
         private @NotNull ScalarStyle keyStyle;
-        private final @NotNull List<String> commentsBefore;
         private @Nullable String inlineComment;
         private int emptyLinesBefore;
 

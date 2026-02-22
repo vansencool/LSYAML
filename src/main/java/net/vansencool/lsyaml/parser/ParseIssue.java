@@ -12,14 +12,6 @@ import java.util.List;
 @SuppressWarnings("unused")
 public final class ParseIssue {
 
-    /**
-     * Severity level of the issue.
-     */
-    public enum Severity {
-        ERROR,
-        WARNING
-    }
-
     private final Severity severity;
     private final String message;
     private final int line;
@@ -27,7 +19,6 @@ public final class ParseIssue {
     private final String lineContent;
     private final List<String> contextBefore;
     private final List<String> contextAfter;
-
     private ParseIssue(@NotNull Severity severity, @NotNull String message, int line, int column,
                        @Nullable String lineContent, @NotNull List<String> contextBefore,
                        @NotNull List<String> contextAfter) {
@@ -44,9 +35,9 @@ public final class ParseIssue {
      * Creates an error issue.
      *
      * @param message the error message
-     * @param line the line number (1-based)
-     * @param column the column number (1-based)
-     * @param lines all lines of the document
+     * @param line    the line number (1-based)
+     * @param column  the column number (1-based)
+     * @param lines   all lines of the document
      * @return the issue
      */
     @NotNull
@@ -58,9 +49,9 @@ public final class ParseIssue {
      * Creates a warning issue.
      *
      * @param message the warning message
-     * @param line the line number (1-based)
-     * @param column the column number (1-based)
-     * @param lines all lines of the document
+     * @param line    the line number (1-based)
+     * @param column  the column number (1-based)
+     * @param lines   all lines of the document
      * @return the issue
      */
     @NotNull
@@ -179,8 +170,8 @@ public final class ParseIssue {
         if (column > 0) {
             sb.append(", column ").append(column);
         }
-        sb.append(" ".repeat(Math.max(0, 70 - label.length() - String.valueOf(line).length() - 
-                   String.valueOf(column).length() - 22))).append(" |\n");
+        sb.append(" ".repeat(Math.max(0, 70 - label.length() - String.valueOf(line).length() -
+                String.valueOf(column).length() - 22))).append(" |\n");
         sb.append("+-").append("-".repeat(70)).append("-+\n");
         sb.append("| ").append(message);
         sb.append(" ".repeat(Math.max(0, 70 - message.length()))).append(" |\n");
@@ -193,12 +184,12 @@ public final class ParseIssue {
             for (int i = 0; i < contextBefore.size(); i++) {
                 int lineNum = startLine + i;
                 sb.append("|   ").append(String.format("%4d", lineNum)).append(" | ")
-                  .append(contextBefore.get(i)).append("\n");
+                        .append(contextBefore.get(i)).append("\n");
             }
 
             if (lineContent != null) {
                 sb.append("| > ").append(String.format("%4d", line)).append(" | ")
-                  .append(lineContent).append("\n");
+                        .append(lineContent).append("\n");
 
                 if (column > 0) {
                     sb.append("|        ").append(" ".repeat(column - 1)).append("^");
@@ -212,7 +203,7 @@ public final class ParseIssue {
             for (int i = 0; i < contextAfter.size(); i++) {
                 int lineNum = line + 1 + i;
                 sb.append("|   ").append(String.format("%4d", lineNum)).append(" | ")
-                  .append(contextAfter.get(i)).append("\n");
+                        .append(contextAfter.get(i)).append("\n");
             }
 
             sb.append("|\n");
@@ -226,5 +217,13 @@ public final class ParseIssue {
     @Override
     public String toString() {
         return String.format("[%s] Line %d, Col %d: %s", severity, line, column, message);
+    }
+
+    /**
+     * Severity level of the issue.
+     */
+    public enum Severity {
+        ERROR,
+        WARNING
     }
 }

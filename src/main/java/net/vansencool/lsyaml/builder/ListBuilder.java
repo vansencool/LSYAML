@@ -18,8 +18,8 @@ import java.util.List;
 public class ListBuilder {
 
     private final @NotNull List<ItemBuilder> items;
-    private @NotNull CollectionStyle style;
     private final @NotNull List<String> commentsBefore;
+    private @NotNull CollectionStyle style;
     private @Nullable String inlineComment;
     private int emptyLinesBefore;
     private @Nullable String anchor;
@@ -318,8 +318,8 @@ public class ListBuilder {
      */
     public class ItemBuilder {
 
-        private @Nullable YamlNode value;
         private final @NotNull List<String> commentsBefore;
+        private @Nullable YamlNode value;
         private @Nullable String inlineComment;
         private int emptyLinesBefore;
 

@@ -3,7 +3,10 @@ package net.vansencool.lsyaml.parser;
 import net.vansencool.lsyaml.exceptions.YamlParseException;
 import net.vansencool.lsyaml.metadata.CollectionStyle;
 import net.vansencool.lsyaml.metadata.ScalarStyle;
-import net.vansencool.lsyaml.node.*;
+import net.vansencool.lsyaml.node.ListNode;
+import net.vansencool.lsyaml.node.MapNode;
+import net.vansencool.lsyaml.node.ScalarNode;
+import net.vansencool.lsyaml.node.YamlNode;
 import net.vansencool.lsyaml.parser.util.FlowContent;
 import net.vansencool.lsyaml.parser.util.ParsedKey;
 import org.jetbrains.annotations.NotNull;
@@ -11,12 +14,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.Set;
-import java.util.HashSet;
 
 /**
  * YAML parser that preserves all formatting, comments, and metadata.
@@ -46,7 +49,7 @@ public class YamlParser {
     /**
      * Parses a YAML string with custom options.
      *
-     * @param yaml the YAML content
+     * @param yaml    the YAML content
      * @param options parse options
      * @return the root node
      */
@@ -66,14 +69,14 @@ public class YamlParser {
     /**
      * Parses a YAML string and returns detailed results with all issues.
      *
-     * @param yaml the YAML content
+     * @param yaml    the YAML content
      * @param options parse options
      * @return the parse result with issues
      */
     @NotNull
     public ParseResult parseDetailed(@NotNull String yaml, @NotNull ParseOptions options) {
         List<ParseIssue> issues = new ArrayList<>();
-        
+
         try {
             YamlNode node = parseInternal(yaml, options, issues);
             if (issues.stream().anyMatch(ParseIssue::isError)) {
@@ -84,14 +87,14 @@ public class YamlParser {
             }
             return ParseResult.successWithWarnings(node, issues);
         } catch (Exception e) {
-            issues.add(ParseIssue.error(e.getMessage() != null ? e.getMessage() : "Unknown error", 
+            issues.add(ParseIssue.error(e.getMessage() != null ? e.getMessage() : "Unknown error",
                     currentLine + 1, 1, lines != null ? lines : new String[0]));
             return ParseResult.failure(issues);
         }
     }
 
     @NotNull
-    private YamlNode parseInternal(@NotNull String yaml, @NotNull ParseOptions options, 
+    private YamlNode parseInternal(@NotNull String yaml, @NotNull ParseOptions options,
                                    @NotNull List<ParseIssue> issues) {
         if (yaml.trim().isEmpty()) {
             return new MapNode();
@@ -976,7 +979,7 @@ public class YamlParser {
         ScalarStyle keyStyle = detectKeyStyle(keyPart);
 
         String inlineComment;
-        
+
         if (valuePart.startsWith("#")) {
             inlineComment = valuePart.substring(1);
             valuePart = "";
@@ -1119,7 +1122,7 @@ public class YamlParser {
 
         for (int lineNum = 0; lineNum < lines.length; lineNum++) {
             String line = lines[lineNum];
-            
+
             if (line.trim().isEmpty() || line.trim().startsWith("#")) {
                 continue;
             }
@@ -1180,7 +1183,7 @@ public class YamlParser {
 
                 if (!quoteChar.isEmpty()) {
                     if ((quoteChar.equals("'") && !trimmed.contains("':")) ||
-                        (quoteChar.equals("\"") && !trimmed.contains("\":"))) {
+                            (quoteChar.equals("\"") && !trimmed.contains("\":"))) {
                         issues.add(ParseIssue.error(
                                 "Unclosed quote in key: " + quoteChar + key,
                                 lineNum + 1, indent + 1, lines));
@@ -1206,16 +1209,16 @@ public class YamlParser {
                     }
                 }
             } else if (!trimmed.startsWith("|") && !trimmed.startsWith(">") &&
-                       !trimmed.startsWith("[") && !trimmed.startsWith("{") &&
-                       !trimmed.startsWith("}") && !trimmed.startsWith("]") &&
-                       !trimmed.startsWith("*") && !trimmed.startsWith("&") &&
-                       !trimmed.startsWith("---") && !trimmed.startsWith("...")) {
+                    !trimmed.startsWith("[") && !trimmed.startsWith("{") &&
+                    !trimmed.startsWith("}") && !trimmed.startsWith("]") &&
+                    !trimmed.startsWith("*") && !trimmed.startsWith("&") &&
+                    !trimmed.startsWith("---") && !trimmed.startsWith("...")) {
                 boolean isBlockScalarContent = false;
                 for (int prev = lineNum - 1; prev >= 0; prev--) {
                     String prevLine = lines[prev];
                     String prevTrimmed = prevLine.trim();
                     if (prevTrimmed.isEmpty() || prevTrimmed.startsWith("#")) continue;
-                    
+
                     int prevIndent = getIndentation(prevLine);
                     if (prevIndent < indent) {
                         if (prevTrimmed.endsWith("|") || prevTrimmed.endsWith(">") ||
@@ -1227,7 +1230,7 @@ public class YamlParser {
                         break;
                     }
                 }
-                
+
                 boolean isFlowContent = false;
                 if (!isBlockScalarContent) {
                     for (int prev = lineNum - 1; prev >= 0; prev--) {
@@ -1241,7 +1244,7 @@ public class YamlParser {
                         break;
                     }
                 }
-                
+
                 if (!isBlockScalarContent && !isFlowContent) {
                     issues.add(ParseIssue.error(
                             "Invalid YAML syntax - expected key:value or list item",

@@ -278,7 +278,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
     /**
      * Adds a value with a comment before it.
      *
-     * @param value the value to add
+     * @param value         the value to add
      * @param commentBefore the comment text (without #)
      * @return this list for chaining
      */
@@ -292,7 +292,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
     /**
      * Adds a string value with a comment before it.
      *
-     * @param value the string value
+     * @param value         the string value
      * @param commentBefore the comment text (without #)
      * @return this list for chaining
      */
@@ -489,9 +489,9 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
                 if (entry.getInlineComment() != null) {
                     sb.append(" #").append(entry.getInlineComment());
                 }
-                String nested = (value instanceof MapNode) 
-                    ? ((MapNode) value).toYamlWithoutAnchor(indent, currentLevel + 1)
-                    : ((ListNode) value).toYamlWithoutAnchor(indent, currentLevel + 1);
+                String nested = (value instanceof MapNode)
+                        ? ((MapNode) value).toYamlWithoutAnchor(indent, currentLevel + 1)
+                        : ((ListNode) value).toYamlWithoutAnchor(indent, currentLevel + 1);
                 if (nested.startsWith("\n")) {
                     sb.append(nested);
                 } else {

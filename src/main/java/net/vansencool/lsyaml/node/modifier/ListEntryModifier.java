@@ -140,18 +140,6 @@ public class ListEntryModifier {
     }
 
     /**
-     * Sets all comments before this entry, replacing existing ones.
-     *
-     * @param comments the comment texts (without #)
-     * @return this modifier for chaining
-     */
-    @NotNull
-    public ListEntryModifier setCommentsBefore(@NotNull String... comments) {
-        getEntry().setCommentsBefore(Arrays.asList(comments));
-        return this;
-    }
-
-    /**
      * Clears all comments before this entry.
      *
      * @return this modifier for chaining
@@ -221,6 +209,18 @@ public class ListEntryModifier {
     @NotNull
     public List<String> getCommentsBefore() {
         return getEntry().getCommentsBefore();
+    }
+
+    /**
+     * Sets all comments before this entry, replacing existing ones.
+     *
+     * @param comments the comment texts (without #)
+     * @return this modifier for chaining
+     */
+    @NotNull
+    public ListEntryModifier setCommentsBefore(@NotNull String... comments) {
+        getEntry().setCommentsBefore(Arrays.asList(comments));
+        return this;
     }
 
     /**

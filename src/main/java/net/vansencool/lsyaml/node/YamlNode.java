@@ -47,19 +47,19 @@ public interface YamlNode {
     List<String> getCommentsBefore();
 
     /**
+     * Sets comments that appear before this node.
+     *
+     * @param comments the comments to set
+     */
+    void setCommentsBefore(@NotNull List<String> comments);
+
+    /**
      * Returns the inline comment for this node (comment on the same line).
      *
      * @return the inline comment, or null if none
      */
     @Nullable
     String getInlineComment();
-
-    /**
-     * Sets comments that appear before this node.
-     *
-     * @param comments the comments to set
-     */
-    void setCommentsBefore(@NotNull List<String> comments);
 
     /**
      * Sets the inline comment for this node.
@@ -108,7 +108,7 @@ public interface YamlNode {
     /**
      * Converts this node to a YAML string with the specified indentation level.
      *
-     * @param indent the indentation level (number of spaces per level)
+     * @param indent       the indentation level (number of spaces per level)
      * @param currentLevel the current nesting level
      * @return YAML string
      */
@@ -367,13 +367,13 @@ public interface YamlNode {
     @Nullable
     default YamlNode getPath(@NotNull String path) {
         if (path.isEmpty()) return this;
-        
+
         String[] parts = path.split("\\.");
         YamlNode current = this;
-        
+
         for (String part : parts) {
             if (current == null) return null;
-            
+
             if (current.isMap()) {
                 current = current.get(part);
             } else if (current.isList()) {
@@ -387,7 +387,7 @@ public interface YamlNode {
                 return null;
             }
         }
-        
+
         return current;
     }
 

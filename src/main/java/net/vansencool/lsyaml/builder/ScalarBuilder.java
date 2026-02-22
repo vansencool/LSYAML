@@ -14,9 +14,9 @@ import java.util.List;
 @SuppressWarnings("unused")
 public class ScalarBuilder {
 
+    private final @NotNull List<String> commentsBefore;
     private @Nullable Object value;
     private @NotNull ScalarStyle style;
-    private final @NotNull List<String> commentsBefore;
     private @Nullable String inlineComment;
     private int emptyLinesBefore;
     private @Nullable String anchor;

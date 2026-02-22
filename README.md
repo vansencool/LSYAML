@@ -39,7 +39,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'net.vansencool:LSYAML:1.1.0'
+    implementation 'net.vansencool:LSYAML:1.1.5'
 }
 ```
 
@@ -58,7 +58,7 @@ dependencies {
 <dependency>
     <groupId>net.vansencool</groupId>
     <artifactId>LSYAML</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.5</version>
 </dependency>
 ```
 
@@ -141,6 +141,10 @@ ConfigLoader.load(MyConfig.class);
 System.out.println(MyConfig.NAME);
 System.out.println(MyConfig.DATABASE.HOST);
 System.out.println(MyConfig.DATABASE.CREDENTIALS.USER);
+// Reload later if needed:
+ConfigLoader.reload(MyConfig.class);
+// Or, to reload all configs:
+ConfigLoader.reload();
 ```
 
 Generated YAML (if not found):

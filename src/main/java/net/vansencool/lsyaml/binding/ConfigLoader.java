@@ -1,6 +1,8 @@
 package net.vansencool.lsyaml.binding;
 
 import net.vansencool.lsyaml.LSYAML;
+import net.vansencool.lsyaml.binding.watcher.ConfigWatcher;
+import net.vansencool.lsyaml.binding.watcher.WatcherOptions;
 import net.vansencool.lsyaml.builder.MapBuilder;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.YamlNode;
@@ -14,7 +16,13 @@ import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -88,8 +96,35 @@ public final class ConfigLoader {
     private static final @NotNull Map<Class<?>, MapNode> loadedNodes = new ConcurrentHashMap<>();
     private static final @NotNull Map<Class<?>, Map<Field, Object>> defaultValues = new ConcurrentHashMap<>();
     private static final @NotNull Map<Class<?>, Path> configPaths = new ConcurrentHashMap<>();
+    private static volatile boolean autoWatchingEnabled = false;
 
     private ConfigLoader() {
+    }
+
+    /**
+     * Enables automatic watching of config files.
+     * When enabled, all subsequently loaded configs will be automatically watched for file changes.
+     * Use this once at startup, before loading configs.
+     */
+    public static void enableAutoWatching() {
+        autoWatchingEnabled = true;
+    }
+
+    /**
+     * Disables automatic watching of config files.
+     * Running watches are not affected by this call.
+     */
+    public static void disableAutoWatching() {
+        autoWatchingEnabled = false;
+    }
+
+    /**
+     * Returns whether automatic watching is currently enabled.
+     *
+     * @return true if auto-watching is enabled
+     */
+    public static boolean isAutoWatchingEnabled() {
+        return autoWatchingEnabled;
     }
 
     /**
@@ -147,6 +182,10 @@ public final class ConfigLoader {
 
         if (!loadedClasses.contains(cls)) {
             loadedClasses.add(cls);
+        }
+
+        if (autoWatchingEnabled) {
+            ConfigWatcher.watch(cls, WatcherOptions.defaults());
         }
     }
 
@@ -238,6 +277,9 @@ public final class ConfigLoader {
         loadedNodes.remove(cls);
         defaultValues.remove(cls);
         configPaths.remove(cls);
+        if (autoWatchingEnabled) {
+            ConfigWatcher.unwatch(cls);
+        }
     }
 
     /**
@@ -248,6 +290,9 @@ public final class ConfigLoader {
         loadedNodes.clear();
         defaultValues.clear();
         configPaths.clear();
+        if (autoWatchingEnabled) {
+            ConfigWatcher.unwatchAll();
+        }
     }
 
     /**

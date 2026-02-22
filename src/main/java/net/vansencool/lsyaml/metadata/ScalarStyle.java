@@ -26,16 +26,16 @@ public enum ScalarStyle {
     /**
      * Literal block scalar (preserves newlines).
      * Example: |
-     *   line1
-     *   line2
+     * line1
+     * line2
      */
     LITERAL,
 
     /**
      * Folded block scalar (folds newlines to spaces).
      * Example: >
-     *   line1
-     *   line2
+     * line1
+     * line2
      */
     FOLDED
 }
