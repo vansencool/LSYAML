@@ -1,4 +1,4 @@
-package net.vansencool.lsyaml.parser;
+package net.vansencool.lsyaml.parser.util;
 
 import org.jetbrains.annotations.NotNull;
 

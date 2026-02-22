@@ -1,5 +1,6 @@
 package net.vansencool.lsyaml.parser;
 
+import net.vansencool.lsyaml.exceptions.YamlParseException;
 import net.vansencool.lsyaml.node.YamlNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

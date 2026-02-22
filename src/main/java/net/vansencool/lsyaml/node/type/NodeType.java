@@ -1,4 +1,4 @@
-package net.vansencool.lsyaml.node;
+package net.vansencool.lsyaml.node.type;
 
 /**
  * Enumeration of YAML node types.

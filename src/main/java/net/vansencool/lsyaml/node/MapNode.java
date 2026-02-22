@@ -3,6 +3,8 @@ package net.vansencool.lsyaml.node;
 import net.vansencool.lsyaml.metadata.CollectionStyle;
 import net.vansencool.lsyaml.metadata.NodeMetadata;
 import net.vansencool.lsyaml.metadata.ScalarStyle;
+import net.vansencool.lsyaml.node.modifier.EntryModifier;
+import net.vansencool.lsyaml.node.type.NodeType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

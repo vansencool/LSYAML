@@ -1,6 +1,10 @@
-package net.vansencool.lsyaml.node;
+package net.vansencool.lsyaml.node.modifier;
 
 import net.vansencool.lsyaml.metadata.ScalarStyle;
+import net.vansencool.lsyaml.node.ListNode;
+import net.vansencool.lsyaml.node.MapNode;
+import net.vansencool.lsyaml.node.ScalarNode;
+import net.vansencool.lsyaml.node.YamlNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,7 +23,7 @@ public class EntryModifier {
     private final @NotNull String key;
     private @Nullable MapNode.MapEntry entry;
 
-    EntryModifier(@NotNull MapNode map, @NotNull String key) {
+    public EntryModifier(@NotNull MapNode map, @NotNull String key) {
         this.map = map;
         this.key = key;
         this.entry = map.getEntry(key);

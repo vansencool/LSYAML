@@ -8,7 +8,7 @@ import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.YamlNode;
 import net.vansencool.lsyaml.parser.ParseOptions;
 import net.vansencool.lsyaml.parser.ParseResult;
-import net.vansencool.lsyaml.parser.YamlParseException;
+import net.vansencool.lsyaml.exceptions.YamlParseException;
 import net.vansencool.lsyaml.parser.YamlParser;
 import net.vansencool.lsyaml.writer.YamlWriter;
 import org.jetbrains.annotations.NotNull;

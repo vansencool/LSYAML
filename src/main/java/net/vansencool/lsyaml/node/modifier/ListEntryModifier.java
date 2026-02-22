@@ -1,5 +1,9 @@
-package net.vansencool.lsyaml.node;
+package net.vansencool.lsyaml.node.modifier;
 
+import net.vansencool.lsyaml.node.ListNode;
+import net.vansencool.lsyaml.node.MapNode;
+import net.vansencool.lsyaml.node.ScalarNode;
+import net.vansencool.lsyaml.node.YamlNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,7 +21,7 @@ public class ListEntryModifier {
     private final @NotNull ListNode list;
     private final int index;
 
-    ListEntryModifier(@NotNull ListNode list, int index) {
+    public ListEntryModifier(@NotNull ListNode list, int index) {
         this.list = list;
         this.index = index;
     }

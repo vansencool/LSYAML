@@ -1,4 +1,4 @@
-package net.vansencool.lsyaml.parser;
+package net.vansencool.lsyaml.parser.util;
 
 import net.vansencool.lsyaml.metadata.ScalarStyle;
 import org.jetbrains.annotations.NotNull;
