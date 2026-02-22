@@ -164,7 +164,14 @@ public class MapNode extends AbstractYamlNode {
     @Nullable
     public YamlNode get(@NotNull String key) {
         MapEntry entry = entries.get(key);
-        return entry != null ? entry.getValue() : null;
+        if (entry != null) {
+            return entry.getValue();
+        }
+        MapEntry mergeEntry = entries.get("<<");
+        if (mergeEntry != null && mergeEntry.getResolvedMergeMap() != null) {
+            return mergeEntry.getResolvedMergeMap().get(key);
+        }
+        return null;
     }
 
     /**
@@ -667,6 +674,7 @@ public class MapNode extends AbstractYamlNode {
         private @NotNull List<String> commentsBefore;
         private @Nullable String inlineComment;
         private int emptyLinesBefore;
+        private @Nullable MapNode resolvedMergeMap;
 
         public MapEntry(@NotNull String key, @NotNull YamlNode value) {
             this.key = key;
@@ -743,6 +751,25 @@ public class MapNode extends AbstractYamlNode {
             this.emptyLinesBefore = Math.max(0, count);
         }
 
+        /**
+         * Returns the resolved merge map for a {@code <<} alias entry, or null if not a merge entry.
+         *
+         * @return the resolved merge map, or null
+         */
+        @Nullable
+        public MapNode getResolvedMergeMap() {
+            return resolvedMergeMap;
+        }
+
+        /**
+         * Sets the resolved merge map for a {@code <<} alias entry.
+         *
+         * @param resolvedMergeMap the resolved map node
+         */
+        public void setResolvedMergeMap(@Nullable MapNode resolvedMergeMap) {
+            this.resolvedMergeMap = resolvedMergeMap;
+        }
+
         @NotNull
         public String formatKey() {
             return switch (keyStyle) {
@@ -770,6 +797,7 @@ public class MapNode extends AbstractYamlNode {
             copy.commentsBefore = new ArrayList<>(this.commentsBefore);
             copy.inlineComment = this.inlineComment;
             copy.emptyLinesBefore = this.emptyLinesBefore;
+            copy.resolvedMergeMap = this.resolvedMergeMap;
             return copy;
         }
     }

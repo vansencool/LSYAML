@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Builder for creating MapNode instances with fluent API.
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class MapBuilder {
 
     private final @NotNull List<EntryBuilder> entries;
@@ -385,9 +385,12 @@ public class MapBuilder {
             this.key = key;
             this.value = value;
             this.keyStyle = ScalarStyle.PLAIN;
-            this.commentsBefore = new ArrayList<>();
-            this.inlineComment = null;
-            this.emptyLinesBefore = 0;
+            this.commentsBefore = new ArrayList<>(value.getCommentsBefore());
+            this.inlineComment = value.getInlineComment();
+            this.emptyLinesBefore = value.getEmptyLinesBefore();
+            value.setEmptyLinesBefore(0);
+            value.setCommentsBefore(new java.util.ArrayList<>());
+            value.setInlineComment(null);
         }
 
         /**

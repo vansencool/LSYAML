@@ -18,8 +18,6 @@ LSYAML offers lightning-fast parsing while retaining the original formatting of 
 - **Full format preservation** - comments, empty lines, indentation retained
 - **Strict and lenient** parsing modes with detailed error reporting
 - **Runtime editing** of YAML nodes
-- **Path-based access** - `node.getString("database.credentials.username")`
-- Convenient type methods - `isMap()`, `asMap()`, `getString()`, `getInt()`, etc.
 - Anchors and aliases support (`&anchor`, `*alias`)
 - Flow and block style collections
 - Multi-line strings support via `|` or `>`
@@ -30,6 +28,8 @@ LSYAML offers lightning-fast parsing while retaining the original formatting of 
 
 ## **Installation**
 
+Check out the [Repository](https://repo.vansencool.net/artifact/net.vansencool/LSYAML) for previous versions and snapshots.
+
 ### **Gradle**
 </div>
 
@@ -39,7 +39,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'net.vansencool:LSYAML:1.0.0'
+    implementation 'net.vansencool:LSYAML:1.1.0'
 }
 ```
 
@@ -58,7 +58,7 @@ dependencies {
 <dependency>
     <groupId>net.vansencool</groupId>
     <artifactId>LSYAML</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -87,16 +87,6 @@ Boolean debug = node.getBoolean("app.debug");   // true
 MapNode app = node.get("app").asMap();
 ```
 
-### Parsing to Map
-
-```java
-MapNode config = LSYAML.parseMap(yaml);
-
-for (String key : config.keys()) {
-    System.out.println(key + ": " + config.get(key));
-}
-```
-
 ### Modifying Values
 
 ```java
@@ -109,6 +99,95 @@ config.getMap("database").getMap("pool")
 
 // Comments and formatting preserved!
 String output = config.toYaml();
+```
+
+---
+
+## Config Binding API
+
+Bind YAML files directly to Java static fields - the easiest way to manage configuration.
+Uppercase field names are automatically converted to lowercase YAML keys.
+
+```java
+@ConfigFile("config.yml")
+public class MyConfig {
+    public static String NAME = "MyServer";
+    public static int PORT = 25565;
+    public static boolean DEBUG = false;
+    
+    @Comment("List of enabled features")
+    public static List<String> FEATURES = List.of("auth", "logging");
+    
+    public static Database DATABASE = new Database();
+    
+    public static class Database {
+        public String HOST = "localhost";
+        public int PORT = 3306;
+        
+        public Credentials CREDENTIALS = new Credentials();
+        
+        public static class Credentials {
+            public String USER = "admin";
+            public String PASSWORD = "secret";
+        }
+    }
+}
+```
+
+Load it with a single line:
+
+```java
+ConfigLoader.load(MyConfig.class);
+System.out.println(MyConfig.NAME);
+System.out.println(MyConfig.DATABASE.HOST);
+System.out.println(MyConfig.DATABASE.CREDENTIALS.USER);
+```
+
+Generated YAML (if not found):
+
+```yaml
+name: MyServer
+port: 25565
+debug: false
+# List of enabled features
+features:
+  - auth
+  - logging
+database:
+  host: localhost
+  port: 3306
+  credentials:
+    user: admin
+    password: secret
+```
+
+### Annotations
+
+| Annotation | Purpose |
+|------------|---------|
+| `@ConfigFile("path.yml")` | Binds the class to a YAML file |
+| `@Key("custom_name")` | Overrides the config key (converted to lowercase) |
+| `@ExplicitKey("exactKey")` | Uses exact key name (no case conversion) |
+| `@Comment("text")` | Adds a comment above the field |
+| `@Space(before=1)` | Adds blank lines for readability |
+| `@Ignore` | Excludes a field from the config |
+
+### Custom Type Adapters
+
+For complex types like Duration, Location, etc:
+
+```java
+ConfigLoader.registerAdapter(Duration.class, new ConfigAdapter<Duration>() {
+    @Override
+    public Duration fromNode(YamlNode node) {
+        return Duration.ofMinutes(node.getLong());
+    }
+    
+    @Override
+    public YamlNode toNode(Duration value) {
+        return new ScalarNode(value.toMinutes());
+    }
+});
 ```
 
 ---

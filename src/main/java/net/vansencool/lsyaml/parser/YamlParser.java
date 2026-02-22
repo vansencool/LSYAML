@@ -10,7 +10,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Set;
@@ -149,12 +151,52 @@ public class YamlParser {
             result = parseMap(0, pendingComments, pendingEmptyLines);
         }
 
+        Map<String, YamlNode> anchors = new HashMap<>();
+        collectAnchors(result, anchors);
+        resolveMergeKeys(result, anchors);
+
         return result;
     }
 
     @NotNull
     private MapNode parseMap(int expectedIndent) {
         return parseMap(expectedIndent, new ArrayList<>(), 0);
+    }
+
+    private void collectAnchors(@NotNull YamlNode node, @NotNull Map<String, YamlNode> anchors) {
+        String anchor = node.getMetadata().getAnchor();
+        if (anchor != null && !anchor.isEmpty()) {
+            anchors.put(anchor, node);
+        }
+        if (node instanceof MapNode mapNode) {
+            for (MapNode.MapEntry entry : mapNode.entries()) {
+                collectAnchors(entry.getValue(), anchors);
+            }
+        } else if (node instanceof ListNode listNode) {
+            for (YamlNode item : listNode) {
+                collectAnchors(item, anchors);
+            }
+        }
+    }
+
+    private void resolveMergeKeys(@NotNull YamlNode node, @NotNull Map<String, YamlNode> anchors) {
+        if (node instanceof MapNode mapNode) {
+            MapNode.MapEntry mergeEntry = mapNode.getEntry("<<");
+            if (mergeEntry != null && mergeEntry.getValue().getMetadata().isAlias()) {
+                String aliasName = mergeEntry.getValue().getMetadata().getAlias();
+                YamlNode target = anchors.get(aliasName);
+                if (target instanceof MapNode resolvedMap) {
+                    mergeEntry.setResolvedMergeMap(resolvedMap);
+                }
+            }
+            for (MapNode.MapEntry entry : mapNode.entries()) {
+                resolveMergeKeys(entry.getValue(), anchors);
+            }
+        } else if (node instanceof ListNode listNode) {
+            for (YamlNode item : listNode) {
+                resolveMergeKeys(item, anchors);
+            }
+        }
     }
 
     @NotNull
