@@ -298,6 +298,8 @@ public class YamlParser {
                             } else {
                                 entry.setValue(parseMap(nextIndent, nestedComments, nestedEmptyLines));
                             }
+                            pendingEmptyLines += entry.getValue().getTrailingEmptyLines();
+                            entry.getValue().setTrailingEmptyLines(0);
                         } else {
                             entry.setValue(new ScalarNode(null));
                             if (!nestedComments.isEmpty() || nestedEmptyLines > 0) {
@@ -349,6 +351,8 @@ public class YamlParser {
                                 }
                                 nestedValue.getMetadata().setAnchor(anchor);
                                 entry.setValue(nestedValue);
+                                pendingEmptyLines += nestedValue.getTrailingEmptyLines();
+                                nestedValue.setTrailingEmptyLines(0);
                             } else {
                                 ScalarNode nullNode = new ScalarNode(null);
                                 nullNode.getMetadata().setAnchor(anchor);
@@ -497,6 +501,8 @@ public class YamlParser {
                             } else {
                                 entry.setValue(parseMap(nextIndent, nestedComments, nestedEmptyLines));
                             }
+                            pendingEmptyLines += entry.getValue().getTrailingEmptyLines();
+                            entry.getValue().setTrailingEmptyLines(0);
                         } else {
                             entry.setValue(new ScalarNode(null));
                             if (!nestedComments.isEmpty() || nestedEmptyLines > 0) {

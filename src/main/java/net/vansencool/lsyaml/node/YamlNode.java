@@ -90,6 +90,21 @@ public interface YamlNode {
     void setEmptyLinesBefore(int count);
 
     /**
+     * Returns the number of empty lines that trail after this node's last child.
+     * Used internally during parsing to propagate spacing between sibling entries.
+     *
+     * @return number of trailing empty lines
+     */
+    int getTrailingEmptyLines();
+
+    /**
+     * Sets the number of trailing empty lines after this node's last child.
+     *
+     * @param count number of trailing empty lines
+     */
+    void setTrailingEmptyLines(int count);
+
+    /**
      * Creates a deep copy of this node.
      *
      * @return a deep copy

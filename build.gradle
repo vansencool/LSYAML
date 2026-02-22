@@ -12,6 +12,7 @@ repositories {
 
 dependencies {
     implementation 'org.jetbrains:annotations:26.1.0'
+    compileOnly 'org.slf4j:slf4j-api:2.0.17'
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.yaml:snakeyaml:2.5'
@@ -22,14 +23,6 @@ dependencies {
 
 test {
     useJUnitPlatform()
-}
-
-task benchmark(type: JavaExec) {
-    group = 'verification'
-    description = 'Run LSYAML vs SnakeYAML benchmark'
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = 'net.vansencool.lsyaml.benchmark.ParserBenchmark'
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
 java {
