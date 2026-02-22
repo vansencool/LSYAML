@@ -276,6 +276,141 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
     }
 
     /**
+     * Sets the value at the given index to a string.
+     *
+     * @param index the index
+     * @param value the string value
+     * @return this list for chaining
+     * @throws IndexOutOfBoundsException if index is invalid
+     */
+    @NotNull
+    public ListNode setString(int index, @NotNull String value) {
+        return set(index, new ScalarNode(value));
+    }
+
+    /**
+     * Sets the value at the given index to an integer.
+     *
+     * @param index the index
+     * @param value the integer value
+     * @return this list for chaining
+     * @throws IndexOutOfBoundsException if index is invalid
+     */
+    @NotNull
+    public ListNode setInt(int index, int value) {
+        return set(index, new ScalarNode(value));
+    }
+
+    /**
+     * Sets the value at the given index to a long.
+     *
+     * @param index the index
+     * @param value the long value
+     * @return this list for chaining
+     * @throws IndexOutOfBoundsException if index is invalid
+     */
+    @NotNull
+    public ListNode setLong(int index, long value) {
+        return set(index, new ScalarNode(value));
+    }
+
+    /**
+     * Sets the value at the given index to a double.
+     *
+     * @param index the index
+     * @param value the double value
+     * @return this list for chaining
+     * @throws IndexOutOfBoundsException if index is invalid
+     */
+    @NotNull
+    public ListNode setDouble(int index, double value) {
+        return set(index, new ScalarNode(value));
+    }
+
+    /**
+     * Sets the value at the given index to a boolean.
+     *
+     * @param index the index
+     * @param value the boolean value
+     * @return this list for chaining
+     * @throws IndexOutOfBoundsException if index is invalid
+     */
+    @NotNull
+    public ListNode setBoolean(int index, boolean value) {
+        return set(index, new ScalarNode(value));
+    }
+
+    /**
+     * Replaces the comments before the entry at the given index.
+     *
+     * @param index    the index
+     * @param comments the comment texts (without #)
+     * @return this list for chaining
+     * @throws IndexOutOfBoundsException if index is invalid
+     */
+    @NotNull
+    public ListNode setComments(int index, @NotNull String... comments) {
+        entries.get(index).setCommentsBefore(Arrays.asList(comments));
+        return this;
+    }
+
+    /**
+     * Adds a comment before the entry at the given index.
+     *
+     * @param index   the index
+     * @param comment the comment text (without #)
+     * @return this list for chaining
+     * @throws IndexOutOfBoundsException if index is invalid
+     */
+    @NotNull
+    public ListNode addComment(int index, @NotNull String comment) {
+        entries.get(index).addCommentBefore(comment);
+        return this;
+    }
+
+    /**
+     * Clears all comments before the entry at the given index.
+     *
+     * @param index the index
+     * @return this list for chaining
+     * @throws IndexOutOfBoundsException if index is invalid
+     */
+    @NotNull
+    public ListNode clearComments(int index) {
+        entries.get(index).setCommentsBefore(new ArrayList<>());
+        return this;
+    }
+
+    /**
+     * Sets the inline comment for the entry at the given index.
+     * Pass {@code null} to remove an existing inline comment.
+     *
+     * @param index   the index
+     * @param comment the comment text (without #), or null to remove
+     * @return this list for chaining
+     * @throws IndexOutOfBoundsException if index is invalid
+     */
+    @NotNull
+    public ListNode setInlineComment(int index, @Nullable String comment) {
+        entries.get(index).setInlineComment(comment);
+        return this;
+    }
+
+    /**
+     * Sets the number of blank lines before the entry at the given index.
+     *
+     * @param index the index
+     * @param count the number of empty lines (clamped to zero if negative)
+     * @return this list for chaining
+     * @throws IndexOutOfBoundsException if index is invalid
+     */
+    @NotNull
+    public ListNode setEmptyLinesBefore(int index, int count) {
+        entries.get(index).setEmptyLinesBefore(count);
+        return this;
+    }
+
+    /**
      * Adds a value with a comment before it.
      *
      * @param value         the value to add

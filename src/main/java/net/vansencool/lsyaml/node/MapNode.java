@@ -474,6 +474,151 @@ public class MapNode extends AbstractYamlNode {
     }
 
     /**
+     * Sets the value of an existing key to a string, or creates the entry if absent.
+     *
+     * @param key   the key
+     * @param value the string value
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode setString(@NotNull String key, @NotNull String value) {
+        return put(key, value);
+    }
+
+    /**
+     * Sets the value of an existing key to an integer, or creates the entry if absent.
+     *
+     * @param key   the key
+     * @param value the integer value
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode setInt(@NotNull String key, int value) {
+        return put(key, value);
+    }
+
+    /**
+     * Sets the value of an existing key to a long, or creates the entry if absent.
+     *
+     * @param key   the key
+     * @param value the long value
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode setLong(@NotNull String key, long value) {
+        return put(key, value);
+    }
+
+    /**
+     * Sets the value of an existing key to a double, or creates the entry if absent.
+     *
+     * @param key   the key
+     * @param value the double value
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode setDouble(@NotNull String key, double value) {
+        return put(key, value);
+    }
+
+    /**
+     * Sets the value of an existing key to a boolean, or creates the entry if absent.
+     *
+     * @param key   the key
+     * @param value the boolean value
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode setBoolean(@NotNull String key, boolean value) {
+        return put(key, value);
+    }
+
+    /**
+     * Replaces the comments before the entry with the given key.
+     * Has no effect if the key does not exist.
+     *
+     * @param key      the key
+     * @param comments the comment texts (without #)
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode setComments(@NotNull String key, @NotNull String... comments) {
+        MapEntry entry = entries.get(key);
+        if (entry != null) {
+            entry.setCommentsBefore(Arrays.asList(comments));
+        }
+        return this;
+    }
+
+    /**
+     * Adds a comment before the entry with the given key.
+     * Has no effect if the key does not exist.
+     *
+     * @param key     the key
+     * @param comment the comment text (without #)
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode addComment(@NotNull String key, @NotNull String comment) {
+        MapEntry entry = entries.get(key);
+        if (entry != null) {
+            entry.addCommentBefore(comment);
+        }
+        return this;
+    }
+
+    /**
+     * Clears all comments before the entry with the given key.
+     * Has no effect if the key does not exist.
+     *
+     * @param key the key
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode clearComments(@NotNull String key) {
+        MapEntry entry = entries.get(key);
+        if (entry != null) {
+            entry.setCommentsBefore(new ArrayList<>());
+        }
+        return this;
+    }
+
+    /**
+     * Sets the inline comment for the entry with the given key.
+     * Pass {@code null} to remove an existing inline comment.
+     * Has no effect if the key does not exist.
+     *
+     * @param key     the key
+     * @param comment the comment text (without #), or null to remove
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode setInlineComment(@NotNull String key, @Nullable String comment) {
+        MapEntry entry = entries.get(key);
+        if (entry != null) {
+            entry.setInlineComment(comment);
+        }
+        return this;
+    }
+
+    /**
+     * Sets the number of blank lines before the entry with the given key.
+     * Has no effect if the key does not exist.
+     *
+     * @param key   the key
+     * @param count the number of empty lines (clamped to zero if negative)
+     * @return this map for chaining
+     */
+    @NotNull
+    public MapNode setEmptyLinesBefore(@NotNull String key, int count) {
+        MapEntry entry = entries.get(key);
+        if (entry != null) {
+            entry.setEmptyLinesBefore(count);
+        }
+        return this;
+    }
+
+    /**
      * Adds a trailing comment at the end of this map.
      *
      * @param comment the comment text (without #)

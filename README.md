@@ -39,7 +39,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'net.vansencool:LSYAML:1.1.6'
+    implementation 'net.vansencool:LSYAML:1.1.7'
 }
 ```
 
@@ -58,7 +58,7 @@ dependencies {
 <dependency>
     <groupId>net.vansencool</groupId>
     <artifactId>LSYAML</artifactId>
-    <version>1.1.6</version>
+    <version>1.1.7</version>
 </dependency>
 ```
 
@@ -216,4 +216,3 @@ losing original comments, spacing, and document structure.
 ## License
 
 MIT License - see LICENSE file for details.
-
