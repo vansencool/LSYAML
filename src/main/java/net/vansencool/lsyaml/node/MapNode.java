@@ -694,6 +694,7 @@ public class MapNode extends AbstractYamlNode {
     public static class MapEntry {
 
         private @NotNull String key;
+        private @Nullable YamlNode complexKey;
         private @NotNull YamlNode value;
         private @NotNull ScalarStyle keyStyle;
         private @NotNull List<String> commentsBefore;
@@ -749,6 +750,37 @@ public class MapNode extends AbstractYamlNode {
          */
         public void setKey(@NotNull String key) {
             this.key = key;
+        }
+
+        /**
+         * Returns the complex key of this entry, or null if this entry uses a simple string key.
+         * Complex keys are maps, lists, or other non-scalar keys that use the `?` YAML syntax.
+         *
+         * @return the complex key node, or null if using a simple string key
+         */
+        @Nullable
+        public YamlNode getComplexKey() {
+            return complexKey;
+        }
+
+        /**
+         * Sets a complex key for this entry. Complex keys are maps, lists, or other non-scalar
+         * keys that require the `?` YAML syntax. When a complex key is set, the simple string
+         * key is used as a lookup key but the complex key is emitted.
+         *
+         * @param complexKey the complex key node, or null to use only the simple string key
+         */
+        public void setComplexKey(@Nullable YamlNode complexKey) {
+            this.complexKey = complexKey;
+        }
+
+        /**
+         * Returns true if this entry has a complex key (non-scalar key requiring `?` syntax).
+         *
+         * @return true if the entry has a complex key
+         */
+        public boolean hasComplexKey() {
+            return complexKey != null;
         }
 
         /**
@@ -911,6 +943,7 @@ public class MapNode extends AbstractYamlNode {
             copy.inlineComment = this.inlineComment;
             copy.emptyLinesBefore = this.emptyLinesBefore;
             copy.resolvedMergeMap = this.resolvedMergeMap;
+            copy.complexKey = this.complexKey != null ? this.complexKey.copy() : null;
             return copy;
         }
     }

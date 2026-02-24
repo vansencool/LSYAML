@@ -146,7 +146,16 @@ public class YamlWriter {
                 }
             }
 
-            sb.append(indent).append(formatKey(entry.getKey(), entry.getKeyStyle())).append(":");
+            sb.append(indent);
+
+            if (entry.hasComplexKey()) {
+                sb.append("? ");
+                //noinspection DataFlowIssue
+                writeNode(sb, entry.getComplexKey(), level + 1, false);
+                sb.append("\n").append(indent).append(":");
+            } else {
+                sb.append(formatKey(entry.getKey(), entry.getKeyStyle())).append(":");
+            }
 
             YamlNode value = entry.getValue();
 

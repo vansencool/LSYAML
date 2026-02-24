@@ -482,4 +482,42 @@ class ParserTest {
         assertTrue(entry.getEmptyLinesBefore() > 0);
         assertFalse(entry.getCommentsBefore().isEmpty());
     }
+
+    @Test
+    void parseComplexKey() {
+        String yaml = "? name: John\n  age: 30\n: person_data\n";
+        MapNode map = LSYAML.parseMap(yaml);
+
+        assertEquals(1, map.size());
+        MapNode.MapEntry entry = map.entries().iterator().next();
+        assertTrue(entry.hasComplexKey());
+        assertNotNull(entry.getComplexKey());
+        assertTrue(entry.getComplexKey() instanceof MapNode);
+    }
+
+    @Test
+    void parseInlineComplexKey() {
+        String yaml = "? {a: 1, b: 2}\n: value\n";
+        MapNode map = LSYAML.parseMap(yaml);
+
+        assertEquals(1, map.size());
+        MapNode.MapEntry entry = map.entries().iterator().next();
+        assertTrue(entry.hasComplexKey());
+        assertTrue(entry.getComplexKey() instanceof MapNode);
+    }
+
+    @Test
+    void complexKeyRoundTrip() {
+        MapNode complexKey = new MapNode();
+        complexKey.put("name", "John");
+        complexKey.put("age", 30);
+
+        MapNode map = new MapNode();
+        MapNode.MapEntry entry = new MapNode.MapEntry("{name: John, age: 30}", new ScalarNode("person_data"));
+        entry.setComplexKey(complexKey);
+        map.putEntry(entry);
+
+        String yaml = LSYAML.write(map);
+        assertTrue(yaml.contains("?"));
+    }
 }

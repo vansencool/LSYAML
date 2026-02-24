@@ -22,13 +22,15 @@ LSYAML offers lightning-fast parsing while retaining the original formatting of 
 
 ## Features at a glance
 
-- Very fast parsing (**~2x faster** than SnakeYAML)
+- Very fast parsing (**up to ~9× faster than SnakeYAML** in [large-scale benchmarks](#benchmarks))
 - **Full format preservation** - comments, empty lines, indentation retained
 - **Strict and lenient** parsing modes with detailed error reporting
 - **Runtime editing** of YAML nodes
 - Anchors and aliases support (`&anchor`, `*alias`)
 - Flow and block style collections
 - Multi-line strings support via `|` or `>`
+- Complex key support (maps as keys)
+- Config binding API for easy YAML-to-Java mapping
 
 ---
 
@@ -47,7 +49,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'net.vansencool:LSYAML:1.2.1'
+    implementation 'net.vansencool:LSYAML:1.2.5'
 }
 ```
 
@@ -66,7 +68,7 @@ dependencies {
 <dependency>
     <groupId>net.vansencool</groupId>
     <artifactId>LSYAML</artifactId>
-    <version>1.2.1</version>
+    <version>1.2.5</version>
 </dependency>
 ```
 
@@ -156,52 +158,7 @@ ConfigLoader.reload(MyConfig.class);
 ConfigLoader.reload();
 ```
 
-Generated YAML (if not found):
-
-```yaml
-name: MyServer
-port: 25565
-debug: false
-# List of enabled features
-features:
-  - auth
-  - logging
-database:
-  host: localhost
-  port: 3306
-  credentials:
-    user: admin
-    password: secret
-```
-
-### Annotations
-
-| Annotation | Purpose |
-|------------|---------|
-| `@ConfigFile("path.yml")` | Binds the class to a YAML file |
-| `@Key("custom_name")` | Overrides the config key (converted to lowercase) |
-| `@ExplicitKey("exactKey")` | Uses exact key name (no case conversion) |
-| `@Comment("text")` | Adds a comment above the field |
-| `@Space(before=1)` | Adds blank lines for readability |
-| `@Ignore` | Excludes a field from the config |
-
-### Custom Type Adapters
-
-For complex types like Duration, Location, etc:
-
-```java
-ConfigLoader.registerAdapter(Duration.class, new ConfigAdapter<Duration>() {
-    @Override
-    public Duration fromNode(YamlNode node) {
-        return Duration.ofMinutes(node.getLong());
-    }
-    
-    @Override
-    public YamlNode toNode(Duration value) {
-        return new ScalarNode(value.toMinutes());
-    }
-});
-```
+It will also automatically generate the full YAML file for you (if it doesn't exist.)
 
 ---
 
@@ -219,6 +176,62 @@ SnakeYAML **does not preserve formatting** - writing back produces reformatted o
 losing original comments, spacing, and document structure.
 
 > LSYAML keeps your YAML files looking exactly as before.
+
+---
+
+## Benchmarks
+
+Benchmarks performed using JMH on:
+
+* **CPU:** AMD Ryzen 9 9900X3D
+* **RAM:** 32 GB DDR5 (5200 MT/s)
+* **JVM:** 25.0.2 (Oracle)
+* **OS:** Linux 6.8
+
+---
+
+### Throughput (higher is better)
+
+### Standard Workloads
+
+| Workload | LSYAML (lenient) | LSYAML (strict) | SnakeYAML   | Speedup (lenient) |
+| -------- | ---------------- | --------------- | ----------- | ----------------- |
+| Simple   | 589 ops/ms       | 526 ops/ms      | 293 ops/ms  | **~2.0×**         |
+| Medium   | 47.6 ops/ms      | 44.3 ops/ms     | 44.3 ops/ms | ~1.07×            |
+| Complex  | 38.5 ops/ms      | 35.3 ops/ms     | 19.8 ops/ms | **~1.9×**         |
+
+### Large / Insane Workload
+
+(723k characters, 135k+ lines YAML)
+
+| Mode    | LSYAML       | SnakeYAML    | Speedup        |
+| ------- | ------------ | ------------ | -------------- |
+| Lenient | 0.027 ops/ms | 0.003 ops/ms | **~9× faster** |
+| Strict  | 0.025 ops/ms | 0.003 ops/ms | **~8× faster** |
+
+---
+
+### Allocation (bytes per operation, lower is better)
+
+#### Standard Workloads
+
+| Workload | LSYAML      | SnakeYAML    | Reduction     |
+| -------- | ----------- | ------------ | ------------- |
+| Simple   | 3,928 B/op  | 15,672 B/op  | **~75% less** |
+| Medium   | 45,072 B/op | 92,264 B/op  | **~51% less** |
+| Complex  | 68,952 B/op | 180,680 B/op | **~62% less** |
+
+#### Large / Insane Workload
+
+| Workload | LSYAML    | SnakeYAML | Reduction     |
+| -------- | --------- | --------- | ------------- |
+| Insane   | 132 MB/op | 384 MB/op | **~65% less** |
+
+---
+
+> LSYAML consistently allocates significantly less memory and scales better under heavy workloads, achieving up to **~9× higher throughput** in extreme scenarios.
+
+Full benchmark source: https://github.com/vansencool/LSYAML-Benchmark
 
 ---
 

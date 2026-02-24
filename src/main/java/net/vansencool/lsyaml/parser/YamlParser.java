@@ -1,8 +1,6 @@
 package net.vansencool.lsyaml.parser;
 
 import net.vansencool.lsyaml.exceptions.YamlParseException;
-import net.vansencool.lsyaml.metadata.CollectionStyle;
-import net.vansencool.lsyaml.metadata.ScalarStyle;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
@@ -14,26 +12,18 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * YAML parser that preserves all formatting, comments, and metadata.
+ * Uses helper classes for modular parsing.
  */
 public class YamlParser {
 
-    private static final Pattern KEY_PATTERN = Pattern.compile("^(['\"]?)(.+?)\\1\\s*:\\s*(.*)$");
-    private static final Pattern ANCHOR_PATTERN = Pattern.compile("&(\\w+)\\s*");
-    private static final Pattern ALIAS_PATTERN = Pattern.compile("^\\*(\\w+)\\s*(.*)$");
-    private static final Pattern TAG_PATTERN = Pattern.compile("^!(\\S+)\\s*(.*)$");
-
-    private String[] lines;
-    private int currentLine;
-    private int totalLines;
+    private ParseContext ctx;
+    private ScalarParser scalarParser;
+    private FlowParser flowParser;
 
     /**
      * Parses a YAML string into a node tree.
@@ -87,8 +77,10 @@ public class YamlParser {
             }
             return ParseResult.successWithWarnings(node, issues);
         } catch (Exception e) {
+            int line = ctx != null ? ctx.currentLine() + 1 : 1;
+            String[] lines = ctx != null ? ctx.lines() : new String[0];
             issues.add(ParseIssue.error(e.getMessage() != null ? e.getMessage() : "Unknown error",
-                    currentLine + 1, 1, lines != null ? lines : new String[0]));
+                    line, 1, lines));
             return ParseResult.failure(issues);
         }
     }
@@ -96,47 +88,62 @@ public class YamlParser {
     @NotNull
     private YamlNode parseInternal(@NotNull String yaml, @NotNull ParseOptions options,
                                    @NotNull List<ParseIssue> issues) {
-        if (yaml.trim().isEmpty()) {
+        int yamlLen = yaml.length();
+        if (yamlLen == 0) {
             return new MapNode();
         }
 
-        String normalized = yaml.replace("\r\n", "\n").replace("\r", "\n");
-        this.lines = normalized.split("\n", -1);
+        boolean allWhitespace = true;
+        for (int i = 0; i < yamlLen; i++) {
+            char c = yaml.charAt(i);
+            if (c != ' ' && c != '\t' && c != '\n' && c != '\r') {
+                allWhitespace = false;
+                break;
+            }
+        }
+        if (allWhitespace) {
+            return new MapNode();
+        }
+
+        this.ctx = new ParseContext(yaml);
+        this.scalarParser = new ScalarParser();
+        this.flowParser = new FlowParser(scalarParser);
 
         if (options.isStrict()) {
-            validateStrict(issues);
+            StrictValidator validator = new StrictValidator(ctx);
+            validator.validate(issues);
         }
-        this.currentLine = 0;
-        this.totalLines = lines.length;
 
         List<String> pendingComments = new ArrayList<>();
         int pendingEmptyLines = 0;
 
-        while (currentLine < totalLines && isEmptyOrCommentLine(lines[currentLine])) {
-            String line = lines[currentLine];
-            char first = firstNonSpaceChar(line);
+        while (ctx.hasMoreLines() && ParserUtils.isEmptyOrComment(ctx.currentFirstChar())) {
+            char first = ctx.currentFirstChar();
             if (first == 0) {
                 pendingEmptyLines++;
-            } else if (first == '#') {
-                pendingComments.add(extractComment(line));
+            } else {
+                pendingComments.add(ParserUtils.extractComment(ctx.currentLineContent()));
             }
-            currentLine++;
+            ctx.advanceLine();
         }
 
-        if (currentLine >= totalLines) {
+        if (!ctx.hasMoreLines()) {
             MapNode empty = new MapNode();
             empty.setCommentsBefore(pendingComments);
             empty.setEmptyLinesBefore(pendingEmptyLines);
             return empty;
         }
 
-        char firstChar = firstNonSpaceChar(lines[currentLine]);
+        // determine document type from first content character
+        char firstChar = ctx.currentFirstChar();
 
         YamlNode result;
         if (firstChar == '-') {
+            // root is a list
             result = parseList(0, pendingComments, pendingEmptyLines);
         } else if (firstChar == '{') {
-            result = parseFlowMap();
+            // root is a flow map
+            result = flowParser.parseFlowMap(ctx);
             if (!pendingComments.isEmpty()) {
                 result.setCommentsBefore(pendingComments);
             }
@@ -144,7 +151,8 @@ public class YamlParser {
                 result.setEmptyLinesBefore(pendingEmptyLines);
             }
         } else if (firstChar == '[') {
-            result = parseFlowList();
+            // root is a flow list
+            result = flowParser.parseFlowList(ctx);
             if (!pendingComments.isEmpty()) {
                 result.setCommentsBefore(pendingComments);
             }
@@ -152,21 +160,21 @@ public class YamlParser {
                 result.setEmptyLinesBefore(pendingEmptyLines);
             }
         } else {
+            // root is a map (most common case)
             result = parseMap(0, pendingComments, pendingEmptyLines);
         }
 
         Map<String, YamlNode> anchors = new HashMap<>();
         collectAnchors(result, anchors);
+        // resolve merge keys (<<) to their target maps
         resolveMergeKeys(result, anchors);
 
         return result;
     }
 
-    @NotNull
-    private MapNode parseMap(int expectedIndent) {
-        return parseMap(expectedIndent, new ArrayList<>(), 0);
-    }
-
+    /**
+     * Recursively collects all anchors from the node tree.
+     */
     private void collectAnchors(@NotNull YamlNode node, @NotNull Map<String, YamlNode> anchors) {
         String anchor = node.getMetadata().getAnchor();
         if (anchor != null && !anchor.isEmpty()) {
@@ -183,16 +191,22 @@ public class YamlParser {
         }
     }
 
+    /**
+     * Resolves merge keys (<<) to point to their anchor targets.
+     */
     private void resolveMergeKeys(@NotNull YamlNode node, @NotNull Map<String, YamlNode> anchors) {
         if (node instanceof MapNode mapNode) {
+            // look for merge key entry
             MapNode.MapEntry mergeEntry = mapNode.getEntry("<<");
             if (mergeEntry != null && mergeEntry.getValue().getMetadata().isAlias()) {
+                // resolve the alias to its target
                 String aliasName = mergeEntry.getValue().getMetadata().getAlias();
                 YamlNode target = anchors.get(aliasName);
                 if (target instanceof MapNode resolvedMap) {
                     mergeEntry.setResolvedMergeMap(resolvedMap);
                 }
             }
+            // recurse into children
             for (MapNode.MapEntry entry : mapNode.entries()) {
                 resolveMergeKeys(entry.getValue(), anchors);
             }
@@ -204,35 +218,46 @@ public class YamlParser {
     }
 
     @NotNull
+    private MapNode parseMap(int expectedIndent) {
+        return parseMap(expectedIndent, new ArrayList<>(), 0);
+    }
+
+    /**
+     * Parses a block-style map starting at the expected indentation.
+     */
+    @NotNull
     private MapNode parseMap(int expectedIndent, @NotNull List<String> initialComments, int initialEmptyLines) {
         MapNode map = new MapNode();
-        map.getMetadata().setLine(currentLine + 1);
+        map.getMetadata().setLine(ctx.currentLine() + 1);
         map.getMetadata().setIndentation(expectedIndent);
 
+        // track comments and empty lines to attach to next entry
         List<String> pendingComments = new ArrayList<>(initialComments);
         int pendingEmptyLines = initialEmptyLines;
 
-        while (currentLine < totalLines) {
-            String line = lines[currentLine];
-            char firstChar = firstNonSpaceChar(line);
+        while (ctx.hasMoreLines()) {
+            char firstChar = ctx.currentFirstChar();
 
+            // collect empty lines
             if (firstChar == 0) {
                 pendingEmptyLines++;
-                currentLine++;
+                ctx.advanceLine();
                 continue;
             }
 
-            int indent = getIndentation(line);
+            int indent = ctx.currentIndent();
 
+            // collect comments at or above expected indent
             if (firstChar == '#') {
                 if (indent < expectedIndent) {
-                    break;
+                    break; // comment belongs to parent scope
                 }
-                pendingComments.add(extractComment(line));
-                currentLine++;
+                pendingComments.add(ParserUtils.extractComment(ctx.currentLineContent()));
+                ctx.advanceLine();
                 continue;
             }
 
+            // dedent means end of this map
             if (indent < expectedIndent) {
                 if (!pendingComments.isEmpty() || pendingEmptyLines > 0) {
                     map.setTrailingComments(pendingComments);
@@ -241,6 +266,7 @@ public class YamlParser {
                 break;
             }
 
+            // list item starts new context
             if (firstChar == '-') {
                 if (!pendingComments.isEmpty() || pendingEmptyLines > 0) {
                     map.setTrailingComments(pendingComments);
@@ -249,11 +275,32 @@ public class YamlParser {
                 break;
             }
 
-            ParsedKey parsed = parseKeyLine(line);
-            if (parsed == null) {
+            // handle complex key (? key indicator)
+            if (firstChar == '?') {
+                MapNode.MapEntry entry = parseComplexKeyEntry(pendingComments, pendingEmptyLines);
+                if (entry != null) {
+                    map.putEntry(entry);
+                    pendingComments = new ArrayList<>();
+                    pendingEmptyLines = 0;
+                    if (map.size() == 1) {
+                        expectedIndent = indent;
+                    }
+                    continue;
+                }
+            }
+
+            // bare colon without key - invalid
+            if (firstChar == ':') {
                 break;
             }
 
+            // parse key: value line
+            ParsedKey parsed = ParserUtils.parseKeyLine(ctx.currentLineContent());
+            if (parsed == null) {
+                break; // not a valid key line
+            }
+
+            // create entry with parsed key
             MapNode.MapEntry entry = new MapNode.MapEntry(parsed.key(), new ScalarNode(null), parsed.keyStyle());
             entry.setCommentsBefore(pendingComments);
             entry.setEmptyLinesBefore(pendingEmptyLines);
@@ -264,34 +311,34 @@ public class YamlParser {
                 entry.setInlineComment(parsed.inlineComment());
             }
 
-            currentLine++;
+            ctx.advanceLine();
 
+            // handle empty value - look for nested content
             if (parsed.value().isEmpty()) {
-                if (currentLine < totalLines) {
+                if (ctx.hasMoreLines()) {
+                    // collect any comments/empty lines before nested content
                     List<String> nestedComments = new ArrayList<>();
                     int nestedEmptyLines = 0;
 
-                    while (currentLine < totalLines) {
-                        String nextLine = lines[currentLine];
-                        char nextFirst = firstNonSpaceChar(nextLine);
+                    while (ctx.hasMoreLines()) {
+                        char nextFirst = ctx.currentFirstChar();
 
                         if (nextFirst == 0) {
                             nestedEmptyLines++;
-                            currentLine++;
+                            ctx.advanceLine();
                             continue;
                         }
                         if (nextFirst == '#') {
-                            nestedComments.add(extractComment(nextLine));
-                            currentLine++;
+                            nestedComments.add(ParserUtils.extractComment(ctx.currentLineContent()));
+                            ctx.advanceLine();
                             continue;
                         }
                         break;
                     }
 
-                    if (currentLine < totalLines) {
-                        String nextLine = lines[currentLine];
-                        int nextIndent = getIndentation(nextLine);
-                        char nextFirst = firstNonSpaceChar(nextLine);
+                    if (ctx.hasMoreLines()) {
+                        int nextIndent = ctx.currentIndent();
+                        char nextFirst = ctx.currentFirstChar();
 
                         if (nextIndent > indent && nextFirst != 0) {
                             if (nextFirst == '-') {
@@ -304,7 +351,7 @@ public class YamlParser {
                         } else {
                             entry.setValue(new ScalarNode(null));
                             if (!nestedComments.isEmpty() || nestedEmptyLines > 0) {
-                                currentLine -= (nestedComments.size() + nestedEmptyLines);
+                                ctx.setCurrentLine(ctx.currentLine() - (nestedComments.size() + nestedEmptyLines));
                             }
                         }
                     } else {
@@ -314,34 +361,33 @@ public class YamlParser {
                     entry.setValue(new ScalarNode(null));
                 }
             } else {
-                Matcher anchorOnlyMatcher = Pattern.compile("^&(\\w+)\\s*$").matcher(parsed.value());
-                if (anchorOnlyMatcher.matches()) {
-                    String anchor = anchorOnlyMatcher.group(1);
-                    if (currentLine < totalLines) {
+                // check if value is anchor-only (value follows on subsequent lines)
+                String anchor = ParserUtils.extractAnchorOnly(parsed.value());
+                if (anchor != null) {
+                    // anchor with nested content
+                    if (ctx.hasMoreLines()) {
                         List<String> nestedComments = new ArrayList<>();
                         int nestedEmptyLines = 0;
 
-                        while (currentLine < totalLines) {
-                            String nextLine = lines[currentLine];
-                            char nextFirst = firstNonSpaceChar(nextLine);
+                        while (ctx.hasMoreLines()) {
+                            char nextFirst = ctx.currentFirstChar();
 
                             if (nextFirst == 0) {
                                 nestedEmptyLines++;
-                                currentLine++;
+                                ctx.advanceLine();
                                 continue;
                             }
                             if (nextFirst == '#') {
-                                nestedComments.add(extractComment(nextLine));
-                                currentLine++;
+                                nestedComments.add(ParserUtils.extractComment(ctx.currentLineContent()));
+                                ctx.advanceLine();
                                 continue;
                             }
                             break;
                         }
 
-                        if (currentLine < totalLines) {
-                            String nextLine = lines[currentLine];
-                            int nextIndent = getIndentation(nextLine);
-                            char nextFirst = firstNonSpaceChar(nextLine);
+                        if (ctx.hasMoreLines()) {
+                            int nextIndent = ctx.currentIndent();
+                            char nextFirst = ctx.currentFirstChar();
 
                             if (nextIndent > indent && nextFirst != 0) {
                                 YamlNode nestedValue;
@@ -359,7 +405,7 @@ public class YamlParser {
                                 nullNode.getMetadata().setAnchor(anchor);
                                 entry.setValue(nullNode);
                                 if (!nestedComments.isEmpty() || nestedEmptyLines > 0) {
-                                    currentLine -= (nestedComments.size() + nestedEmptyLines);
+                                    ctx.setCurrentLine(ctx.currentLine() - (nestedComments.size() + nestedEmptyLines));
                                 }
                             }
                         } else {
@@ -392,41 +438,228 @@ public class YamlParser {
         return map;
     }
 
+    /**
+     * Parses a complex key entry (? key : value syntax).
+     */
+    @Nullable
+    private MapNode.MapEntry parseComplexKeyEntry(@NotNull List<String> pendingComments, int pendingEmptyLines) {
+        String line = ctx.currentLineContent();
+        int indent = ctx.currentIndent();
+        String trimmed = line.substring(indent);
+
+        if (trimmed.charAt(0) != '?') {
+            return null;
+        }
+
+        ctx.advanceLine();
+
+        // parse the complex key itself
+        YamlNode complexKey;
+        String keyContent = trimmed.length() > 1 ? trimmed.substring(1).trim() : "";
+
+        if (!keyContent.isEmpty()) {
+            // inline complex key content
+            if (keyContent.charAt(0) == '{') {
+                complexKey = flowParser.parseFlowMapFromStringNested(keyContent);
+            } else if (keyContent.charAt(0) == '[') {
+                complexKey = flowParser.parseFlowListFromStringNested(keyContent);
+            } else if (ParserUtils.containsUnquotedColon(keyContent)) {
+                // key is itself a map - rewrite line and parse
+                ctx.setCurrentLine(ctx.currentLine() - 1);
+                int mapIndent = indent + 2;
+                String originalLine = ctx.lines()[ctx.currentLine()];
+                ctx.lines()[ctx.currentLine()] = ParserUtils.spaces(mapIndent) + keyContent;
+                ctx.lineIndents()[ctx.currentLine()] = mapIndent;
+                ctx.lineFirstChars()[ctx.currentLine()] = keyContent.charAt(0);
+                complexKey = parseMap(mapIndent);
+                ctx.lines()[ctx.currentLine() > 0 ? ctx.currentLine() - 1 : 0] = originalLine;
+            } else {
+                complexKey = scalarParser.parseScalar(keyContent);
+            }
+        } else {
+            List<String> nestedComments = new ArrayList<>();
+            int nestedEmptyLines = 0;
+
+            while (ctx.hasMoreLines()) {
+                char nextFirst = ctx.currentFirstChar();
+                if (nextFirst == 0) {
+                    nestedEmptyLines++;
+                    ctx.advanceLine();
+                    continue;
+                }
+                if (nextFirst == '#') {
+                    nestedComments.add(ParserUtils.extractComment(ctx.currentLineContent()));
+                    ctx.advanceLine();
+                    continue;
+                }
+                break;
+            }
+
+            if (ctx.hasMoreLines()) {
+                int nextIndent = ctx.currentIndent();
+                char nextFirst = ctx.currentFirstChar();
+
+                if (nextIndent > indent && nextFirst != ':') {
+                    if (nextFirst == '-') {
+                        complexKey = parseList(nextIndent, nestedComments, nestedEmptyLines);
+                    } else {
+                        complexKey = parseMap(nextIndent, nestedComments, nestedEmptyLines);
+                    }
+                } else {
+                    complexKey = new ScalarNode(null);
+                }
+            } else {
+                complexKey = new ScalarNode(null);
+            }
+        }
+
+        // generate string representation for the key
+        String keyString = generateKeyStringFromNode(complexKey);
+
+        // skip any comments/empty lines before the value indicator
+        while (ctx.hasMoreLines()) {
+            char firstChar = ctx.currentFirstChar();
+            if (firstChar == 0 || firstChar == '#') {
+                ctx.advanceLine();
+                continue;
+            }
+            break;
+        }
+
+        // parse the value after : indicator
+        YamlNode value = new ScalarNode(null);
+
+        if (ctx.hasMoreLines()) {
+            String valueLine = ctx.currentLineContent();
+            int valueIndent = ctx.currentIndent();
+            String valueTrimmed = valueLine.substring(valueIndent);
+
+            if (valueTrimmed.startsWith(":")) {
+                ctx.advanceLine();
+
+                // check for inline value after :
+                String valueContent = valueTrimmed.length() > 1 ? valueTrimmed.substring(1).trim() : "";
+
+                if (!valueContent.isEmpty()) {
+                    value = parseValue(valueContent, valueIndent);
+                } else {
+                    // look for nested value on following lines
+                    List<String> nestedComments = new ArrayList<>();
+                    int nestedEmptyLines = 0;
+
+                    while (ctx.hasMoreLines()) {
+                        char nextFirst = ctx.currentFirstChar();
+                        if (nextFirst == 0) {
+                            nestedEmptyLines++;
+                            ctx.advanceLine();
+                            continue;
+                        }
+                        if (nextFirst == '#') {
+                            nestedComments.add(ParserUtils.extractComment(ctx.currentLineContent()));
+                            ctx.advanceLine();
+                            continue;
+                        }
+                        break;
+                    }
+
+                    if (ctx.hasMoreLines()) {
+                        int nextIndent = ctx.currentIndent();
+                        char nextFirst = ctx.currentFirstChar();
+
+                        if (nextIndent > indent) {
+                            if (nextFirst == '-') {
+                                value = parseList(nextIndent, nestedComments, nestedEmptyLines);
+                            } else {
+                                value = parseMap(nextIndent, nestedComments, nestedEmptyLines);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        MapNode.MapEntry entry = new MapNode.MapEntry(keyString, value);
+        entry.setComplexKey(complexKey);
+        entry.setCommentsBefore(pendingComments);
+        entry.setEmptyLinesBefore(pendingEmptyLines);
+        return entry;
+    }
+
+    /**
+     * Generates a string representation of a complex key node.
+     * Used for map lookups when the key is a map or list.
+     */
+    @NotNull
+    private String generateKeyStringFromNode(@NotNull YamlNode node) {
+        if (node instanceof ScalarNode scalar) {
+            Object val = scalar.getValue();
+            return val != null ? val.toString() : "";
+        } else if (node instanceof MapNode mapNode) {
+            StringBuilder sb = new StringBuilder("{");
+            boolean first = true;
+            for (MapNode.MapEntry e : mapNode.entries()) {
+                if (!first) sb.append(", ");
+                sb.append(e.getKey()).append(": ").append(generateKeyStringFromNode(e.getValue()));
+                first = false;
+            }
+            sb.append("}");
+            return sb.toString();
+        } else if (node instanceof ListNode listNode) {
+            StringBuilder sb = new StringBuilder("[");
+            boolean first = true;
+            for (YamlNode item : listNode) {
+                if (!first) sb.append(", ");
+                sb.append(generateKeyStringFromNode(item));
+                first = false;
+            }
+            sb.append("]");
+            return sb.toString();
+        }
+        return "";
+    }
+
     @NotNull
     private ListNode parseList(int expectedIndent) {
         return parseList(expectedIndent, new ArrayList<>(), 0);
     }
 
+    /**
+     * Parses a block-style list starting at the expected indentation.
+     */
     @NotNull
     private ListNode parseList(int expectedIndent, @NotNull List<String> initialComments, int initialEmptyLines) {
         ListNode list = new ListNode();
-        list.getMetadata().setLine(currentLine + 1);
+        list.getMetadata().setLine(ctx.currentLine() + 1);
         list.getMetadata().setIndentation(expectedIndent);
 
+        // track comments and empty lines to attach to next entry
         List<String> pendingComments = new ArrayList<>(initialComments);
         int pendingEmptyLines = initialEmptyLines;
 
-        while (currentLine < totalLines) {
-            String line = lines[currentLine];
-            char firstChar = firstNonSpaceChar(line);
+        while (ctx.hasMoreLines()) {
+            String line = ctx.currentLineContent();
+            char firstChar = ctx.currentFirstChar();
 
+            // collect empty lines
             if (firstChar == 0) {
                 pendingEmptyLines++;
-                currentLine++;
+                ctx.advanceLine();
                 continue;
             }
 
-            int indent = getIndentation(line);
+            int indent = ctx.currentIndent();
 
+            // collect comments at or above expected indent
             if (firstChar == '#') {
                 if (indent < expectedIndent) {
-                    break;
+                    break; // comment belongs to parent scope
                 }
-                pendingComments.add(extractComment(line));
-                currentLine++;
+                pendingComments.add(ParserUtils.extractComment(line));
+                ctx.advanceLine();
                 continue;
             }
 
+            // dedent means end of this list
             if (indent < expectedIndent) {
                 if (!pendingComments.isEmpty() || pendingEmptyLines > 0) {
                     list.setTrailingComments(pendingComments);
@@ -435,6 +668,7 @@ public class YamlParser {
                 break;
             }
 
+            // non-dash means end of list
             if (firstChar != '-') {
                 if (!pendingComments.isEmpty() || pendingEmptyLines > 0) {
                     list.setTrailingComments(pendingComments);
@@ -443,6 +677,7 @@ public class YamlParser {
                 break;
             }
 
+            // validate list item syntax (- followed by space)
             String trimmed = line.substring(indent);
             if (trimmed.length() <= 1 || (trimmed.charAt(1) != ' ' && trimmed.charAt(1) != '\t')) {
                 if (trimmed.length() > 1 && trimmed.charAt(1) != ' ') {
@@ -450,51 +685,53 @@ public class YamlParser {
                         list.setTrailingComments(pendingComments);
                         list.setTrailingEmptyLines(pendingEmptyLines);
                     }
-                    break;
+                    break; // not a valid list item
                 }
             }
 
+            // create new list entry
             ListNode.ListEntry entry = new ListNode.ListEntry(new ScalarNode(null));
             entry.setCommentsBefore(pendingComments);
             entry.setEmptyLinesBefore(pendingEmptyLines);
             pendingComments = new ArrayList<>();
             pendingEmptyLines = 0;
 
-            String valueStr = trimmed.length() > 1 ? trimmed.substring(2).trim() : "";
-            String inlineComment = extractInlineComment(valueStr);
+            // extract value after dash
+            String valueStr = trimmed.length() > 1 ? ParserUtils.trimAfterDash(trimmed) : "";
+            String inlineComment = ParserUtils.extractInlineComment(valueStr);
             if (inlineComment != null) {
                 entry.setInlineComment(inlineComment);
-                valueStr = removeInlineComment(valueStr);
+                valueStr = ParserUtils.removeInlineComment(valueStr);
             }
 
-            currentLine++;
+            ctx.advanceLine();
 
+            // handle different value types
             if (valueStr.isEmpty()) {
-                if (currentLine < totalLines) {
+                // empty value - look for nested content
+                if (ctx.hasMoreLines()) {
                     List<String> nestedComments = new ArrayList<>();
                     int nestedEmptyLines = 0;
 
-                    while (currentLine < totalLines) {
-                        String nextLine = lines[currentLine];
-                        char nextFirst = firstNonSpaceChar(nextLine);
+                    while (ctx.hasMoreLines()) {
+                        char nextFirst = ctx.currentFirstChar();
 
                         if (nextFirst == 0) {
                             nestedEmptyLines++;
-                            currentLine++;
+                            ctx.advanceLine();
                             continue;
                         }
                         if (nextFirst == '#') {
-                            nestedComments.add(extractComment(nextLine));
-                            currentLine++;
+                            nestedComments.add(ParserUtils.extractComment(ctx.currentLineContent()));
+                            ctx.advanceLine();
                             continue;
                         }
                         break;
                     }
 
-                    if (currentLine < totalLines) {
-                        String nextLine = lines[currentLine];
-                        int nextIndent = getIndentation(nextLine);
-                        char nextFirst = firstNonSpaceChar(nextLine);
+                    if (ctx.hasMoreLines()) {
+                        int nextIndent = ctx.currentIndent();
+                        char nextFirst = ctx.currentFirstChar();
 
                         if (nextIndent > indent && nextFirst != 0) {
                             if (nextFirst == '-') {
@@ -507,7 +744,7 @@ public class YamlParser {
                         } else {
                             entry.setValue(new ScalarNode(null));
                             if (!nestedComments.isEmpty() || nestedEmptyLines > 0) {
-                                currentLine -= (nestedComments.size() + nestedEmptyLines);
+                                ctx.setCurrentLine(ctx.currentLine() - (nestedComments.size() + nestedEmptyLines));
                             }
                         }
                     } else {
@@ -516,23 +753,31 @@ public class YamlParser {
                 } else {
                     entry.setValue(new ScalarNode(null));
                 }
-            } else if (valueStr.startsWith("{") || valueStr.startsWith("[")) {
-                entry.setValue(parseFlowValueInline(valueStr));
-            } else if (valueStr.contains(":") && !valueStr.startsWith("'") && !valueStr.startsWith("\"")) {
-                currentLine--;
+            } else if (valueStr.charAt(0) == '{' || valueStr.charAt(0) == '[') {
+                // inline flow collection
+                entry.setValue(flowParser.parseFlowValueInline(valueStr));
+            } else if (ParserUtils.containsUnquotedColon(valueStr)) {
+                // inline map value - rewrite line and parse
+                ctx.setCurrentLine(ctx.currentLine() - 1);
                 int mapIndent = indent + 2;
-                String originalLine = lines[currentLine];
-                lines[currentLine] = " ".repeat(mapIndent) + valueStr;
+                String originalLine = ctx.lines()[ctx.currentLine()];
+                ctx.lines()[ctx.currentLine()] = ParserUtils.spaces(mapIndent) + valueStr;
+                ctx.lineIndents()[ctx.currentLine()] = mapIndent;
+                ctx.lineFirstChars()[ctx.currentLine()] = valueStr.charAt(0);
                 entry.setValue(parseMap(mapIndent));
-                lines[currentLine - 1] = originalLine;
-            } else if (valueStr.startsWith("-")) {
-                currentLine--;
+                ctx.lines()[ctx.currentLine() - 1] = originalLine;
+            } else if (valueStr.charAt(0) == '-') {
+                // nested list starting on same line
+                ctx.setCurrentLine(ctx.currentLine() - 1);
                 int listIndent = indent + 2;
-                String originalLine = lines[currentLine];
-                lines[currentLine] = " ".repeat(listIndent) + valueStr;
+                String originalLine = ctx.lines()[ctx.currentLine()];
+                ctx.lines()[ctx.currentLine()] = ParserUtils.spaces(listIndent) + valueStr;
+                ctx.lineIndents()[ctx.currentLine()] = listIndent;
+                ctx.lineFirstChars()[ctx.currentLine()] = '-';
                 entry.setValue(parseList(listIndent));
-                lines[currentLine - 1] = originalLine;
+                ctx.lines()[ctx.currentLine() - 1] = originalLine;
             } else {
+                // scalar value
                 entry.setValue(parseValue(valueStr, indent));
             }
 
@@ -551,24 +796,32 @@ public class YamlParser {
         return list;
     }
 
+    /**
+     * Parses a value string into the appropriate node type.
+     * Handles aliases, flow collections, block scalars, anchors, and tags.
+     */
     @NotNull
     private YamlNode parseValue(@NotNull String value, int indent) {
-        value = value.trim();
+        value = ParserUtils.trimWhitespace(value);
 
         if (value.isEmpty()) {
             return new ScalarNode(null);
         }
 
-        Matcher aliasMatcher = ALIAS_PATTERN.matcher(value);
-        if (aliasMatcher.matches()) {
-            ScalarNode node = new ScalarNode(null);
-            node.getMetadata().setAlias(aliasMatcher.group(1));
-            return node;
+        // check for alias (*name)
+        if (value.charAt(0) == '*') {
+            String alias = ParserUtils.extractAlias(value);
+            if (alias != null) {
+                ScalarNode node = new ScalarNode(null);
+                node.getMetadata().setAlias(alias);
+                return node;
+            }
         }
 
-        if (value.startsWith("{")) {
-            FlowContent flowContent = collectMultiLineFlow(value, '{', '}');
-            MapNode flowMap = parseFlowMapFromStringNested(flowContent.content());
+        // check for flow map
+        if (value.charAt(0) == '{') {
+            FlowContent flowContent = flowParser.collectMultiLineFlow(ctx, value, '{', '}');
+            MapNode flowMap = flowParser.parseFlowMapFromStringNested(flowContent.content());
             if (flowContent.multiLine()) {
                 flowMap.setMultiLineFlow(true);
                 flowMap.setFlowIndent(flowContent.indent());
@@ -576,9 +829,10 @@ public class YamlParser {
             return flowMap;
         }
 
-        if (value.startsWith("[")) {
-            FlowContent flowContent = collectMultiLineFlow(value, '[', ']');
-            ListNode flowList = parseFlowListFromStringNested(flowContent.content());
+        // check for flow list
+        if (value.charAt(0) == '[') {
+            FlowContent flowContent = flowParser.collectMultiLineFlow(ctx, value, '[', ']');
+            ListNode flowList = flowParser.parseFlowListFromStringNested(flowContent.content());
             if (flowContent.multiLine()) {
                 flowList.setMultiLineFlow(true);
                 flowList.setFlowIndent(flowContent.indent());
@@ -586,25 +840,45 @@ public class YamlParser {
             return flowList;
         }
 
-        if (value.startsWith("|") || value.startsWith(">")) {
-            return parseBlockScalar(value, indent);
+        // check for block scalar (| or >)
+        if (value.charAt(0) == '|' || value.charAt(0) == '>') {
+            return scalarParser.parseBlockScalar(ctx, value, indent);
         }
 
+        // check for anchor (&name)
         String anchor = null;
-        Matcher anchorMatcher = ANCHOR_PATTERN.matcher(value);
-        if (anchorMatcher.find() && anchorMatcher.start() == 0) {
-            anchor = anchorMatcher.group(1);
-            value = value.substring(anchorMatcher.end()).trim();
+        if (value.charAt(0) == '&') {
+            int anchorEnd = 1;
+            while (anchorEnd < value.length() && ParserUtils.isWordChar(value.charAt(anchorEnd))) {
+                anchorEnd++;
+            }
+            if (anchorEnd > 1) {
+                anchor = value.substring(1, anchorEnd);
+                // skip anchor and trailing whitespace
+                while (anchorEnd < value.length() && value.charAt(anchorEnd) == ' ') {
+                    anchorEnd++;
+                }
+                value = value.substring(anchorEnd);
+            }
         }
 
+        // check for tag (!tag)
         String tag = null;
-        Matcher tagMatcher = TAG_PATTERN.matcher(value);
-        if (tagMatcher.matches()) {
-            tag = "!" + tagMatcher.group(1);
-            value = tagMatcher.group(2).trim();
+        if (!value.isEmpty() && value.charAt(0) == '!') {
+            int tagEnd = 1;
+            while (tagEnd < value.length() && value.charAt(tagEnd) != ' ' && value.charAt(tagEnd) != '\t') {
+                tagEnd++;
+            }
+            tag = value.substring(0, tagEnd);
+            // skip tag and trailing whitespace
+            while (tagEnd < value.length() && (value.charAt(tagEnd) == ' ' || value.charAt(tagEnd) == '\t')) {
+                tagEnd++;
+            }
+            value = value.substring(tagEnd);
         }
 
-        ScalarNode scalar = parseScalar(value);
+        // parse the actual scalar value
+        ScalarNode scalar = scalarParser.parseScalar(value);
         if (anchor != null) {
             scalar.getMetadata().setAnchor(anchor);
         }
@@ -613,651 +887,5 @@ public class YamlParser {
         }
 
         return scalar;
-    }
-
-    @NotNull
-    private ScalarNode parseScalar(@NotNull String value) {
-        String inlineComment = extractInlineComment(value);
-        if (inlineComment != null) {
-            value = removeInlineComment(value);
-        }
-
-        ScalarNode scalar;
-
-        if (value.startsWith("'") && value.endsWith("'") && value.length() >= 2) {
-            String content = value.substring(1, value.length() - 1).replace("''", "'");
-            scalar = new ScalarNode(content, ScalarStyle.SINGLE_QUOTED);
-            scalar.setRawValue(value);
-        } else if (value.startsWith("\"") && value.endsWith("\"") && value.length() >= 2) {
-            String content = unescapeDoubleQuoted(value.substring(1, value.length() - 1));
-            scalar = new ScalarNode(content, ScalarStyle.DOUBLE_QUOTED);
-            scalar.setRawValue(value);
-        } else {
-            Object parsed = parseUnquotedValue(value);
-            scalar = new ScalarNode(parsed, ScalarStyle.PLAIN);
-            scalar.setRawValue(value);
-        }
-
-        if (inlineComment != null) {
-            scalar.setInlineComment(inlineComment);
-        }
-
-        return scalar;
-    }
-
-    @Nullable
-    private Object parseUnquotedValue(@NotNull String value) {
-        if (value.isEmpty() || "null".equalsIgnoreCase(value) || "~".equals(value)) {
-            return null;
-        }
-
-        if ("true".equalsIgnoreCase(value) || "yes".equalsIgnoreCase(value) || "on".equalsIgnoreCase(value)) {
-            return true;
-        }
-
-        if ("false".equalsIgnoreCase(value) || "no".equalsIgnoreCase(value) || "off".equalsIgnoreCase(value)) {
-            return false;
-        }
-
-        try {
-            if (value.contains(".") || value.toLowerCase().contains("e")) {
-                return Double.parseDouble(value);
-            }
-            if (value.startsWith("0x") || value.startsWith("0X")) {
-                return Long.parseLong(value.substring(2), 16);
-            }
-            if (value.startsWith("0o") || value.startsWith("0O")) {
-                return Long.parseLong(value.substring(2), 8);
-            }
-            long l = Long.parseLong(value);
-            if (l >= Integer.MIN_VALUE && l <= Integer.MAX_VALUE) {
-                return (int) l;
-            }
-            return l;
-        } catch (NumberFormatException e) {
-            return value;
-        }
-    }
-
-    @NotNull
-    private ScalarNode parseBlockScalar(@NotNull String indicator, int indent) {
-        boolean literal = indicator.startsWith("|");
-        ScalarStyle style = literal ? ScalarStyle.LITERAL : ScalarStyle.FOLDED;
-
-        StringBuilder content = new StringBuilder();
-        int contentIndent = -1;
-
-        while (currentLine < totalLines) {
-            String line = lines[currentLine];
-            String trimmed = line.trim();
-
-            if (trimmed.isEmpty()) {
-                content.append("\n");
-                currentLine++;
-                continue;
-            }
-
-            int lineIndent = getIndentation(line);
-
-            if (contentIndent == -1) {
-                if (lineIndent > indent) {
-                    contentIndent = lineIndent;
-                } else {
-                    break;
-                }
-            }
-
-            if (lineIndent < contentIndent) {
-                break;
-            }
-
-            if (!content.isEmpty()) {
-                content.append("\n");
-            }
-            content.append(line.substring(Math.min(contentIndent, line.length())));
-            currentLine++;
-        }
-
-        return new ScalarNode(content.toString(), style);
-    }
-
-    @NotNull
-    private FlowContent collectMultiLineFlow(@NotNull String initial, char openBrace, char closeBrace) {
-        StringBuilder content = new StringBuilder(initial);
-        int depth = 0;
-        boolean inSingleQuote = false;
-        boolean inDoubleQuote = false;
-        boolean multiLine = false;
-        int flowIndent = 2;
-
-        for (int i = 0; i < initial.length(); i++) {
-            char c = initial.charAt(i);
-            if (c == '\'' && !inDoubleQuote) {
-                inSingleQuote = !inSingleQuote;
-            } else if (c == '"' && !inSingleQuote) {
-                inDoubleQuote = !inDoubleQuote;
-            } else if (!inSingleQuote && !inDoubleQuote) {
-                if (c == openBrace) depth++;
-                else if (c == closeBrace) depth--;
-            }
-        }
-
-        while (depth > 0 && currentLine < totalLines) {
-            multiLine = true;
-            String nextLine = lines[currentLine];
-            int nextIndent = getIndentation(nextLine);
-            if (flowIndent == 2 && nextIndent > 0) {
-                flowIndent = nextIndent;
-            }
-            content.append(" ").append(nextLine.trim());
-            currentLine++;
-
-            String trimmed = nextLine.trim();
-            for (int i = 0; i < trimmed.length(); i++) {
-                char c = trimmed.charAt(i);
-                if (c == '\'' && !inDoubleQuote) {
-                    inSingleQuote = !inSingleQuote;
-                } else if (c == '"' && !inSingleQuote) {
-                    inDoubleQuote = !inDoubleQuote;
-                } else if (!inSingleQuote && !inDoubleQuote) {
-                    if (c == openBrace) depth++;
-                    else if (c == closeBrace) depth--;
-                }
-            }
-        }
-
-        return new FlowContent(content.toString(), multiLine, flowIndent);
-    }
-
-    @NotNull
-    private MapNode parseFlowMap() {
-        String line = lines[currentLine].trim();
-        return parseFlowMapFromString(line);
-    }
-
-    @NotNull
-    private MapNode parseFlowMapFromString(@NotNull String str) {
-        MapNode map = new MapNode(CollectionStyle.FLOW);
-
-        str = str.trim();
-        if (str.startsWith("{")) {
-            str = str.substring(1);
-        }
-        if (str.endsWith("}")) {
-            str = str.substring(0, str.length() - 1);
-        }
-
-        parseFlowMapContent(map, str.trim());
-        currentLine++;
-        return map;
-    }
-
-    private void parseFlowMapContent(@NotNull MapNode map, @NotNull String content) {
-        if (content.isEmpty()) {
-            return;
-        }
-
-        List<String> pairs = splitFlowContent(content);
-        for (String pair : pairs) {
-            int colonIdx = findUnquotedColon(pair);
-            if (colonIdx > 0) {
-                String key = pair.substring(0, colonIdx).trim();
-                String value = pair.substring(colonIdx + 1).trim();
-
-                key = unquoteKey(key);
-                ScalarStyle keyStyle = detectKeyStyle(pair.substring(0, colonIdx).trim());
-
-                YamlNode valueNode = parseFlowValue(value);
-                MapNode.MapEntry entry = new MapNode.MapEntry(key, valueNode, keyStyle);
-                map.putEntry(entry);
-            }
-        }
-    }
-
-    @NotNull
-    private ListNode parseFlowList() {
-        String line = lines[currentLine].trim();
-        return parseFlowListFromString(line);
-    }
-
-    @NotNull
-    private ListNode parseFlowListFromString(@NotNull String str) {
-        ListNode list = new ListNode(CollectionStyle.FLOW);
-
-        str = str.trim();
-        if (str.startsWith("[")) {
-            str = str.substring(1);
-        }
-        if (str.endsWith("]")) {
-            str = str.substring(0, str.length() - 1);
-        }
-
-        List<String> items = splitFlowContent(str.trim());
-        for (String item : items) {
-            if (!item.trim().isEmpty()) {
-                list.addEntry(new ListNode.ListEntry(parseFlowValue(item.trim())));
-            }
-        }
-
-        currentLine++;
-        return list;
-    }
-
-    @NotNull
-    private YamlNode parseFlowValue(@NotNull String value) {
-        value = value.trim();
-
-        if (value.startsWith("{")) {
-            return parseFlowMapFromStringNested(value);
-        }
-        if (value.startsWith("[")) {
-            return parseFlowListFromStringNested(value);
-        }
-
-        return parseScalar(value);
-    }
-
-    @NotNull
-    private YamlNode parseFlowValueInline(@NotNull String value) {
-        value = value.trim();
-
-        if (value.startsWith("{")) {
-            return parseFlowMapFromStringNested(value);
-        }
-        if (value.startsWith("[")) {
-            return parseFlowListFromStringNested(value);
-        }
-
-        return parseScalar(value);
-    }
-
-    @NotNull
-    private MapNode parseFlowMapFromStringNested(@NotNull String str) {
-        MapNode map = new MapNode(CollectionStyle.FLOW);
-
-        str = str.trim();
-        if (str.startsWith("{")) {
-            str = str.substring(1);
-        }
-        if (str.endsWith("}")) {
-            str = str.substring(0, str.length() - 1);
-        }
-
-        parseFlowMapContent(map, str.trim());
-        return map;
-    }
-
-    @NotNull
-    private ListNode parseFlowListFromStringNested(@NotNull String str) {
-        ListNode list = new ListNode(CollectionStyle.FLOW);
-
-        str = str.trim();
-        if (str.startsWith("[")) {
-            str = str.substring(1);
-        }
-        if (str.endsWith("]")) {
-            str = str.substring(0, str.length() - 1);
-        }
-
-        List<String> items = splitFlowContent(str.trim());
-        for (String item : items) {
-            if (!item.trim().isEmpty()) {
-                list.addEntry(new ListNode.ListEntry(parseFlowValue(item.trim())));
-            }
-        }
-
-        return list;
-    }
-
-    @NotNull
-    private List<String> splitFlowContent(@NotNull String content) {
-        List<String> parts = new ArrayList<>();
-        int depth = 0;
-        boolean inSingleQuote = false;
-        boolean inDoubleQuote = false;
-        StringBuilder current = new StringBuilder();
-
-        for (int i = 0; i < content.length(); i++) {
-            char c = content.charAt(i);
-
-            if (c == '\'' && !inDoubleQuote) {
-                inSingleQuote = !inSingleQuote;
-                current.append(c);
-            } else if (c == '"' && !inSingleQuote) {
-                inDoubleQuote = !inDoubleQuote;
-                current.append(c);
-            } else if (!inSingleQuote && !inDoubleQuote) {
-                if (c == '{' || c == '[') {
-                    depth++;
-                    current.append(c);
-                } else if (c == '}' || c == ']') {
-                    depth--;
-                    current.append(c);
-                } else if (c == ',' && depth == 0) {
-                    parts.add(current.toString().trim());
-                    current = new StringBuilder();
-                } else {
-                    current.append(c);
-                }
-            } else {
-                current.append(c);
-            }
-        }
-
-        if (!current.isEmpty()) {
-            parts.add(current.toString().trim());
-        }
-
-        return parts;
-    }
-
-    private int findUnquotedColon(@NotNull String str) {
-        boolean inSingleQuote = false;
-        boolean inDoubleQuote = false;
-
-        for (int i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
-
-            if (c == '\'' && !inDoubleQuote) {
-                inSingleQuote = !inSingleQuote;
-            } else if (c == '"' && !inSingleQuote) {
-                inDoubleQuote = !inDoubleQuote;
-            } else if (c == ':' && !inSingleQuote && !inDoubleQuote) {
-                return i;
-            }
-        }
-
-        return -1;
-    }
-
-    @Nullable
-    private ParsedKey parseKeyLine(@NotNull String line) {
-        String trimmed = line.trim();
-
-        int colonIdx = findUnquotedColon(trimmed);
-        if (colonIdx <= 0) {
-            return null;
-        }
-
-        String keyPart = trimmed.substring(0, colonIdx).trim();
-        String valuePart = trimmed.substring(colonIdx + 1).trim();
-
-        String key = unquoteKey(keyPart);
-        ScalarStyle keyStyle = detectKeyStyle(keyPart);
-
-        String inlineComment;
-
-        if (valuePart.startsWith("#")) {
-            inlineComment = valuePart.substring(1);
-            valuePart = "";
-        } else {
-            inlineComment = extractInlineComment(valuePart);
-            if (inlineComment != null) {
-                valuePart = removeInlineComment(valuePart);
-            }
-        }
-
-        return new ParsedKey(key, keyStyle, valuePart, inlineComment);
-    }
-
-    @NotNull
-    private String unquoteKey(@NotNull String key) {
-        if (key.startsWith("'") && key.endsWith("'") && key.length() >= 2) {
-            return key.substring(1, key.length() - 1).replace("''", "'");
-        }
-        if (key.startsWith("\"") && key.endsWith("\"") && key.length() >= 2) {
-            return unescapeDoubleQuoted(key.substring(1, key.length() - 1));
-        }
-        return key;
-    }
-
-    @NotNull
-    private ScalarStyle detectKeyStyle(@NotNull String key) {
-        if (key.startsWith("'") && key.endsWith("'")) {
-            return ScalarStyle.SINGLE_QUOTED;
-        }
-        if (key.startsWith("\"") && key.endsWith("\"")) {
-            return ScalarStyle.DOUBLE_QUOTED;
-        }
-        return ScalarStyle.PLAIN;
-    }
-
-    @NotNull
-    private String unescapeDoubleQuoted(@NotNull String str) {
-        return str.replace("\\n", "\n")
-                .replace("\\r", "\r")
-                .replace("\\t", "\t")
-                .replace("\\\"", "\"")
-                .replace("\\\\", "\\");
-    }
-
-    private int getIndentation(@NotNull String line) {
-        int len = line.length();
-        int count = 0;
-        for (int i = 0; i < len; i++) {
-            char c = line.charAt(i);
-            if (c == ' ') {
-                count++;
-            } else if (c == '\t') {
-                count += 2;
-            } else {
-                break;
-            }
-        }
-        return count;
-    }
-
-    private char firstNonSpaceChar(@NotNull String line) {
-        int len = line.length();
-        for (int i = 0; i < len; i++) {
-            char c = line.charAt(i);
-            if (c != ' ' && c != '\t') return c;
-        }
-        return 0;
-    }
-
-    private boolean isEmptyOrCommentLine(@NotNull String line) {
-        int len = line.length();
-        for (int i = 0; i < len; i++) {
-            char c = line.charAt(i);
-            if (c == ' ' || c == '\t') continue;
-            return c == '#';
-        }
-        return true;
-    }
-
-    @NotNull
-    private String extractComment(@NotNull String line) {
-        int len = line.length();
-        for (int i = 0; i < len; i++) {
-            char c = line.charAt(i);
-            if (c == ' ' || c == '\t') continue;
-            if (c == '#') {
-                return line.substring(i + 1);
-            }
-            break;
-        }
-        return "";
-    }
-
-    @Nullable
-    private String extractInlineComment(@NotNull String value) {
-        boolean inSingleQuote = false;
-        boolean inDoubleQuote = false;
-
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-
-            if (c == '\'' && !inDoubleQuote) {
-                inSingleQuote = !inSingleQuote;
-            } else if (c == '"' && !inSingleQuote) {
-                inDoubleQuote = !inDoubleQuote;
-            } else if (c == '#' && !inSingleQuote && !inDoubleQuote && i > 0 && value.charAt(i - 1) == ' ') {
-                return value.substring(i + 1);
-            }
-        }
-
-        return null;
-    }
-
-    @NotNull
-    private String removeInlineComment(@NotNull String value) {
-        boolean inSingleQuote = false;
-        boolean inDoubleQuote = false;
-
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-
-            if (c == '\'' && !inDoubleQuote) {
-                inSingleQuote = !inSingleQuote;
-            } else if (c == '"' && !inSingleQuote) {
-                inDoubleQuote = !inDoubleQuote;
-            } else if (c == '#' && !inSingleQuote && !inDoubleQuote && i > 0 && value.charAt(i - 1) == ' ') {
-                return value.substring(0, i - 1).trim();
-            }
-        }
-
-        return value;
-    }
-
-    private void validateStrict(@NotNull List<ParseIssue> issues) {
-        Set<String> seenKeys = new HashSet<>();
-        int[] indentStack = new int[100];
-        int stackDepth = 0;
-        indentStack[0] = 0;
-        int flowDepth = 0;
-
-        for (int lineNum = 0; lineNum < lines.length; lineNum++) {
-            String line = lines[lineNum];
-
-            if (line.trim().isEmpty() || line.trim().startsWith("#")) {
-                continue;
-            }
-
-            if (line.contains("\t")) {
-                int tabCol = line.indexOf('\t') + 1;
-                issues.add(ParseIssue.error(
-                        "Tab character used for indentation (use spaces only)",
-                        lineNum + 1, tabCol, lines));
-            }
-
-            int indent = getIndentation(line);
-            String trimmed = line.trim();
-
-            for (char c : trimmed.toCharArray()) {
-                if (c == '{' || c == '[') flowDepth++;
-                else if (c == '}' || c == ']') flowDepth--;
-            }
-
-            if (flowDepth > 0 || trimmed.startsWith("}") || trimmed.startsWith("]")) {
-                continue;
-            }
-
-            if (trimmed.startsWith("-")) {
-                if (indent > indentStack[stackDepth] + 4) {
-                    issues.add(ParseIssue.error(
-                            "Inconsistent indentation - unexpected jump from " + indentStack[stackDepth] + " to " + indent + " spaces",
-                            lineNum + 1, indent + 1, lines));
-                }
-                continue;
-            }
-
-            Matcher keyMatcher = KEY_PATTERN.matcher(trimmed);
-            if (keyMatcher.matches()) {
-                String quoteChar = keyMatcher.group(1);
-                String key = keyMatcher.group(2);
-                String value = keyMatcher.group(3);
-
-                if (indent > indentStack[stackDepth] + 4) {
-                    issues.add(ParseIssue.error(
-                            "Inconsistent indentation - unexpected jump from " + indentStack[stackDepth] + " to " + indent + " spaces",
-                            lineNum + 1, indent + 1, lines));
-                }
-
-                if (indent > indentStack[stackDepth]) {
-                    stackDepth++;
-                    indentStack[stackDepth] = indent;
-                } else {
-                    while (stackDepth > 0 && indent < indentStack[stackDepth]) {
-                        stackDepth--;
-                    }
-                    if (indent != indentStack[stackDepth]) {
-                        issues.add(ParseIssue.error(
-                                "Indentation mismatch - does not align with any previous level",
-                                lineNum + 1, indent + 1, lines));
-                    }
-                }
-
-                if (!quoteChar.isEmpty()) {
-                    if ((quoteChar.equals("'") && !trimmed.contains("':")) ||
-                            (quoteChar.equals("\"") && !trimmed.contains("\":"))) {
-                        issues.add(ParseIssue.error(
-                                "Unclosed quote in key: " + quoteChar + key,
-                                lineNum + 1, indent + 1, lines));
-                    }
-                }
-
-                if (indent == 0) {
-                    if (seenKeys.contains(key)) {
-                        issues.add(ParseIssue.warning(
-                                "Duplicate key at root level: '" + key + "'",
-                                lineNum + 1, indent + 1, lines));
-                    }
-                    seenKeys.add(key);
-                }
-
-                if (value.startsWith("'") || value.startsWith("\"")) {
-                    char quote = value.charAt(0);
-                    String rest = value.substring(1);
-                    if (!rest.contains(String.valueOf(quote))) {
-                        issues.add(ParseIssue.error(
-                                "Unclosed " + (quote == '\'' ? "single" : "double") + " quote in value",
-                                lineNum + 1, indent + key.length() + 3, lines));
-                    }
-                }
-            } else if (!trimmed.startsWith("|") && !trimmed.startsWith(">") &&
-                    !trimmed.startsWith("[") && !trimmed.startsWith("{") &&
-                    !trimmed.startsWith("}") && !trimmed.startsWith("]") &&
-                    !trimmed.startsWith("*") && !trimmed.startsWith("&") &&
-                    !trimmed.startsWith("---") && !trimmed.startsWith("...")) {
-                boolean isBlockScalarContent = false;
-                for (int prev = lineNum - 1; prev >= 0; prev--) {
-                    String prevLine = lines[prev];
-                    String prevTrimmed = prevLine.trim();
-                    if (prevTrimmed.isEmpty() || prevTrimmed.startsWith("#")) continue;
-
-                    int prevIndent = getIndentation(prevLine);
-                    if (prevIndent < indent) {
-                        if (prevTrimmed.endsWith("|") || prevTrimmed.endsWith(">") ||
-                                prevTrimmed.endsWith("|+") || prevTrimmed.endsWith(">-") ||
-                                prevTrimmed.endsWith("|-") || prevTrimmed.endsWith(">+") ||
-                                prevTrimmed.endsWith("|") || prevTrimmed.endsWith(">")) {
-                            isBlockScalarContent = true;
-                        }
-                        break;
-                    }
-                }
-
-                boolean isFlowContent = false;
-                if (!isBlockScalarContent) {
-                    for (int prev = lineNum - 1; prev >= 0; prev--) {
-                        String prevLine = lines[prev].trim();
-                        if (prevLine.isEmpty() || prevLine.startsWith("#")) continue;
-                        if (prevLine.endsWith("{") || prevLine.endsWith("[") ||
-                                prevLine.endsWith(",")) {
-                            isFlowContent = true;
-                            break;
-                        }
-                        break;
-                    }
-                }
-
-                if (!isBlockScalarContent && !isFlowContent) {
-                    issues.add(ParseIssue.error(
-                            "Invalid YAML syntax - expected key:value or list item",
-                            lineNum + 1, indent + 1, lines));
-                }
-            }
-        }
     }
 }
