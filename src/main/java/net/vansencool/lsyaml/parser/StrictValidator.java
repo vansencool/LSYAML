@@ -16,7 +16,6 @@ import java.util.Set;
  *   <li>No duplicate keys</li>
  *   <li>Proper key/value syntax</li>
  * </ul>
- * </p>
  */
 public class StrictValidator {
 
