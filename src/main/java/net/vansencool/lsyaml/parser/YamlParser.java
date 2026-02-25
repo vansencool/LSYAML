@@ -1,6 +1,7 @@
 package net.vansencool.lsyaml.parser;
 
 import net.vansencool.lsyaml.exceptions.YamlParseException;
+import net.vansencool.lsyaml.metadata.ScalarStyle;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
@@ -24,6 +25,12 @@ public class YamlParser {
     private ParseContext ctx;
     private ScalarParser scalarParser;
     private FlowParser flowParser;
+    private boolean hasAnchors;
+
+    private String parsedKey;
+    private ScalarStyle parsedKeyStyle;
+    private String parsedValue;
+    private String parsedInlineComment;
 
     /**
      * Parses a YAML string into a node tree.
@@ -45,6 +52,13 @@ public class YamlParser {
      */
     @NotNull
     public YamlNode parseWithOptions(@NotNull String yaml, @NotNull ParseOptions options) {
+        if (!options.isStrict()) {
+            try {
+                return parseInternal(yaml, options, null);
+            } catch (Exception e) {
+                throw new YamlParseException(e.getMessage() != null ? e.getMessage() : "Unknown error");
+            }
+        }
         ParseResult result = parseDetailed(yaml, options);
         if (!result.isSuccess()) {
             throw new YamlParseException(result.formatIssues());
@@ -69,7 +83,14 @@ public class YamlParser {
 
         try {
             YamlNode node = parseInternal(yaml, options, issues);
-            if (issues.stream().anyMatch(ParseIssue::isError)) {
+            boolean hasError = false;
+            for (int i = 0, n = issues.size(); i < n; i++) {
+                if (issues.get(i).isError()) {
+                    hasError = true;
+                    break;
+                }
+            }
+            if (hasError) {
                 return ParseResult.withIssues(node, issues);
             }
             if (issues.isEmpty()) {
@@ -87,7 +108,7 @@ public class YamlParser {
 
     @NotNull
     private YamlNode parseInternal(@NotNull String yaml, @NotNull ParseOptions options,
-                                   @NotNull List<ParseIssue> issues) {
+                                   @Nullable List<ParseIssue> issues) {
         int yamlLen = yaml.length();
         if (yamlLen == 0) {
             return new MapNode();
@@ -108,8 +129,9 @@ public class YamlParser {
         this.ctx = new ParseContext(yaml);
         this.scalarParser = new ScalarParser();
         this.flowParser = new FlowParser(scalarParser);
+        this.hasAnchors = false;
 
-        if (options.isStrict()) {
+        if (options.isStrict() && issues != null) {
             StrictValidator validator = new StrictValidator(ctx);
             validator.validate(issues);
         }
@@ -164,10 +186,11 @@ public class YamlParser {
             result = parseMap(0, pendingComments, pendingEmptyLines);
         }
 
-        Map<String, YamlNode> anchors = new HashMap<>();
-        collectAnchors(result, anchors);
-        // resolve merge keys (<<) to their target maps
-        resolveMergeKeys(result, anchors);
+        if (hasAnchors) {
+            Map<String, YamlNode> anchors = new HashMap<>();
+            collectAnchors(result, anchors);
+            resolveMergeKeys(result, anchors);
+        }
 
         return result;
     }
@@ -220,6 +243,42 @@ public class YamlParser {
     @NotNull
     private MapNode parseMap(int expectedIndent) {
         return parseMap(expectedIndent, new ArrayList<>(), 0);
+    }
+
+    /**
+     * Parses a key-value line directly into instance fields to avoid ParsedKey record allocation.
+     * Sets parsedKey, parsedKeyStyle, parsedValue, parsedInlineComment.
+     *
+     * @param line the line to parse
+     * @return true if parsing succeeded, false if the line is not a valid key-value line
+     */
+    private boolean parseKeyLineFast(@NotNull String line) {
+        String trimmed = line.trim();
+
+        int colonIdx = ParserUtils.findUnquotedColon(trimmed);
+        if (colonIdx <= 0) {
+            return false;
+        }
+
+        String keyPart = trimmed.substring(0, colonIdx).trim();
+        String valuePart = trimmed.substring(colonIdx + 1).trim();
+
+        parsedKey = ParserUtils.unquoteKey(keyPart);
+        parsedKeyStyle = ParserUtils.detectKeyStyle(keyPart);
+
+        if (!valuePart.isEmpty() && valuePart.charAt(0) == '#') {
+            parsedInlineComment = valuePart.substring(1);
+            parsedValue = "";
+        } else {
+            parsedInlineComment = ParserUtils.extractInlineComment(valuePart);
+            if (parsedInlineComment != null) {
+                parsedValue = ParserUtils.removeInlineComment(valuePart);
+            } else {
+                parsedValue = valuePart;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -295,26 +354,25 @@ public class YamlParser {
             }
 
             // parse key: value line
-            ParsedKey parsed = ParserUtils.parseKeyLine(ctx.currentLineContent());
-            if (parsed == null) {
+            if (!parseKeyLineFast(ctx.currentLineContent())) {
                 break; // not a valid key line
             }
 
             // create entry with parsed key
-            MapNode.MapEntry entry = new MapNode.MapEntry(parsed.key(), new ScalarNode(null), parsed.keyStyle());
+            MapNode.MapEntry entry = new MapNode.MapEntry(parsedKey, new ScalarNode(null), parsedKeyStyle);
             entry.setCommentsBefore(pendingComments);
             entry.setEmptyLinesBefore(pendingEmptyLines);
             pendingComments = new ArrayList<>();
             pendingEmptyLines = 0;
 
-            if (parsed.inlineComment() != null) {
-                entry.setInlineComment(parsed.inlineComment());
+            if (parsedInlineComment != null) {
+                entry.setInlineComment(parsedInlineComment);
             }
 
             ctx.advanceLine();
 
             // handle empty value - look for nested content
-            if (parsed.value().isEmpty()) {
+            if (parsedValue.isEmpty()) {
                 if (ctx.hasMoreLines()) {
                     // collect any comments/empty lines before nested content
                     List<String> nestedComments = new ArrayList<>();
@@ -362,8 +420,9 @@ public class YamlParser {
                 }
             } else {
                 // check if value is anchor-only (value follows on subsequent lines)
-                String anchor = ParserUtils.extractAnchorOnly(parsed.value());
+                String anchor = ParserUtils.extractAnchorOnly(parsedValue);
                 if (anchor != null) {
+                    hasAnchors = true;
                     // anchor with nested content
                     if (ctx.hasMoreLines()) {
                         List<String> nestedComments = new ArrayList<>();
@@ -419,7 +478,7 @@ public class YamlParser {
                         entry.setValue(nullNode);
                     }
                 } else {
-                    entry.setValue(parseValue(parsed.value(), indent));
+                    entry.setValue(parseValue(parsedValue, indent));
                 }
             }
 
@@ -799,11 +858,11 @@ public class YamlParser {
     /**
      * Parses a value string into the appropriate node type.
      * Handles aliases, flow collections, block scalars, anchors, and tags.
+     * The value is expected to be already trimmed and have inline comments stripped.
      */
     @NotNull
     private YamlNode parseValue(@NotNull String value, int indent) {
         value = ParserUtils.trimWhitespace(value);
-
         if (value.isEmpty()) {
             return new ScalarNode(null);
         }
@@ -854,6 +913,7 @@ public class YamlParser {
             }
             if (anchorEnd > 1) {
                 anchor = value.substring(1, anchorEnd);
+                hasAnchors = true;
                 // skip anchor and trailing whitespace
                 while (anchorEnd < value.length() && value.charAt(anchorEnd) == ' ') {
                     anchorEnd++;

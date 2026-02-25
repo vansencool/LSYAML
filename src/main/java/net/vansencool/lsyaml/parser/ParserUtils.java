@@ -181,6 +181,9 @@ public final class ParserUtils {
 
     @NotNull
     public static String unescapeDoubleQuoted(@NotNull String str) {
+        if (str.indexOf('\\') < 0) {
+            return str;
+        }
         return str.replace("\\n", "\n")
                 .replace("\\r", "\r")
                 .replace("\\t", "\t")

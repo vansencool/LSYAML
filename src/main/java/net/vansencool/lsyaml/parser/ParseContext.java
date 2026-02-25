@@ -25,34 +25,15 @@ public class ParseContext {
     /**
      * Creates a new parse context from the given YAML string.
      * <p>
-     * Splits the YAML into lines and pre-computes indentation and first character
-     * for each line. This upfront computation speeds up subsequent parsing operations.
+     * Performs a single pass over the YAML to split lines, compute indentation,
+     * and determine the first non-whitespace character of each line.
      * </p>
      *
      * @param yaml the YAML content to parse
      */
     public ParseContext(@NotNull String yaml) {
-        this.lines = splitLines(yaml);
-        this.totalLines = lines.length;
-        this.lineIndents = new int[totalLines];
-        this.lineFirstChars = new char[totalLines];
-        for (int i = 0; i < totalLines; i++) {
-            lineIndents[i] = computeIndentation(lines[i]);
-            lineFirstChars[i] = computeFirstNonSpaceChar(lines[i]);
-        }
-        this.currentLine = 0;
-    }
-
-    /**
-     * Splits a YAML string into individual lines.
-     * Handles both Unix (\n) and Windows (\r\n) line endings.
-     *
-     * @param yaml the YAML content
-     * @return array of lines
-     */
-    @NotNull
-    private String[] splitLines(@NotNull String yaml) {
         int len = yaml.length();
+
         int lineCount = 1;
         for (int i = 0; i < len; i++) {
             char c = yaml.charAt(i);
@@ -66,62 +47,58 @@ public class ParseContext {
             }
         }
 
-        String[] result = new String[lineCount];
+        this.lines = new String[lineCount];
+        this.lineIndents = new int[lineCount];
+        this.lineFirstChars = new char[lineCount];
+        this.totalLines = lineCount;
+
         int lineIdx = 0;
         int start = 0;
         for (int i = 0; i < len; i++) {
             char c = yaml.charAt(i);
             if (c == '\n') {
-                result[lineIdx++] = yaml.substring(start, i);
+                storeLine(yaml, start, i, lineIdx++);
                 start = i + 1;
             } else if (c == '\r') {
-                result[lineIdx++] = yaml.substring(start, i);
+                storeLine(yaml, start, i, lineIdx++);
                 if (i + 1 < len && yaml.charAt(i + 1) == '\n') {
                     i++;
                 }
                 start = i + 1;
             }
         }
-        result[lineIdx] = yaml.substring(start);
-        return result;
+        storeLine(yaml, start, len, lineIdx);
+
+        this.currentLine = 0;
     }
 
     /**
-     * Computes the indentation level of a line.
-     * Spaces count as 1, tabs count as 2.
+     * Stores a line and computes its indentation and first non-whitespace character
+     * in a single scan, avoiding separate passes over the same data.
      *
-     * @param line the line to measure
-     * @return the indentation count
+     * @param yaml    the full YAML string
+     * @param start   the start index of the line (inclusive)
+     * @param end     the end index of the line (exclusive)
+     * @param lineIdx the line index to store into
      */
-    private int computeIndentation(@NotNull String line) {
-        int len = line.length();
-        int count = 0;
-        for (int i = 0; i < len; i++) {
-            char c = line.charAt(i);
+    private void storeLine(@NotNull String yaml, int start, int end, int lineIdx) {
+        lines[lineIdx] = yaml.substring(start, end);
+
+        int indent = 0;
+        char firstChar = 0;
+        for (int j = start; j < end; j++) {
+            char c = yaml.charAt(j);
             if (c == ' ') {
-                count++;
+                indent++;
             } else if (c == '\t') {
-                count += 2;
+                indent += 2;
             } else {
+                firstChar = c;
                 break;
             }
         }
-        return count;
-    }
-
-    /**
-     * Finds the first non-whitespace character in a line.
-     *
-     * @param line the line to examine
-     * @return the first non-space/tab character, or 0 if line is empty/whitespace-only
-     */
-    private char computeFirstNonSpaceChar(@NotNull String line) {
-        int len = line.length();
-        for (int i = 0; i < len; i++) {
-            char c = line.charAt(i);
-            if (c != ' ' && c != '\t') return c;
-        }
-        return 0;
+        lineIndents[lineIdx] = indent;
+        lineFirstChars[lineIdx] = firstChar;
     }
 
     /**
