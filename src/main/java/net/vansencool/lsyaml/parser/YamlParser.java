@@ -7,7 +7,6 @@ import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
 import net.vansencool.lsyaml.parser.util.FlowContent;
-import net.vansencool.lsyaml.parser.util.ParsedKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -84,8 +83,8 @@ public class YamlParser {
         try {
             YamlNode node = parseInternal(yaml, options, issues);
             boolean hasError = false;
-            for (int i = 0, n = issues.size(); i < n; i++) {
-                if (issues.get(i).isError()) {
+            for (ParseIssue issue : issues) {
+                if (issue.isError()) {
                     hasError = true;
                     break;
                 }

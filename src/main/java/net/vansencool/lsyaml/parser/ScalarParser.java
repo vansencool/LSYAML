@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
  * and block scalars (literal | and folded >).
  * </p>
  */
+@SuppressWarnings("SameParameterValue")
 public class ScalarParser {
 
     /**
