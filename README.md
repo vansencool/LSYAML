@@ -49,7 +49,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'net.vansencool:LSYAML:1.2.5'
+    implementation 'net.vansencool:LSYAML:1.3.0'
 }
 ```
 
@@ -68,7 +68,7 @@ dependencies {
 <dependency>
     <groupId>net.vansencool</groupId>
     <artifactId>LSYAML</artifactId>
-    <version>1.2.5</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 
@@ -195,10 +195,10 @@ Benchmarks performed using JMH on:
 ### Standard Workloads
 
 | Workload | LSYAML (lenient) | LSYAML (strict) | SnakeYAML   | Speedup (lenient) |
-| -------- | ---------------- | --------------- | ----------- | ----------------- |
+| -------- | ---------------- | --------------- | ----------- |-------------------|
 | Simple   | 589 ops/ms       | 526 ops/ms      | 293 ops/ms  | **~2.0×**         |
 | Medium   | 47.6 ops/ms      | 44.3 ops/ms     | 44.3 ops/ms | ~1.07×            |
-| Complex  | 38.5 ops/ms      | 35.3 ops/ms     | 19.8 ops/ms | **~1.9×**         |
+| Complex  | 0.138 ops/ms      | 0.127 ops/ms     | 0.100 ops/ms | **~1.38×**        |
 
 ### Large / Insane Workload
 
