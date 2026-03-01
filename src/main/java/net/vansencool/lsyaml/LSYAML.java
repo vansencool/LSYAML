@@ -6,6 +6,7 @@ import net.vansencool.lsyaml.builder.ScalarBuilder;
 import net.vansencool.lsyaml.exceptions.YamlParseException;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
+import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
 import net.vansencool.lsyaml.parser.ParseOptions;
 import net.vansencool.lsyaml.parser.ParseResult;
@@ -28,9 +29,10 @@ import java.nio.file.Path;
  *
  * <h2>Parsing YAML</h2>
  * <pre>{@code
- * YamlNode node = LSYAML.parse(yamlString);
- * MapNode map = LSYAML.parseMap(yamlString);
+ * MapNode map = LSYAML.parse(yamlString);
  * ListNode list = LSYAML.parseList(yamlString);
+ * ScalarNode scalar = LSYAML.parseScalar(yamlString);
+ * YamlNode any = LSYAML.parseAny(yamlString);
  * }</pre>
  *
  * <h2>Building YAML</h2>
@@ -62,25 +64,56 @@ public final class LSYAML {
     }
 
     /**
-     * Parses a YAML string into a node tree.
+     * Parses a YAML string expecting a map as root.
      *
      * @param yaml the YAML content
-     * @return the root node (MapNode or ListNode)
+     * @return the root MapNode
      */
     @NotNull
-    public static YamlNode parse(@NotNull String yaml) {
+    public static MapNode parse(@NotNull String yaml) {
+        YamlNode node = PARSER.get().parse(yaml);
+        if (node instanceof MapNode) {
+            return (MapNode) node;
+        }
+        throw new YamlParseException("Expected a map but got " + node.getType());
+    }
+
+    /**
+     * Parses a YAML string with custom options, expecting a map as root.
+     *
+     * @param yaml    the YAML content
+     * @param options parse options
+     * @return the root MapNode
+     */
+    @NotNull
+    public static MapNode parse(@NotNull String yaml, @NotNull ParseOptions options) {
+        YamlNode node = PARSER.get().parseWithOptions(yaml, options);
+        if (node instanceof MapNode) {
+            return (MapNode) node;
+        }
+        throw new YamlParseException("Expected a map but got " + node.getType());
+    }
+
+    /**
+     * Parses a YAML string into any node type (map, list, or scalar).
+     *
+     * @param yaml the YAML content
+     * @return the root node
+     */
+    @NotNull
+    public static YamlNode parseAny(@NotNull String yaml) {
         return PARSER.get().parse(yaml);
     }
 
     /**
-     * Parses a YAML string with custom options.
+     * Parses a YAML string with custom options into any node type.
      *
      * @param yaml    the YAML content
-     * @param options parse options (use ParseOptions.lenient() to disable strict mode)
+     * @param options parse options
      * @return the root node
      */
     @NotNull
-    public static YamlNode parse(@NotNull String yaml, @NotNull ParseOptions options) {
+    public static YamlNode parseAny(@NotNull String yaml, @NotNull ParseOptions options) {
         return PARSER.get().parseWithOptions(yaml, options);
     }
 
@@ -109,21 +142,6 @@ public final class LSYAML {
     }
 
     /**
-     * Parses a YAML string expecting a map as root.
-     *
-     * @param yaml the YAML content
-     * @return the root MapNode
-     */
-    @NotNull
-    public static MapNode parseMap(@NotNull String yaml) {
-        YamlNode node = parse(yaml);
-        if (node instanceof MapNode) {
-            return (MapNode) node;
-        }
-        throw new YamlParseException("Expected a map but got " + node.getType());
-    }
-
-    /**
      * Parses a YAML string expecting a list as root.
      *
      * @param yaml the YAML content
@@ -131,7 +149,7 @@ public final class LSYAML {
      */
     @NotNull
     public static ListNode parseList(@NotNull String yaml) {
-        YamlNode node = parse(yaml);
+        YamlNode node = parseAny(yaml);
         if (node instanceof ListNode) {
             return (ListNode) node;
         }
@@ -139,13 +157,29 @@ public final class LSYAML {
     }
 
     /**
-     * Parses a YAML file into a node tree.
+     * Parses a YAML string expecting a scalar as root.
      *
-     * @param path the path to the YAML file
-     * @return the root node
+     * @param yaml the YAML content
+     * @return the root ScalarNode
      */
     @NotNull
-    public static YamlNode parseFile(@NotNull Path path) {
+    public static ScalarNode parseScalar(@NotNull String yaml) {
+        YamlNode node = parseAny(yaml);
+        if (node instanceof ScalarNode) {
+            return (ScalarNode) node;
+        }
+        throw new YamlParseException("Expected a scalar but got " + node.getType());
+    }
+
+    /**
+     * Parses a YAML file expecting a map as root.
+     * This is the default file parse method.
+     *
+     * @param path the path to the YAML file
+     * @return the root MapNode
+     */
+    @NotNull
+    public static MapNode parseFile(@NotNull Path path) {
         try {
             String content = Files.readString(path, StandardCharsets.UTF_8);
             return parse(content);
@@ -155,16 +189,17 @@ public final class LSYAML {
     }
 
     /**
-     * Parses a YAML file expecting a map as root.
+     * Parses a YAML file into any node type (map, list, or scalar).
+     * Use this when the root type is not known.
      *
      * @param path the path to the YAML file
-     * @return the root MapNode
+     * @return the root node
      */
     @NotNull
-    public static MapNode parseMapFile(@NotNull Path path) {
+    public static YamlNode parseAnyFile(@NotNull Path path) {
         try {
             String content = Files.readString(path, StandardCharsets.UTF_8);
-            return parseMap(content);
+            return parseAny(content);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to read file: " + path, e);
         }
@@ -187,9 +222,54 @@ public final class LSYAML {
     }
 
     /**
-     * Writes a YAML node to a string.
+     * Parses a YAML file expecting a scalar as root.
      *
-     * @param node the node to write
+     * @param path the path to the YAML file
+     * @return the root ScalarNode
+     */
+    @NotNull
+    public static ScalarNode parseScalarFile(@NotNull Path path) {
+        try {
+            String content = Files.readString(path, StandardCharsets.UTF_8);
+            return parseScalar(content);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read file: " + path, e);
+        }
+    }
+
+    /**
+     * Parses a YAML file expecting a map as root.
+     * Convenience method equivalent to {@link #parseFile(Path)}.
+     *
+     * @param path the path to the YAML file
+     * @return the root MapNode
+     */
+    @NotNull
+    public static MapNode parseMapFile(@NotNull Path path) {
+        return parseFile(path);
+    }
+
+    /**
+     * Serializes a YAML node to a string using the default {@link YamlWriter} settings.
+     * <p>
+     * The default settings are: 2-space indentation, and preservation of comments, empty
+     * lines, and quote styles all enabled. For output with different settings, obtain a
+     * configured writer via {@link #writer()} and call {@link YamlWriter#write(YamlNode)}
+     * directly:
+     * </p>
+     * <pre>{@code
+     * String yaml = LSYAML.writer()
+     *     .indentSize(4)
+     *     .preserveComments(false)
+     *     .write(node);
+     * }</pre>
+     * <p>
+     * Unlike {@link YamlNode#toYaml()}, which uses serialization
+     * logic embedded directly in each node class, this method delegates to a standalone
+     * {@link YamlWriter} whose behaviour can be fully configured.
+     * </p>
+     *
+     * @param node the node to serialize
      * @return the YAML string
      */
     @NotNull

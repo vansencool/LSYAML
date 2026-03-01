@@ -1,6 +1,7 @@
 package net.vansencool.lsyaml.binding;
 
 import net.vansencool.lsyaml.builder.MapBuilder;
+import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
 import org.jetbrains.annotations.NotNull;
@@ -52,6 +53,12 @@ class ConfigLoaderTest {
 
         NestedConfig.name = "MyApp";
         NestedConfig.database = new NestedConfig.Database();
+
+        HyphenConfig.serverName = "HyphenServer";
+        HyphenConfig.maxPlayers = 50;
+
+        HyphenWithKeyConfig.serverName = "KeyOverride";
+        HyphenWithKeyConfig.maxPlayers = 50;
     }
 
     @AfterEach
@@ -360,7 +367,7 @@ class ConfigLoaderTest {
     public static class TestDurationAdapter implements ConfigAdapter<TestDuration> {
         @Override
         public @Nullable TestDuration fromNode(@NotNull YamlNode node) {
-            Integer mins = node.getInt();
+            Integer mins = node.asScalar().getInt();
             return mins != null ? new TestDuration(mins) : null;
         }
 
@@ -560,9 +567,10 @@ class ConfigLoaderTest {
     public static class LocationAdapter implements ConfigAdapter<Location> {
         @Override
         public @Nullable Location fromNode(@NotNull YamlNode node) {
-            Double x = node.getDouble("x");
-            Double y = node.getDouble("y");
-            Double z = node.getDouble("z");
+            MapNode map = node.asMap();
+            Double x = map.getDouble("x");
+            Double y = map.getDouble("y");
+            Double z = map.getDouble("z");
             if (x == null || y == null || z == null) {
                 return null;
             }
@@ -577,5 +585,125 @@ class ConfigLoaderTest {
                     .put("z", value.z())
                     .build();
         }
+    }
+
+    @Test
+    void testPreferKeysWithHyphen() throws IOException {
+        ConfigLoader.load(HyphenConfig.class);
+
+        String content = Files.readString(Path.of("build/test-configs/hyphen-test.yml"));
+        assertTrue(content.contains("max-players:"), "Should write keys with hyphen separator");
+        assertTrue(content.contains("server-name:"), "Should write keys with hyphen separator");
+        assertFalse(content.contains("maxplayers:"), "Should not use plain lowercase");
+
+        assertEquals("HyphenServer", HyphenConfig.serverName);
+        assertEquals(50, HyphenConfig.maxPlayers);
+    }
+
+    @Test
+    void testPreferKeysWithHyphenFallbackToUnderscore() throws IOException {
+        String yaml = """
+                server_name: UnderscoreServer
+                max_players: 99
+                """;
+        Files.writeString(Path.of("build/test-configs/hyphen-test.yml"), yaml);
+
+        ConfigLoader.load(HyphenConfig.class);
+
+        assertEquals("UnderscoreServer", HyphenConfig.serverName);
+        assertEquals(99, HyphenConfig.maxPlayers);
+    }
+
+    @Test
+    void testPreferKeysWithHyphenPreferredOverUnderscore() throws IOException {
+        String yaml = """
+                server-name: PreferredServer
+                max-players: 77
+                """;
+        Files.writeString(Path.of("build/test-configs/hyphen-test.yml"), yaml);
+
+        ConfigLoader.load(HyphenConfig.class);
+
+        assertEquals("PreferredServer", HyphenConfig.serverName);
+        assertEquals(77, HyphenConfig.maxPlayers);
+    }
+
+    @Test
+    void testPreferKeysWithKeyAnnotationOverride() throws IOException {
+        ConfigLoader.load(HyphenWithKeyConfig.class);
+
+        String content = Files.readString(Path.of("build/test-configs/hyphen-key-test.yml"));
+        assertTrue(content.contains("custom_name:"), "@Key should override @PreferKeysWith");
+        assertTrue(content.contains("max-players:"), "field without @Key should use @PreferKeysWith");
+    }
+
+    @Test
+    void testTypeMismatchIntGetsString() throws IOException {
+        String yaml = """
+                name: TypeMismatchTest
+                port: not_a_number
+                debug: true
+                """;
+        Files.writeString(Path.of("build/test-configs/basic.yml"), yaml);
+
+        ConfigLoader.load(BasicConfig.class);
+
+        assertEquals("TypeMismatchTest", BasicConfig.name);
+        assertEquals(25565, BasicConfig.port);
+        assertTrue(BasicConfig.debug);
+    }
+
+    @Test
+    void testTypeMismatchBooleanGetsString() throws IOException {
+        String yaml = """
+                name: BoolTest
+                port: 8080
+                debug: banana
+                """;
+        Files.writeString(Path.of("build/test-configs/basic.yml"), yaml);
+
+        ConfigLoader.load(BasicConfig.class);
+
+        assertEquals("BoolTest", BasicConfig.name);
+        assertEquals(8080, BasicConfig.port);
+        assertTrue(BasicConfig.debug);
+    }
+
+    @Test
+    void testTypeMismatchListGetsScalar() throws IOException {
+        String yaml = """
+                tags: not_a_list
+                """;
+        Files.writeString(Path.of("build/test-configs/list.yml"), yaml);
+
+        ConfigLoader.load(ListConfig.class);
+
+        assertNotNull(ListConfig.tags);
+        assertEquals(3, ListConfig.tags.size());
+    }
+
+    @Test
+    void testCamelToSeparated() {
+        assertEquals("max-players", TypeConverters.camelToSeparated("maxPlayers", "-"));
+        assertEquals("max_players", TypeConverters.camelToSeparated("maxPlayers", "_"));
+        assertEquals("http-server", TypeConverters.camelToSeparated("HTTPServer", "-"));
+        assertEquals("max-connections", TypeConverters.camelToSeparated("MAX_CONNECTIONS", "-"));
+        assertEquals("name", TypeConverters.camelToSeparated("name", "-"));
+        assertEquals("server-name", TypeConverters.camelToSeparated("serverName", "-"));
+    }
+
+    @ConfigFile("build/test-configs/hyphen-test.yml")
+    @PreferKeysWith("-")
+    public static class HyphenConfig {
+        public static String serverName = "HyphenServer";
+        public static int maxPlayers = 50;
+    }
+
+    @ConfigFile("build/test-configs/hyphen-key-test.yml")
+    @PreferKeysWith("-")
+    public static class HyphenWithKeyConfig {
+        @Key("custom_name")
+        public static String serverName = "KeyOverride";
+        public static int maxPlayers = 50;
     }
 }

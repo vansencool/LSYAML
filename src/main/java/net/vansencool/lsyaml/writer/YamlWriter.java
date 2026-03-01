@@ -79,9 +79,17 @@ public class YamlWriter {
     }
 
     /**
-     * Writes a YAML node to a string.
+     * Serializes a YAML node to a string using this writer's current settings.
+     * <p>
+     * This is the configurable counterpart to {@link YamlNode#toYaml()}. While
+     * {@code toYaml()} uses serialization logic baked into each node class with a fixed
+     * 2-space indent and all preservation options hard-wired on, this method respects the
+     * {@link #indentSize(int)}, {@link #preserveComments(boolean)},
+     * {@link #preserveEmptyLines(boolean)}, and {@link #preserveQuoteStyles(boolean)}
+     * settings on this instance.
+     * </p>
      *
-     * @param node the node to write
+     * @param node the node to serialize
      * @return the YAML string
      */
     @NotNull

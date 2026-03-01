@@ -2,6 +2,7 @@ package net.vansencool.lsyaml.binding;
 
 import net.vansencool.lsyaml.builder.ListBuilder;
 import net.vansencool.lsyaml.builder.MapBuilder;
+import net.vansencool.lsyaml.logger.LSYAMLLogger;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
@@ -22,6 +23,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Internal utility class for converting between Java types and YAML nodes.
+ * <p>
+ * Provides two levels of conversion:
+ * <ul>
+ *   <li>{@link #convertFromNode(YamlNode, Class)} / {@link #convertToNode(Object, Class)} --
+ *       core type-based conversion for adapters, primitives, and branch types.</li>
+ *   <li>{@link #fromNode(YamlNode, Field)} / {@link #toNode(Object, Field)} --
+ *       field-aware conversion that additionally handles generic collections
+ *       ({@code List<T>}, {@code Set<T>}, {@code Map<String, T>}).</li>
+ * </ul>
  */
 @SuppressWarnings("unused")
 final class TypeConverters {
@@ -67,80 +77,130 @@ final class TypeConverters {
 
     /**
      * Converts a YAML node to a Java value based on the field type.
+     * Handles adapters, primitives, collections ({@code List}, {@code Set}, {@code Map}),
+     * and branch types. Collection element types are inferred from the field's generic signature.
      *
      * @param node  the YAML node
      * @param field the target field
-     * @return the converted value
+     * @return the converted value, or null if the node is null or conversion fails
      */
-    @SuppressWarnings("rawtypes")
     @Nullable
     static Object fromNode(@Nullable YamlNode node, @NotNull Field field) {
-        if (node == null) {
-            return null;
-        }
+        if (node == null) return null;
 
         Class<?> type = field.getType();
 
-        ConfigAdapter adapter = adapters.get(type);
-        if (adapter != null) {
-            return adapter.fromNode(node);
-        }
-
-        if (type == String.class) {
-            return node.getString();
-        }
-
-        if (type == int.class || type == Integer.class) {
-            return node.getInt();
-        }
-
-        if (type == long.class || type == Long.class) {
-            return node.getLong();
-        }
-
-        if (type == double.class || type == Double.class) {
-            return node.getDouble();
-        }
-
-        if (type == float.class || type == Float.class) {
-            Double d = node.getDouble();
-            return d != null ? d.floatValue() : null;
-        }
-
-        if (type == boolean.class || type == Boolean.class) {
-            return node.getBoolean();
-        }
-
-        if (type == short.class || type == Short.class) {
-            Integer i = node.getInt();
-            return i != null ? i.shortValue() : null;
-        }
-
-        if (type == byte.class || type == Byte.class) {
-            Integer i = node.getInt();
-            return i != null ? i.byteValue() : null;
-        }
-
-        if (type == char.class || type == Character.class) {
-            String s = node.getString();
-            return (s != null && !s.isEmpty()) ? s.charAt(0) : null;
-        }
-
-        if (List.class.isAssignableFrom(type)) {
-            return fromListNode(node, field);
-        }
-
+        if (List.class.isAssignableFrom(type)) return fromListNode(node, field);
         if (Set.class.isAssignableFrom(type)) {
             List<?> list = fromListNode(node, field);
             return list != null ? new LinkedHashSet<>(list) : null;
         }
+        if (Map.class.isAssignableFrom(type)) return fromMapNode(node, field);
 
-        if (Map.class.isAssignableFrom(type)) {
-            return fromMapNode(node, field);
+        return convertFromNode(node, type);
+    }
+
+    /**
+     * Core type-based conversion from a YAML node to a Java value.
+     * Handles adapters, primitive/wrapper types (with graceful type-mismatch handling),
+     * and branch types. Does not handle collections -- use {@link #fromNode(YamlNode, Field)} for those.
+     *
+     * @param node the YAML node
+     * @param type the target type
+     * @return the converted value, or null if the node is null or conversion fails
+     */
+    @SuppressWarnings("rawtypes")
+    @Nullable
+    static Object convertFromNode(@Nullable YamlNode node, @NotNull Class<?> type) {
+        if (node == null) return null;
+
+        ConfigAdapter adapter = adapters.get(type);
+        if (adapter != null) return adapter.fromNode(node);
+
+        if (isPrimitiveOrWrapper(type)) return convertScalar(node, type);
+        if (isBranchType(type)) return fromBranchNode(node, type);
+
+        return null;
+    }
+
+    /**
+     * Safely converts a YAML node to a primitive/wrapper value.
+     * Returns null (preserving the field's default) when the node is not a scalar
+     * or the value cannot be parsed to the target type.
+     *
+     * @param node the YAML node (expected to be a {@link ScalarNode})
+     * @param type the target primitive/wrapper type
+     * @return the converted value, or null on type mismatch or parse failure
+     */
+    @Nullable
+    private static Object convertScalar(@NotNull YamlNode node, @NotNull Class<?> type) {
+        if (!(node instanceof ScalarNode scalar)) {
+            LSYAMLLogger.warn("Expected a scalar value for type " + type.getSimpleName()
+                    + " but got " + node.getType());
+            return null;
         }
 
-        if (isBranchType(type)) {
-            return fromBranchNode(node, type);
+        if (type == String.class) return scalar.getStringValue();
+
+        if (type == int.class || type == Integer.class) {
+            Integer val = scalar.getInt();
+            if (val == null && !scalar.isNull()) {
+                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to int");
+            }
+            return val;
+        }
+
+        if (type == long.class || type == Long.class) {
+            Long val = scalar.getLong();
+            if (val == null && !scalar.isNull()) {
+                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to long");
+            }
+            return val;
+        }
+
+        if (type == double.class || type == Double.class) {
+            Double val = scalar.getDouble();
+            if (val == null && !scalar.isNull()) {
+                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to double");
+            }
+            return val;
+        }
+
+        if (type == float.class || type == Float.class) {
+            Double val = scalar.getDouble();
+            if (val == null && !scalar.isNull()) {
+                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to float");
+            }
+            return val != null ? val.floatValue() : null;
+        }
+
+        if (type == boolean.class || type == Boolean.class) {
+            Boolean val = scalar.getBoolean();
+            if (val == null && !scalar.isNull()) {
+                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to boolean");
+            }
+            return val;
+        }
+
+        if (type == short.class || type == Short.class) {
+            Integer val = scalar.getInt();
+            if (val == null && !scalar.isNull()) {
+                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to short");
+            }
+            return val != null ? val.shortValue() : null;
+        }
+
+        if (type == byte.class || type == Byte.class) {
+            Integer val = scalar.getInt();
+            if (val == null && !scalar.isNull()) {
+                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to byte");
+            }
+            return val != null ? val.byteValue() : null;
+        }
+
+        if (type == char.class || type == Character.class) {
+            String s = scalar.getStringValue();
+            return (s != null && !s.isEmpty()) ? s.charAt(0) : null;
         }
 
         return null;
@@ -149,22 +209,18 @@ final class TypeConverters {
     @Nullable
     private static List<?> fromListNode(@Nullable YamlNode node, @NotNull Field field) {
         if (!(node instanceof ListNode listNode)) {
+            if (node != null) {
+                LSYAMLLogger.warn("Expected a list for field '" + field.getName()
+                        + "' but got " + node.getType());
+            }
             return null;
         }
 
-        Type genericType = field.getGenericType();
-        Class<?> elementType = Object.class;
-
-        if (genericType instanceof ParameterizedType pt) {
-            Type[] typeArgs = pt.getActualTypeArguments();
-            if (typeArgs.length > 0 && typeArgs[0] instanceof Class<?> clazz) {
-                elementType = clazz;
-            }
-        }
+        Class<?> elementType = extractElementType(field.getGenericType());
 
         List<Object> result = new ArrayList<>();
         for (YamlNode item : listNode) {
-            Object value = fromNodeByType(item, elementType);
+            Object value = convertFromNode(item, elementType);
             if (value != null) {
                 result.add(value);
             }
@@ -175,6 +231,10 @@ final class TypeConverters {
     @Nullable
     private static Map<String, ?> fromMapNode(@Nullable YamlNode node, @NotNull Field field) {
         if (!(node instanceof MapNode mapNode)) {
+            if (node != null) {
+                LSYAMLLogger.warn("Expected a map for field '" + field.getName()
+                        + "' but got " + node.getType());
+            }
             return null;
         }
 
@@ -191,74 +251,19 @@ final class TypeConverters {
         Map<String, Object> result = new LinkedHashMap<>();
         for (String key : mapNode.keys()) {
             YamlNode child = mapNode.get(key);
-            Object value = fromNodeByType(child, valueType);
+            Object value = convertFromNode(child, valueType);
             result.put(key, value);
         }
         return result;
     }
 
-    @SuppressWarnings("rawtypes")
-    @Nullable
-    private static Object fromNodeByType(@Nullable YamlNode node, @NotNull Class<?> type) {
-        if (node == null) {
-            return null;
-        }
-
-        ConfigAdapter adapter = adapters.get(type);
-        if (adapter != null) {
-            return adapter.fromNode(node);
-        }
-
-        if (type == String.class) {
-            return node.getString();
-        }
-
-        if (type == Integer.class || type == int.class) {
-            return node.getInt();
-        }
-
-        if (type == Long.class || type == long.class) {
-            return node.getLong();
-        }
-
-        if (type == Double.class || type == double.class) {
-            return node.getDouble();
-        }
-
-        if (type == Float.class || type == float.class) {
-            Double d = node.getDouble();
-            return d != null ? d.floatValue() : null;
-        }
-
-        if (type == Boolean.class || type == boolean.class) {
-            return node.getBoolean();
-        }
-
-        if (type == Short.class || type == short.class) {
-            Integer i = node.getInt();
-            return i != null ? i.shortValue() : null;
-        }
-
-        if (type == Byte.class || type == byte.class) {
-            Integer i = node.getInt();
-            return i != null ? i.byteValue() : null;
-        }
-
-        if (type == Character.class || type == char.class) {
-            String s = node.getString();
-            return (s != null && !s.isEmpty()) ? s.charAt(0) : null;
-        }
-
-        if (isBranchType(type)) {
-            return fromBranchNode(node, type);
-        }
-
-        return null;
-    }
-
     @Nullable
     private static Object fromBranchNode(@Nullable YamlNode node, @NotNull Class<?> type) {
         if (!(node instanceof MapNode mapNode)) {
+            if (node != null) {
+                LSYAMLLogger.warn("Expected a map for branch type " + type.getSimpleName()
+                        + " but got " + node.getType());
+            }
             return null;
         }
 
@@ -270,8 +275,7 @@ final class TypeConverters {
                 }
 
                 field.setAccessible(true);
-                String key = getKeyForField(field);
-                YamlNode childNode = mapNode.get(key);
+                YamlNode childNode = resolveNode(field, mapNode);
 
                 if (childNode != null) {
                     Object value = fromNode(childNode, field);
@@ -282,50 +286,48 @@ final class TypeConverters {
             }
             return instance;
         } catch (Exception e) {
+            LSYAMLLogger.warn("Failed to create instance of " + type.getSimpleName() + ": " + e.getMessage());
             return null;
         }
     }
 
     /**
-     * Converts a Java value to a YAML node.
+     * Converts a Java value to a YAML node based on the field type.
+     * Handles adapters, primitives, collections, and branch types.
      *
      * @param value the Java value
      * @param field the source field (for type info)
      * @return the YAML node
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     @NotNull
     static YamlNode toNode(@Nullable Object value, @NotNull Field field) {
-        if (value == null) {
-            return new ScalarNode(null);
-        }
+        if (value == null) return new ScalarNode(null);
 
-        Class<?> type = value.getClass();
+        if (value instanceof List<?> list) return listToNode(list, field);
+        if (value instanceof Set<?> set) return listToNode(new ArrayList<>(set), field);
+        if (value instanceof Map<?, ?> map) return mapToNode(map);
+
+        return convertToNode(value, value.getClass());
+    }
+
+    /**
+     * Core type-based conversion from a Java value to a YAML node.
+     * Handles adapters, primitive/wrapper types, and branch types.
+     *
+     * @param value the Java value
+     * @param type  the value's type
+     * @return the YAML node
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @NotNull
+    static YamlNode convertToNode(@Nullable Object value, @NotNull Class<?> type) {
+        if (value == null) return new ScalarNode(null);
 
         ConfigAdapter adapter = adapters.get(type);
-        if (adapter != null) {
-            return adapter.toNode(value);
-        }
+        if (adapter != null) return adapter.toNode(value);
 
-        if (isPrimitiveOrWrapper(type)) {
-            return new ScalarNode(value);
-        }
-
-        if (value instanceof List<?> list) {
-            return listToNode(list, field);
-        }
-
-        if (value instanceof Set<?> set) {
-            return listToNode(new ArrayList<>(set), field);
-        }
-
-        if (value instanceof Map<?, ?> map) {
-            return mapToNode(map);
-        }
-
-        if (isBranchType(type)) {
-            return branchToNode(value);
-        }
+        if (isPrimitiveOrWrapper(type)) return new ScalarNode(value);
+        if (isBranchType(type)) return branchToNode(value);
 
         return new ScalarNode(value.toString());
     }
@@ -333,23 +335,13 @@ final class TypeConverters {
     @NotNull
     private static ListNode listToNode(@NotNull List<?> list, @NotNull Field field) {
         ListBuilder builder = ListBuilder.create();
-
-        Type genericType = field.getGenericType();
-        Class<?> elementType = Object.class;
-
-        if (genericType instanceof ParameterizedType pt) {
-            Type[] typeArgs = pt.getActualTypeArguments();
-            if (typeArgs.length > 0 && typeArgs[0] instanceof Class<?> clazz) {
-                elementType = clazz;
-            }
-        }
+        Class<?> elementType = extractElementType(field.getGenericType());
 
         for (Object item : list) {
             if (item == null) {
                 builder.add(new ScalarNode(null));
             } else {
-                YamlNode node = toNodeByType(item, elementType);
-                builder.add(node);
+                builder.add(convertToNode(item, elementType));
             }
         }
 
@@ -367,35 +359,11 @@ final class TypeConverters {
             if (value == null) {
                 builder.put(key, new ScalarNode(null));
             } else {
-                YamlNode node = toNodeByType(value, value.getClass());
-                builder.put(key, node);
+                builder.put(key, convertToNode(value, value.getClass()));
             }
         }
 
         return builder.build();
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @NotNull
-    private static YamlNode toNodeByType(@Nullable Object value, @NotNull Class<?> type) {
-        if (value == null) {
-            return new ScalarNode(null);
-        }
-
-        ConfigAdapter adapter = adapters.get(type);
-        if (adapter != null) {
-            return adapter.toNode(value);
-        }
-
-        if (isPrimitiveOrWrapper(value.getClass())) {
-            return new ScalarNode(value);
-        }
-
-        if (isBranchType(value.getClass())) {
-            return branchToNode(value);
-        }
-
-        return new ScalarNode(value.toString());
     }
 
     @NotNull
@@ -435,7 +403,7 @@ final class TypeConverters {
 
                 builder.put(key, node);
             } catch (IllegalAccessException e) {
-                // Skip field
+                LSYAMLLogger.warn("Cannot access field " + field.getName() + " on " + type.getSimpleName());
             }
         }
 
@@ -443,8 +411,96 @@ final class TypeConverters {
     }
 
     /**
-     * Gets the config key name for a field.
-     * Keys are converted to lowercase unless @ExplicitKey is used.
+     * Resolves the YAML node for a field from a map, using key fallback logic.
+     * <ol>
+     *   <li>{@link ExplicitKey} -- uses exact key, no fallback</li>
+     *   <li>{@link Key} -- uses lowercased key, no fallback</li>
+     *   <li>{@link PreferKeysWith} (field or class level) -- tries preferred separator first,
+     *       then underscore, then plain lowercase as a last resort</li>
+     *   <li>Default -- plain lowercase field name</li>
+     * </ol>
+     *
+     * @param field the field to resolve
+     * @param map   the map node to look up in
+     * @return the resolved node, or null if no matching key is found
+     */
+    @Nullable
+    static YamlNode resolveNode(@NotNull Field field, @NotNull MapNode map) {
+        ExplicitKey explicitKeyAnn = field.getAnnotation(ExplicitKey.class);
+        if (explicitKeyAnn != null) {
+            return map.get(explicitKeyAnn.value());
+        }
+
+        Key keyAnn = field.getAnnotation(Key.class);
+        if (keyAnn != null) {
+            return map.get(keyAnn.value().toLowerCase());
+        }
+
+        String separator = getPreferredSeparator(field);
+        if (separator != null) {
+            String preferredKey = camelToSeparated(field.getName(), separator);
+            YamlNode node = map.get(preferredKey);
+            if (node != null) return node;
+
+            if (!separator.equals("_")) {
+                String underscoreKey = camelToSeparated(field.getName(), "_");
+                node = map.get(underscoreKey);
+                if (node != null) return node;
+            }
+
+            return map.get(field.getName().toLowerCase());
+        }
+
+        return map.get(field.getName().toLowerCase());
+    }
+
+    /**
+     * Resolves which key in the map matches a field, using the same fallback logic
+     * as {@link #resolveNode(Field, MapNode)}.
+     *
+     * @param field the field to resolve
+     * @param map   the map node to look up in
+     * @return the actual key string found in the map, or null if no match
+     */
+    @Nullable
+    static String resolveKey(@NotNull Field field, @NotNull MapNode map) {
+        ExplicitKey explicitKeyAnn = field.getAnnotation(ExplicitKey.class);
+        if (explicitKeyAnn != null) {
+            return map.get(explicitKeyAnn.value()) != null ? explicitKeyAnn.value() : null;
+        }
+
+        Key keyAnn = field.getAnnotation(Key.class);
+        if (keyAnn != null) {
+            String key = keyAnn.value().toLowerCase();
+            return map.get(key) != null ? key : null;
+        }
+
+        String separator = getPreferredSeparator(field);
+        if (separator != null) {
+            String preferredKey = camelToSeparated(field.getName(), separator);
+            if (map.get(preferredKey) != null) return preferredKey;
+
+            if (!separator.equals("_")) {
+                String underscoreKey = camelToSeparated(field.getName(), "_");
+                if (map.get(underscoreKey) != null) return underscoreKey;
+            }
+
+            String plain = field.getName().toLowerCase();
+            return map.get(plain) != null ? plain : null;
+        }
+
+        String plain = field.getName().toLowerCase();
+        return map.get(plain) != null ? plain : null;
+    }
+
+    /**
+     * Gets the config key name for a field (used when writing YAML).
+     * <ol>
+     *   <li>{@link ExplicitKey} -- exact value as-is</li>
+     *   <li>{@link Key} -- lowercased value</li>
+     *   <li>{@link PreferKeysWith} -- camelCase split with the preferred separator</li>
+     *   <li>Default -- plain lowercase field name</li>
+     * </ol>
      *
      * @param field the field
      * @return the key name
@@ -461,7 +517,68 @@ final class TypeConverters {
             return keyAnn.value().toLowerCase();
         }
 
+        String separator = getPreferredSeparator(field);
+        if (separator != null) {
+            return camelToSeparated(field.getName(), separator);
+        }
+
         return field.getName().toLowerCase();
+    }
+
+    /**
+     * Returns the preferred key separator for a field, checking the field annotation first,
+     * then the declaring class annotation.
+     *
+     * @param field the field
+     * @return the separator string, or null if no {@link PreferKeysWith} is present
+     */
+    @Nullable
+    private static String getPreferredSeparator(@NotNull Field field) {
+        PreferKeysWith fieldAnn = field.getAnnotation(PreferKeysWith.class);
+        if (fieldAnn != null) return fieldAnn.value();
+
+        PreferKeysWith classAnn = field.getDeclaringClass().getAnnotation(PreferKeysWith.class);
+        if (classAnn != null) return classAnn.value();
+
+        return null;
+    }
+
+    /**
+     * Converts a camelCase or UPPER_CASE name to a separated lowercase form.
+     * For example, with separator "-": {@code maxPlayers} becomes {@code max-players},
+     * {@code HTTPServer} becomes {@code http-server}, {@code MAX_CONNECTIONS} becomes
+     * {@code max-connections}.
+     *
+     * @param name      the field name
+     * @param separator the separator string to insert between words
+     * @return the separated, lowercased key
+     */
+    @NotNull
+    static String camelToSeparated(@NotNull String name, @NotNull String separator) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+
+            if (c == '_') {
+                sb.append(separator);
+                continue;
+            }
+
+            if (Character.isUpperCase(c) && i > 0) {
+                char prev = name.charAt(i - 1);
+                if (prev != '_' && !Character.isUpperCase(prev)) {
+                    sb.append(separator);
+                } else if (Character.isUpperCase(prev)
+                        && i + 1 < name.length()
+                        && name.charAt(i + 1) != '_'
+                        && !Character.isUpperCase(name.charAt(i + 1))) {
+                    sb.append(separator);
+                }
+            }
+
+            sb.append(Character.toLowerCase(c));
+        }
+        return sb.toString();
     }
 
     /**
@@ -520,6 +637,24 @@ final class TypeConverters {
             return false;
         }
         return !hasAdapter(type);
+    }
+
+    /**
+     * Extracts the first type argument from a generic type.
+     * Returns {@link Object} if the type is not parameterized or has no type arguments.
+     *
+     * @param genericType the generic type
+     * @return the element class
+     */
+    @NotNull
+    private static Class<?> extractElementType(@NotNull Type genericType) {
+        if (genericType instanceof ParameterizedType pt) {
+            Type[] typeArgs = pt.getActualTypeArguments();
+            if (typeArgs.length > 0 && typeArgs[0] instanceof Class<?> clazz) {
+                return clazz;
+            }
+        }
+        return Object.class;
     }
 
     /**

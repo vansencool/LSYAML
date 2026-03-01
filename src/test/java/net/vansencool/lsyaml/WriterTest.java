@@ -130,9 +130,9 @@ class WriterTest {
             age: 30
             """;
 
-        MapNode parsed = LSYAML.parseMap(original);
+        MapNode parsed = LSYAML.parse(original);
         String written = LSYAML.write(parsed);
-        MapNode reparsed = LSYAML.parseMap(written);
+        MapNode reparsed = LSYAML.parse(written);
 
         assertEquals(parsed.getString("name"), reparsed.getString("name"));
         assertEquals(parsed.getInt("age", 0), reparsed.getInt("age", 0));
@@ -146,9 +146,9 @@ class WriterTest {
               port: 8080
             """;
 
-        MapNode parsed = LSYAML.parseMap(original);
+        MapNode parsed = LSYAML.parse(original);
         String written = LSYAML.write(parsed);
-        MapNode reparsed = LSYAML.parseMap(written);
+        MapNode reparsed = LSYAML.parse(written);
 
         assertEquals(
                 parsed.getMap("server").getString("host"),
@@ -179,7 +179,7 @@ class WriterTest {
             name: value # inline
             """;
 
-        MapNode parsed = LSYAML.parseMap(original);
+        MapNode parsed = LSYAML.parse(original);
         String written = LSYAML.write(parsed);
 
         assertTrue(written.contains("# Header comment"));
@@ -188,7 +188,7 @@ class WriterTest {
 
     @Test
     void writeQuotedValues() {
-        MapNode map = LSYAML.parseMap("key: 'quoted value'");
+        MapNode map = LSYAML.parse("key: 'quoted value'");
         String yaml = LSYAML.write(map);
 
         assertTrue(yaml.contains("'quoted value'"));
@@ -202,7 +202,7 @@ class WriterTest {
                 .build();
 
         String yaml = LSYAML.write(map);
-        MapNode reparsed = LSYAML.parseMap(yaml);
+        MapNode reparsed = LSYAML.parse(yaml);
 
         assertEquals("has: colon", reparsed.getString("colon"));
         assertEquals("has # hash", reparsed.getString("hash"));

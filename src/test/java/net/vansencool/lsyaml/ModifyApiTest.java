@@ -308,7 +308,7 @@ class ModifyApiTest {
             key: value # inline
             """;
         
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
         map.modify("key").value("newValue");
         
         String output = map.toYaml();

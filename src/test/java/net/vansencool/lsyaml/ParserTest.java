@@ -16,7 +16,7 @@ class ParserTest {
     @Test
     void parseSimpleMap() {
         String yaml = "name: John\nage: 30";
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         assertEquals("John", map.getString("name"));
         assertEquals(30, map.getInt("age", 0));
@@ -29,7 +29,7 @@ class ParserTest {
               host: localhost
               port: 3306
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         MapNode db = map.getMap("database");
         assertNotNull(db);
@@ -61,7 +61,7 @@ class ParserTest {
             vegetables:
               - carrot
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         ListNode fruits = map.getList("fruits");
         assertNotNull(fruits);
@@ -102,7 +102,7 @@ class ParserTest {
             double: "hello world"
             plain: hello world
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         assertEquals("hello world", map.getString("single"));
         assertEquals("hello world", map.getString("double"));
@@ -116,7 +116,7 @@ class ParserTest {
             double: "value"
             plain: value
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         ScalarNode single = (ScalarNode) map.get("single");
         ScalarNode dbl = (ScalarNode) map.get("double");
@@ -136,7 +136,7 @@ class ParserTest {
             scientific: 1.5e10
             hex: 0xFF
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         ScalarNode integer = (ScalarNode) map.get("integer");
         assertEquals(42, integer.getIntValue());
@@ -161,7 +161,7 @@ class ParserTest {
             on_val: on
             off_val: off
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         assertTrue(map.getBoolean("yes_val", false));
         assertFalse(map.getBoolean("no_val", true));
@@ -178,7 +178,7 @@ class ParserTest {
             null2: ~
             null3:
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         ScalarNode null1 = (ScalarNode) map.get("null1");
         assertTrue(null1.isNull());
@@ -193,7 +193,7 @@ class ParserTest {
     @Test
     void parseFlowMap() {
         String yaml = "config: {host: localhost, port: 8080}";
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         MapNode config = map.getMap("config");
         assertNotNull(config);
@@ -205,7 +205,7 @@ class ParserTest {
     @Test
     void parseFlowList() {
         String yaml = "items: [a, b, c]";
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         ListNode items = map.getList("items");
         assertNotNull(items);
@@ -221,7 +221,7 @@ class ParserTest {
             name: John
             age: 30 # inline comment
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         assertFalse(map.entries().iterator().next().getCommentsBefore().isEmpty());
 
@@ -237,7 +237,7 @@ class ParserTest {
 
             age: 30
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         MapNode.MapEntry ageEntry = map.getEntry("age");
         assertNotNull(ageEntry);
@@ -250,7 +250,7 @@ class ParserTest {
             escaped: "hello\\nworld"
             tabs: "hello\\tworld"
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         assertEquals("hello\nworld", map.getString("escaped"));
         assertEquals("hello\tworld", map.getString("tabs"));
@@ -270,7 +270,7 @@ class ParserTest {
             "special:key": value1
             'another:key': value2
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         assertEquals("value1", map.getString("special:key"));
         assertEquals("value2", map.getString("another:key"));
@@ -285,7 +285,7 @@ class ParserTest {
                   level4:
                     value: deep
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         MapNode l1 = map.getMap("level1");
         MapNode l2 = l1.getMap("level2");
@@ -304,7 +304,7 @@ class ParserTest {
               host: localhost
               port: 3306
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         MapNode db = map.getMap("database");
         assertNotNull(db);
@@ -325,7 +325,7 @@ class ParserTest {
               # Second item
               - banana
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         ListNode items = map.getList("items");
         assertNotNull(items);
@@ -348,7 +348,7 @@ class ParserTest {
               - host: server2
                 port: 8081
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         ListNode servers = map.getList("servers");
         assertNotNull(servers);
@@ -381,7 +381,7 @@ class ParserTest {
                 - name: main
                   port: 8080
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         MapNode app = map.getMap("app");
         assertNotNull(app);
@@ -407,9 +407,9 @@ class ParserTest {
               host: localhost
               port: 3306
             """;
-        MapNode parsed = LSYAML.parseMap(yaml);
+        MapNode parsed = LSYAML.parse(yaml);
         String written = LSYAML.write(parsed);
-        MapNode reparsed = LSYAML.parseMap(written);
+        MapNode reparsed = LSYAML.parse(written);
 
         MapNode db = reparsed.getMap("database");
         assertNotNull(db);
@@ -428,7 +428,7 @@ class ParserTest {
               - value
               -
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         ListNode items = map.getList("items");
         assertNotNull(items);
@@ -442,7 +442,7 @@ class ParserTest {
               host: localhost # The hostname
               port: 8080 # The port number
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         MapNode server = map.getMap("server");
         assertNotNull(server);
@@ -462,7 +462,7 @@ class ParserTest {
             # Comment line 3
             key: value
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         MapNode.MapEntry entry = map.getEntry("key");
         assertEquals(3, entry.getCommentsBefore().size());
@@ -476,7 +476,7 @@ class ParserTest {
             # Comment after empty line
             key2: value2
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         MapNode.MapEntry entry = map.getEntry("key2");
         assertTrue(entry.getEmptyLinesBefore() > 0);
@@ -486,7 +486,7 @@ class ParserTest {
     @Test
     void parseComplexKey() {
         String yaml = "? name: John\n  age: 30\n: person_data\n";
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         assertEquals(1, map.size());
         MapNode.MapEntry entry = map.entries().iterator().next();
@@ -498,7 +498,7 @@ class ParserTest {
     @Test
     void parseInlineComplexKey() {
         String yaml = "? {a: 1, b: 2}\n: value\n";
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         assertEquals(1, map.size());
         MapNode.MapEntry entry = map.entries().iterator().next();

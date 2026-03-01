@@ -49,7 +49,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'net.vansencool:LSYAML:1.3.0'
+    implementation 'net.vansencool:LSYAML:1.3.5'
 }
 ```
 
@@ -68,7 +68,7 @@ dependencies {
 <dependency>
     <groupId>net.vansencool</groupId>
     <artifactId>LSYAML</artifactId>
-    <version>1.3.0</version>
+    <version>1.3.5</version>
 </dependency>
 ```
 

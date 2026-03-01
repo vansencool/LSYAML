@@ -188,6 +188,84 @@ public class ScalarNode extends AbstractYamlNode {
     }
 
     /**
+     * Returns the value as a plain string.
+     * Returns null if the value is null.
+     *
+     * @return the string representation of the value, or null
+     */
+    @Nullable
+    public String getString() {
+        return value != null ? value.toString() : null;
+    }
+
+    /**
+     * Parses the value as an integer.
+     *
+     * @return the integer value, or null if the value is null or not parseable
+     */
+    @Nullable
+    public Integer getInt() {
+        String val = getString();
+        if (val == null) return null;
+        try {
+            return Integer.parseInt(val);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Parses the value as a long.
+     *
+     * @return the long value, or null if the value is null or not parseable
+     */
+    @Nullable
+    public Long getLong() {
+        String val = getString();
+        if (val == null) return null;
+        try {
+            return Long.parseLong(val);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Parses the value as a double.
+     *
+     * @return the double value, or null if the value is null or not parseable
+     */
+    @Nullable
+    public Double getDouble() {
+        String val = getString();
+        if (val == null) return null;
+        try {
+            return Double.parseDouble(val);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Parses the value as a boolean.
+     * Recognises true/yes/on and false/no/off (case-insensitive).
+     *
+     * @return the boolean value, or null if the value is null or not a boolean
+     */
+    @Nullable
+    public Boolean getBoolean() {
+        String val = getString();
+        if (val == null) return null;
+        if (val.equalsIgnoreCase("true") || val.equalsIgnoreCase("yes") || val.equalsIgnoreCase("on")) {
+            return true;
+        }
+        if (val.equalsIgnoreCase("false") || val.equalsIgnoreCase("no") || val.equalsIgnoreCase("off")) {
+            return false;
+        }
+        return null;
+    }
+
+    /**
      * Checks if this scalar is null.
      *
      * @return true if value is null or "null"/"~"

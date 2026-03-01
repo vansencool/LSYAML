@@ -19,7 +19,7 @@ class CommentPreservationTest {
                 # Grandchild comment
                 value: test
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
         String output = LSYAML.write(map);
 
         assertTrue(output.contains("# Root comment"));
@@ -44,7 +44,7 @@ class CommentPreservationTest {
               # Third
               - three
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
         String output = LSYAML.write(map);
 
         assertTrue(output.contains("# First"));
@@ -66,7 +66,7 @@ class CommentPreservationTest {
               - name: staging
                 host: staging.example.com
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
         String output = LSYAML.write(map);
 
         assertTrue(output.contains("# Production server"));
@@ -86,7 +86,7 @@ class CommentPreservationTest {
               port: 8080 # default port
               debug: true # enable for testing
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
         String output = LSYAML.write(map);
 
         assertTrue(output.contains("# main server"));
@@ -103,7 +103,7 @@ class CommentPreservationTest {
 
             section3: value3
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
         String output = LSYAML.write(map);
 
         MapNode.MapEntry entry2 = map.getEntry("section2");
@@ -125,7 +125,7 @@ class CommentPreservationTest {
             # With multiple lines
             key3: value3
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
         String output = LSYAML.write(map);
 
         assertTrue(output.contains("# Comment after empty line"));
@@ -157,9 +157,9 @@ class CommentPreservationTest {
                 - name: auth
                   enabled: true
             """;
-        MapNode parsed = LSYAML.parseMap(yaml);
+        MapNode parsed = LSYAML.parse(yaml);
         String written = LSYAML.write(parsed);
-        MapNode reparsed = LSYAML.parseMap(written);
+        MapNode reparsed = LSYAML.parse(written);
 
         MapNode app = reparsed.getMap("app");
         assertNotNull(app);
@@ -191,7 +191,7 @@ class CommentPreservationTest {
                 - 5
                 - 6
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         ListNode matrix = map.getList("matrix");
         assertNotNull(matrix);
@@ -204,7 +204,7 @@ class CommentPreservationTest {
             # Just comments
             # No actual content
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
         assertTrue(map.isEmpty());
     }
 
@@ -215,7 +215,7 @@ class CommentPreservationTest {
             #Another without space
             key: value
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         MapNode.MapEntry entry = map.getEntry("key");
         assertEquals(2, entry.getCommentsBefore().size());
@@ -235,7 +235,7 @@ class CommentPreservationTest {
                     # Level 4
                     value: deep
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         MapNode l0 = map.getMap("l0");
         MapNode l1 = l0.getMap("l1");
@@ -261,7 +261,7 @@ class CommentPreservationTest {
               host: localhost
               port: 3306
             """;
-        MapNode map = LSYAML.parseMap(yaml);
+        MapNode map = LSYAML.parse(yaml);
 
         map.getMap("database").put("host", "127.0.0.1");
         map.getMap("database").put("timeout", 30);
@@ -276,7 +276,7 @@ class CommentPreservationTest {
 
     @Test
     void addCommentsToExistingNode() {
-        MapNode map = LSYAML.parseMap("key: value");
+        MapNode map = LSYAML.parse("key: value");
 
         MapNode.MapEntry entry = map.getEntry("key");
         entry.addCommentBefore(" Added comment");

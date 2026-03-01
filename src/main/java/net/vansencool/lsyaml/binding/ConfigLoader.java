@@ -203,12 +203,12 @@ public final class ConfigLoader {
      * <pre>{@code
      * ConfigLoader.registerAdapter(Duration.class, new ConfigAdapter<Duration>() {
      *     @Override
-     *     public Duration fromNode(Node node) {
-     *         return Duration.ofMinutes(node.getLong());
+     *     public Duration fromNode(YamlNode node) {
+     *         return Duration.ofMinutes(node.asScalar().getLong());
      *     }
      *
      *     @Override
-     *     public Node toNode(Duration value) {
+     *     public YamlNode toNode(Duration value) {
      *         return new ScalarNode(value.toMinutes());
      *     }
      * });
@@ -507,10 +507,12 @@ public final class ConfigLoader {
             throw new UncheckedIOException("Failed to read config file: " + file, e);
         }
 
-        YamlNode rootNode = LSYAML.parse(content);
+        YamlNode rootNode = LSYAML.parseAny(content);
         if (!(rootNode instanceof MapNode mapNode)) {
             return;
         }
+
+        mapNode = normalizeKeys(mapNode, cls);
 
         MapNode latestSource = resolveLatestSource(cls);
         boolean needsWrite = hasMissingKeys(mapNode, latestSource);
@@ -549,10 +551,8 @@ public final class ConfigLoader {
     private static MapNode resolveLatestSource(@NotNull Class<?> cls) {
         String yaml = latestConfigs.get(cls);
         if (yaml != null) {
-            YamlNode node = LSYAML.parse(yaml);
-            if (node instanceof MapNode mapNode) {
-                return mapNode;
-            }
+            YamlNode node = LSYAML.parseAny(yaml);
+            if (node instanceof MapNode mapNode) return mapNode;
         }
         return buildFromDefaults(cls);
     }
@@ -597,6 +597,65 @@ public final class ConfigLoader {
         return merged;
     }
 
+    @NotNull
+    private static MapNode normalizeKeys(@NotNull MapNode map, @NotNull Class<?> cls) {
+        boolean needsNormalization = false;
+
+        for (Field field : cls.getDeclaredFields()) {
+            if (shouldSkipField(field)) continue;
+            String preferred = TypeConverters.getKeyForField(field);
+            if (map.get(preferred) == null && TypeConverters.resolveNode(field, map) != null) {
+                needsNormalization = true;
+                break;
+            }
+        }
+
+        if (!needsNormalization) return map;
+
+        MapNode result = new MapNode();
+        result.setEmptyLinesBefore(map.getEmptyLinesBefore());
+        result.setCommentsBefore(map.getCommentsBefore());
+        result.setStyle(map.getStyle());
+
+        Set<String> processedKeys = new LinkedHashSet<>();
+
+        for (Field field : cls.getDeclaredFields()) {
+            if (shouldSkipField(field)) continue;
+
+            String preferred = TypeConverters.getKeyForField(field);
+            String actualKey = TypeConverters.resolveKey(field, map);
+
+            if (actualKey == null) continue;
+
+            MapNode.MapEntry entry = map.getEntry(actualKey);
+            if (entry == null) continue;
+
+            processedKeys.add(actualKey);
+
+            if (actualKey.equals(preferred)) {
+                result.putEntry(entry.copy());
+            } else {
+                MapNode.MapEntry normalized = new MapNode.MapEntry(
+                        preferred, entry.getValue(), entry.getKeyStyle());
+                normalized.setCommentsBefore(entry.getCommentsBefore());
+                normalized.setEmptyLinesBefore(entry.getEmptyLinesBefore());
+                normalized.setInlineComment(entry.getInlineComment());
+                result.putEntry(normalized);
+            }
+        }
+
+        for (MapNode.MapEntry entry : map.entries()) {
+            if (!processedKeys.contains(entry.getKey())) {
+                result.putEntry(entry.copy());
+            }
+        }
+
+        result.setTrailingComments(map.getTrailingComments());
+        result.setTrailingEmptyLines(map.getTrailingEmptyLines());
+
+        return result;
+    }
+
     private static boolean hasMissingKeys(@NotNull MapNode user, @NotNull MapNode latest) {
         for (MapNode.MapEntry entry : latest.entries()) {
             if (user.get(entry.getKey()) == null) {
@@ -619,8 +678,7 @@ public final class ConfigLoader {
             }
 
             field.setAccessible(true);
-            String key = TypeConverters.getKeyForField(field);
-            YamlNode childNode = node.get(key);
+            YamlNode childNode = TypeConverters.resolveNode(field, node);
 
             if (childNode != null) {
                 Object value = TypeConverters.fromNode(childNode, field);
@@ -628,7 +686,7 @@ public final class ConfigLoader {
                     try {
                         field.set(null, value);
                     } catch (IllegalAccessException e) {
-                        // Skip
+                        LSYAMLLogger.warn("Cannot set field " + field.getName() + " on " + cls.getSimpleName());
                     }
                 }
             }

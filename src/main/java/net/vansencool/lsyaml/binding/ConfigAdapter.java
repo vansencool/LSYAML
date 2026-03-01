@@ -13,12 +13,12 @@ import org.jetbrains.annotations.Nullable;
  * public class DurationAdapter implements ConfigAdapter<Duration> {
  *
  *     @Override
- *     public Duration fromNode(@NotNull Node node) {
- *         return Duration.ofMinutes(node.getLong());
+ *     public Duration fromNode(@NotNull YamlNode node) {
+ *         return Duration.ofMinutes(node.asScalar().getLong());
  *     }
  *
  *     @Override
- *     public @NotNull Node toNode(@NotNull Duration value) {
+ *     public @NotNull YamlNode toNode(@NotNull Duration value) {
  *         return new ScalarNode(String.valueOf(value.toMinutes()));
  *     }
  * }
@@ -32,16 +32,17 @@ import org.jetbrains.annotations.Nullable;
  * public class LocationAdapter implements ConfigAdapter<Location> {
  *
  *     @Override
- *     public Location fromNode(@NotNull Node node) {
+ *     public Location fromNode(@NotNull YamlNode node) {
+ *         MapNode map = node.asMap();
  *         return new Location(
- *             node.getDouble("x"),
- *             node.getDouble("y"),
- *             node.getDouble("z")
+ *             map.getDouble("x"),
+ *             map.getDouble("y"),
+ *             map.getDouble("z")
  *         );
  *     }
  *
  *     @Override
- *     public @NotNull Node toNode(@NotNull Location loc) {
+ *     public @NotNull YamlNode toNode(@NotNull Location loc) {
  *         return MapBuilder.create()
  *             .put("x", loc.x())
  *             .put("y", loc.y())
