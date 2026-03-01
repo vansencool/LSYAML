@@ -86,7 +86,7 @@ String yaml = """
       debug: true
     """;
 
-YamlNode node = LSYAML.parse(yaml);
+MapNode node = LSYAML.parse(yaml);
 
 // Easy path-based access
 String name = node.getString("app.name"); // "MyApp"
@@ -94,13 +94,13 @@ String version = node.getString("app.version"); // "1.0.0"
 Boolean debug = node.getBoolean("app.debug"); // true
 
 // Or navigate manually
-MapNode app = node.get("app").asMap();
+MapNode app = node.getMap("app");
 ```
 
 ### Modifying Values
 
 ```java
-MapNode config = LSYAML.parseMap(yaml);
+MapNode config = LSYAML.parse(yaml);
 
 // Navigate to nested map and modify directly (put returns the node for chaining)
 config.getMap("database").getMap("pool")
