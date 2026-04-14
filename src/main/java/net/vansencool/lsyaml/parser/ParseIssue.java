@@ -3,6 +3,7 @@ package net.vansencool.lsyaml.parser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -19,6 +20,7 @@ public final class ParseIssue {
     private final String lineContent;
     private final List<String> contextBefore;
     private final List<String> contextAfter;
+
     private ParseIssue(@NotNull Severity severity, @NotNull String message, int line, int column,
                        @Nullable String lineContent, @NotNull List<String> contextBefore,
                        @NotNull List<String> contextAfter) {
@@ -72,12 +74,12 @@ public final class ParseIssue {
             int startBefore = Math.max(0, line - 3);
             int endBefore = line - 1;
             if (startBefore < endBefore) {
-                before = List.of(java.util.Arrays.copyOfRange(lines, startBefore, endBefore));
+                before = List.of(Arrays.copyOfRange(lines, startBefore, endBefore));
             }
 
             int endAfter = Math.min(lines.length, line + 2);
             if (line < endAfter) {
-                after = List.of(java.util.Arrays.copyOfRange(lines, line, endAfter));
+                after = List.of(Arrays.copyOfRange(lines, line, endAfter));
             }
         }
 

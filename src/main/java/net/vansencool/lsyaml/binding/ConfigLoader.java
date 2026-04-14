@@ -4,6 +4,7 @@ import net.vansencool.lsyaml.LSYAML;
 import net.vansencool.lsyaml.binding.watcher.ConfigWatcher;
 import net.vansencool.lsyaml.binding.watcher.WatcherOptions;
 import net.vansencool.lsyaml.builder.MapBuilder;
+import net.vansencool.lsyaml.exceptions.YamlParseException;
 import net.vansencool.lsyaml.logger.LSYAMLLogger;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.YamlNode;
@@ -507,16 +508,34 @@ public final class ConfigLoader {
             throw new UncheckedIOException("Failed to read config file: " + file, e);
         }
 
-        YamlNode rootNode = LSYAML.parseAny(content);
-        if (!(rootNode instanceof MapNode mapNode)) {
+        MapNode mapNode;
+        try {
+            YamlNode rootNode = LSYAML.parseAny(content);
+            if (!(rootNode instanceof MapNode parsed)) {
+                LSYAMLLogger.warn("Config file " + file.getFileName()
+                        + " does not contain a YAML map. Resetting to defaults.");
+                MapNode latestSource = resolveLatestSource(cls);
+                LSYAML.writeToFile(latestSource, file);
+                loadedNodes.put(cls, latestSource);
+                applyNode(cls, latestSource, content);
+                return;
+            }
+            mapNode = parsed;
+        } catch (YamlParseException e) {
+            LSYAMLLogger.error("Invalid YAML in config file " + file.getFileName()
+                    + ". Resetting to defaults.\n" + e.getMessage());
+            MapNode latestSource = resolveLatestSource(cls);
+            LSYAML.writeToFile(latestSource, file);
+            loadedNodes.put(cls, latestSource);
+            applyNode(cls, latestSource, null);
             return;
         }
 
         mapNode = normalizeKeys(mapNode, cls);
 
         MapNode latestSource = resolveLatestSource(cls);
-        boolean needsWrite = hasMissingKeys(mapNode, latestSource);
-        if (needsWrite) LSYAMLLogger.info("Config file is missing keys from the latest config. Merging missing keys into: " + file.getFileName());
+        boolean needsWrite = needsMerge(mapNode, latestSource);
+        if (needsWrite) LSYAMLLogger.info("Config file needs merging with the latest config: " + file.getFileName());
         MapNode merged = mergeNodes(mapNode, latestSource);
 
         if (needsWrite) {
@@ -525,7 +544,7 @@ public final class ConfigLoader {
         }
 
         loadedNodes.put(cls, merged);
-        applyNode(cls, merged);
+        applyNode(cls, merged, content);
     }
 
     private static void registerLatestConfigFromAnnotation(@NotNull Class<?> cls) {
@@ -557,6 +576,19 @@ public final class ConfigLoader {
         return buildFromDefaults(cls);
     }
 
+    /**
+     * Merges a user's on-disk config with the latest (default) config.
+     * The latest config acts as the authoritative template: only keys present in the latest config
+     * appear in the result. For each key in the latest config, if the user's config contains
+     * a value for the same key, the user's value is preserved; otherwise the latest config's
+     * default value is used. Keys present only in the user's config are dropped.
+     *
+     * <p>For nested maps the merge is recursive: sub-keys are matched the same way.</p>
+     *
+     * @param user   the user's parsed config
+     * @param latest the latest/default config template
+     * @return the merged config
+     */
     @NotNull
     private static MapNode mergeNodes(@NotNull MapNode user, @NotNull MapNode latest) {
         MapNode merged = new MapNode(user.getMetadata());
@@ -564,31 +596,26 @@ public final class ConfigLoader {
         merged.setCommentsBefore(user.getCommentsBefore());
         merged.setStyle(user.getStyle());
 
-        for (MapNode.MapEntry userEntry : user.entries()) {
-            String key = userEntry.getKey();
-            MapNode.MapEntry latestEntry = latest.getEntry(key);
+        for (MapNode.MapEntry latestEntry : latest.entries()) {
+            String key = latestEntry.getKey();
+            MapNode.MapEntry userEntry = user.getEntry(key);
 
             MapNode.MapEntry mergedEntry;
-            if (latestEntry != null) {
+            if (userEntry != null) {
                 YamlNode value = userEntry.getValue();
                 if (value instanceof MapNode userMap && latestEntry.getValue() instanceof MapNode latestMap) {
                     value = mergeNodes(userMap, latestMap);
                 }
                 mergedEntry = new MapNode.MapEntry(key, value, userEntry.getKeyStyle());
-                mergedEntry.setCommentsBefore(latestEntry.getCommentsBefore());
-                mergedEntry.setEmptyLinesBefore(latestEntry.getEmptyLinesBefore());
-                mergedEntry.setInlineComment(latestEntry.getInlineComment());
             } else {
-                mergedEntry = userEntry.copy();
+                mergedEntry = latestEntry.copy();
             }
+
+            mergedEntry.setCommentsBefore(latestEntry.getCommentsBefore());
+            mergedEntry.setEmptyLinesBefore(latestEntry.getEmptyLinesBefore());
+            mergedEntry.setInlineComment(latestEntry.getInlineComment());
 
             merged.putEntry(mergedEntry);
-        }
-
-        for (MapNode.MapEntry latestEntry : latest.entries()) {
-            if (user.get(latestEntry.getKey()) == null) {
-                merged.putEntry(latestEntry.copy());
-            }
         }
 
         merged.setTrailingComments(latest.getTrailingComments());
@@ -656,22 +683,30 @@ public final class ConfigLoader {
         return result;
     }
 
-    private static boolean hasMissingKeys(@NotNull MapNode user, @NotNull MapNode latest) {
+    private static boolean needsMerge(@NotNull MapNode user, @NotNull MapNode latest) {
         for (MapNode.MapEntry entry : latest.entries()) {
             if (user.get(entry.getKey()) == null) {
                 return true;
             }
             YamlNode userVal = user.get(entry.getKey());
             if (entry.getValue() instanceof MapNode latestMap && userVal instanceof MapNode userMap) {
-                if (hasMissingKeys(userMap, latestMap)) {
+                if (needsMerge(userMap, latestMap)) {
                     return true;
                 }
+            }
+        }
+        for (MapNode.MapEntry entry : user.entries()) {
+            if (latest.get(entry.getKey()) == null) {
+                return true;
             }
         }
         return false;
     }
 
-    private static void applyNode(@NotNull Class<?> cls, @NotNull MapNode node) {
+    private static void applyNode(@NotNull Class<?> cls, @NotNull MapNode node,
+                                   @Nullable String rawYaml) {
+        String[] lines = rawYaml != null ? rawYaml.split("\n", -1) : null;
+
         for (Field field : cls.getDeclaredFields()) {
             if (shouldSkipField(field)) {
                 continue;
@@ -681,7 +716,7 @@ public final class ConfigLoader {
             YamlNode childNode = TypeConverters.resolveNode(field, node);
 
             if (childNode != null) {
-                Object value = TypeConverters.fromNode(childNode, field);
+                Object value = TypeConverters.fromNode(childNode, field, lines);
                 if (value != null) {
                     try {
                         field.set(null, value);

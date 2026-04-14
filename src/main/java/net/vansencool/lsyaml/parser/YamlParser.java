@@ -1,6 +1,7 @@
 package net.vansencool.lsyaml.parser;
 
 import net.vansencool.lsyaml.exceptions.YamlParseException;
+import net.vansencool.lsyaml.logger.LSYAMLLogger;
 import net.vansencool.lsyaml.metadata.ScalarStyle;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
@@ -22,6 +23,7 @@ import java.util.Map;
 public class YamlParser {
 
     private ParseContext ctx;
+    private ParseOptions options;
     private ScalarParser scalarParser;
     private FlowParser flowParser;
     private boolean hasAnchors;
@@ -126,6 +128,7 @@ public class YamlParser {
         }
 
         this.ctx = new ParseContext(yaml);
+        this.options = options;
         this.scalarParser = new ScalarParser();
         this.flowParser = new FlowParser(scalarParser);
         this.hasAnchors = false;
@@ -337,7 +340,7 @@ public class YamlParser {
             if (firstChar == '?') {
                 MapNode.MapEntry entry = parseComplexKeyEntry(pendingComments, pendingEmptyLines);
                 if (entry != null) {
-                    map.putEntry(entry);
+                    putEntryWithDuplicateCheck(map, entry);
                     pendingComments = new ArrayList<>();
                     pendingEmptyLines = 0;
                     if (map.size() == 1) {
@@ -358,6 +361,7 @@ public class YamlParser {
             }
 
             // create entry with parsed key
+            int entryLine = ctx.currentLine() + 1;
             MapNode.MapEntry entry = new MapNode.MapEntry(parsedKey, new ScalarNode(null), parsedKeyStyle);
             entry.setCommentsBefore(pendingComments);
             entry.setEmptyLinesBefore(pendingEmptyLines);
@@ -481,7 +485,12 @@ public class YamlParser {
                 }
             }
 
-            map.putEntry(entry);
+            if (entry.getValue().getMetadata().getLine() < 0) {
+                entry.getValue().getMetadata().setLine(entryLine);
+                entry.getValue().getMetadata().setColumn(indent + parsedKey.length() + 3);
+            }
+
+            putEntryWithDuplicateCheck(map, entry);
 
             if (map.size() == 1) {
                 expectedIndent = indent;
@@ -494,6 +503,26 @@ public class YamlParser {
         }
 
         return map;
+    }
+
+    /**
+     * Adds an entry to a map, handling duplicate keys according to the configured {@link ParseOptions.DuplicateKeyBehavior}.
+     */
+    private void putEntryWithDuplicateCheck(@NotNull MapNode map, @NotNull MapNode.MapEntry entry) {
+        if (map.get(entry.getKey()) != null) {
+            switch (options.getDuplicateKeyBehavior()) {
+                case WARN_AND_OVERRIDE -> {
+                    LSYAMLLogger.warn("Duplicate key '" + entry.getKey() + "', overriding previous value");
+                    map.putEntry(entry);
+                }
+                case WARN_AND_KEEP ->
+                    LSYAMLLogger.warn("Duplicate key '" + entry.getKey() + "', keeping first value");
+                case SILENT -> map.putEntry(entry);
+                case ERROR -> throw new YamlParseException("Duplicate key: '" + entry.getKey() + "'");
+            }
+        } else {
+            map.putEntry(entry);
+        }
     }
 
     /**

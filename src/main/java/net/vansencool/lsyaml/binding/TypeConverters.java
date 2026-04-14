@@ -86,6 +86,21 @@ final class TypeConverters {
      */
     @Nullable
     static Object fromNode(@Nullable YamlNode node, @NotNull Field field) {
+        return fromNode(node, field, null);
+    }
+
+    /**
+     * Converts a YAML node to a Java value based on the field type, with optional YAML source
+     * lines for producing rich error context when type conversion fails.
+     *
+     * @param node  the YAML node
+     * @param field the target field
+     * @param lines the raw YAML source lines (nullable, used for error context)
+     * @return the converted value, or null if the node is null or conversion fails
+     */
+    @Nullable
+    static Object fromNode(@Nullable YamlNode node, @NotNull Field field,
+                           @Nullable String[] lines) {
         if (node == null) return null;
 
         Class<?> type = field.getType();
@@ -97,7 +112,7 @@ final class TypeConverters {
         }
         if (Map.class.isAssignableFrom(type)) return fromMapNode(node, field);
 
-        return convertFromNode(node, type);
+        return convertFromNode(node, type, getKeyForField(field), lines);
     }
 
     /**
@@ -112,13 +127,30 @@ final class TypeConverters {
     @SuppressWarnings("rawtypes")
     @Nullable
     static Object convertFromNode(@Nullable YamlNode node, @NotNull Class<?> type) {
+        return convertFromNode(node, type, null, null);
+    }
+
+    /**
+     * Core type-based conversion from a YAML node to a Java value, with optional context
+     * for producing rich error messages.
+     *
+     * @param node    the YAML node
+     * @param type    the target type
+     * @param keyName the YAML key name (nullable, for error messages)
+     * @param lines   the full YAML source lines (nullable, for error context)
+     * @return the converted value, or null if the node is null or conversion fails
+     */
+    @SuppressWarnings("rawtypes")
+    @Nullable
+    static Object convertFromNode(@Nullable YamlNode node, @NotNull Class<?> type,
+                                  @Nullable String keyName, @Nullable String[] lines) {
         if (node == null) return null;
 
         ConfigAdapter adapter = adapters.get(type);
         if (adapter != null) return adapter.fromNode(node);
 
-        if (isPrimitiveOrWrapper(type)) return convertScalar(node, type);
-        if (isBranchType(type)) return fromBranchNode(node, type);
+        if (isPrimitiveOrWrapper(type)) return convertScalar(node, type, keyName, lines);
+        if (isBranchType(type)) return fromBranchNode(node, type, lines);
 
         return null;
     }
@@ -128,15 +160,18 @@ final class TypeConverters {
      * Returns null (preserving the field's default) when the node is not a scalar
      * or the value cannot be parsed to the target type.
      *
-     * @param node the YAML node (expected to be a {@link ScalarNode})
-     * @param type the target primitive/wrapper type
+     * @param node    the YAML node (expected to be a {@link ScalarNode})
+     * @param type    the target primitive/wrapper type
+     * @param keyName the YAML key name (nullable, for error context)
+     * @param lines   the full YAML source lines (nullable, for error context)
      * @return the converted value, or null on type mismatch or parse failure
      */
     @Nullable
-    private static Object convertScalar(@NotNull YamlNode node, @NotNull Class<?> type) {
+    private static Object convertScalar(@NotNull YamlNode node, @NotNull Class<?> type,
+                                        @Nullable String keyName, @Nullable String[] lines) {
         if (!(node instanceof ScalarNode scalar)) {
-            LSYAMLLogger.warn("Expected a scalar value for type " + type.getSimpleName()
-                    + " but got " + node.getType());
+            warnConversion(node, keyName, type.getSimpleName(),
+                    "Expected a scalar value but got " + node.getType(), lines);
             return null;
         }
 
@@ -144,56 +179,63 @@ final class TypeConverters {
 
         if (type == int.class || type == Integer.class) {
             Integer val = scalar.getInt();
-            if (val == null && !scalar.isNull()) {
-                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to int");
+            if (val == null && (!scalar.isNull() || type.isPrimitive())) {
+                warnConversion(node, keyName, "int",
+                        scalar.isNull() ? "Value is empty - expected an int" : "Cannot convert '" + scalar.getString() + "' to int", lines);
             }
             return val;
         }
 
         if (type == long.class || type == Long.class) {
             Long val = scalar.getLong();
-            if (val == null && !scalar.isNull()) {
-                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to long");
+            if (val == null && (!scalar.isNull() || type.isPrimitive())) {
+                warnConversion(node, keyName, "long",
+                        scalar.isNull() ? "Value is empty - expected a long" : "Cannot convert '" + scalar.getString() + "' to long", lines);
             }
             return val;
         }
 
         if (type == double.class || type == Double.class) {
             Double val = scalar.getDouble();
-            if (val == null && !scalar.isNull()) {
-                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to double");
+            if (val == null && (!scalar.isNull() || type.isPrimitive())) {
+                warnConversion(node, keyName, "double",
+                        scalar.isNull() ? "Value is empty - expected a double" : "Cannot convert '" + scalar.getString() + "' to double", lines);
             }
             return val;
         }
 
         if (type == float.class || type == Float.class) {
             Double val = scalar.getDouble();
-            if (val == null && !scalar.isNull()) {
-                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to float");
+            if (val == null && (!scalar.isNull() || type.isPrimitive())) {
+                warnConversion(node, keyName, "float",
+                        scalar.isNull() ? "Value is empty - expected a float" : "Cannot convert '" + scalar.getString() + "' to float", lines);
             }
             return val != null ? val.floatValue() : null;
         }
 
         if (type == boolean.class || type == Boolean.class) {
             Boolean val = scalar.getBoolean();
-            if (val == null && !scalar.isNull()) {
-                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to boolean");
+            if (val == null && (!scalar.isNull() || type.isPrimitive())) {
+                warnConversion(node, keyName, "boolean",
+                        scalar.isNull() ? "Value is empty - expected a boolean" : "Cannot convert '" + scalar.getString() + "' to boolean", lines);
             }
             return val;
         }
 
         if (type == short.class || type == Short.class) {
             Integer val = scalar.getInt();
-            if (val == null && !scalar.isNull()) {
-                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to short");
+            if (val == null && (!scalar.isNull() || type.isPrimitive())) {
+                warnConversion(node, keyName, "short",
+                        scalar.isNull() ? "Value is empty - expected a short" : "Cannot convert '" + scalar.getString() + "' to short", lines);
             }
             return val != null ? val.shortValue() : null;
         }
 
         if (type == byte.class || type == Byte.class) {
             Integer val = scalar.getInt();
-            if (val == null && !scalar.isNull()) {
-                LSYAMLLogger.warn("Cannot convert '" + scalar.getString() + "' to byte");
+            if (val == null && (!scalar.isNull() || type.isPrimitive())) {
+                warnConversion(node, keyName, "byte",
+                        scalar.isNull() ? "Value is empty - expected a byte" : "Cannot convert '" + scalar.getString() + "' to byte", lines);
             }
             return val != null ? val.byteValue() : null;
         }
@@ -204,6 +246,70 @@ final class TypeConverters {
         }
 
         return null;
+    }
+
+    /**
+     * Produces a rich formatted warning for a type conversion failure, using the same
+     * box style as {@link net.vansencool.lsyaml.parser.ParseIssue} when line context
+     * is available.
+     */
+    private static void warnConversion(@NotNull YamlNode node, @Nullable String keyName,
+                                       @NotNull String expectedType, @NotNull String message,
+                                       @Nullable String[] lines) {
+        int nodeLine = node.getMetadata().getLine();
+
+        if (lines == null || nodeLine < 1 || nodeLine > lines.length) {
+            String prefix = keyName != null ? "Key '" + keyName + "': " : "";
+            LSYAMLLogger.warn(prefix + message);
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append('\n');
+        sb.append("+-").append("-".repeat(70)).append("-+\n");
+
+        String header = "! WARNING at line " + nodeLine;
+        if (keyName != null) {
+            header += ", key '" + keyName + "'";
+        }
+        int pad = Math.max(0, 70 - header.length());
+        sb.append("| ").append(header).append(" ".repeat(pad)).append(" |\n");
+        sb.append("+-").append("-".repeat(70)).append("-+\n");
+
+        int msgPad = Math.max(0, 70 - message.length());
+        sb.append("| ").append(message).append(" ".repeat(msgPad)).append(" |\n");
+
+        String hint = "Expected type: " + expectedType + ". Default value will be used.";
+        int hintPad = Math.max(0, 70 - hint.length());
+        sb.append("| ").append(hint).append(" ".repeat(hintPad)).append(" |\n");
+        sb.append("+-").append("-".repeat(70)).append("-+\n");
+
+        sb.append("|\n");
+
+        int start = Math.max(0, nodeLine - 3);
+        int end = Math.min(lines.length, nodeLine + 2);
+        for (int i = start; i < end; i++) {
+            if (i == nodeLine - 1) {
+                sb.append("| > ").append(String.format("%4d", i + 1)).append(" | ")
+                        .append(lines[i]).append('\n');
+                int col = node.getMetadata().getColumn();
+                if (col > 0) {
+                    sb.append("|        ").append(" ".repeat(col - 1)).append("^");
+                    if (col < lines[i].length()) {
+                        sb.append("~".repeat(Math.min(5, lines[i].length() - col)));
+                    }
+                    sb.append('\n');
+                }
+            } else {
+                sb.append("|   ").append(String.format("%4d", i + 1)).append(" | ")
+                        .append(lines[i]).append('\n');
+            }
+        }
+
+        sb.append("|\n");
+        sb.append("+").append("-".repeat(72)).append("+");
+
+        LSYAMLLogger.warn(sb.toString());
     }
 
     @Nullable
@@ -258,7 +364,8 @@ final class TypeConverters {
     }
 
     @Nullable
-    private static Object fromBranchNode(@Nullable YamlNode node, @NotNull Class<?> type) {
+    private static Object fromBranchNode(@Nullable YamlNode node, @NotNull Class<?> type,
+                                         @Nullable String[] lines) {
         if (!(node instanceof MapNode mapNode)) {
             if (node != null) {
                 LSYAMLLogger.warn("Expected a map for branch type " + type.getSimpleName()
@@ -278,7 +385,7 @@ final class TypeConverters {
                 YamlNode childNode = resolveNode(field, mapNode);
 
                 if (childNode != null) {
-                    Object value = fromNode(childNode, field);
+                    Object value = fromNode(childNode, field, lines);
                     if (value != null) {
                         field.set(instance, value);
                     }
@@ -527,7 +634,7 @@ final class TypeConverters {
 
     /**
      * Returns the preferred key separator for a field, checking the field annotation first,
-     * then the declaring class annotation.
+     * then the declaring class, and then walking up through enclosing classes.
      *
      * @param field the field
      * @return the separator string, or null if no {@link PreferKeysWith} is present
@@ -537,8 +644,12 @@ final class TypeConverters {
         PreferKeysWith fieldAnn = field.getAnnotation(PreferKeysWith.class);
         if (fieldAnn != null) return fieldAnn.value();
 
-        PreferKeysWith classAnn = field.getDeclaringClass().getAnnotation(PreferKeysWith.class);
-        if (classAnn != null) return classAnn.value();
+        Class<?> cls = field.getDeclaringClass();
+        while (cls != null) {
+            PreferKeysWith classAnn = cls.getAnnotation(PreferKeysWith.class);
+            if (classAnn != null) return classAnn.value();
+            cls = cls.getEnclosingClass();
+        }
 
         return null;
     }

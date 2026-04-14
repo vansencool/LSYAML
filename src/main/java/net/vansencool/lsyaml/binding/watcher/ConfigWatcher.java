@@ -2,6 +2,7 @@ package net.vansencool.lsyaml.binding.watcher;
 
 import net.vansencool.lsyaml.binding.ConfigFile;
 import net.vansencool.lsyaml.binding.ConfigLoader;
+import net.vansencool.lsyaml.logger.LSYAMLLogger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -349,7 +350,9 @@ public final class ConfigWatcher {
                 try {
                     listener.onEvent(file, action);
                 } catch (Exception e) {
-                    // Won't let listener exceptions kill the watcher thread
+                    LSYAMLLogger.error("Exception in file event listener for "
+                            + cls.getSimpleName() + ": " + file.getFileName()
+                            + ": " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
                 }
             }
         }
@@ -380,7 +383,9 @@ public final class ConfigWatcher {
                 }
             }
         } catch (Exception e) {
-            // Do not let a config error kill the watcher thread
+            LSYAMLLogger.error("Failed to handle " + action + " event for config "
+                    + cls.getSimpleName() + " (" + file.getFileName() + "): "
+                    + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
         }
     }
 

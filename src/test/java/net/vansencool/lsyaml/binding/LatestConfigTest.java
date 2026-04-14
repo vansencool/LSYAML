@@ -9,6 +9,9 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Written by AI.
+ */
 @SuppressWarnings("all")
 class LatestConfigTest {
 
@@ -213,7 +216,7 @@ class LatestConfigTest {
     }
 
     @Test
-    void latestConfig_extraUserKeysNotInLatest_preserved() throws IOException {
+    void latestConfig_extraUserKeysNotInLatest_dropped() throws IOException {
         Path file = Path.of("build/test-latest-configs/flat.yml");
         Files.writeString(file, "name: user-name\nport: 7777\nextra-user-key: keep-me\n");
 
@@ -221,8 +224,7 @@ class LatestConfigTest {
         ConfigLoader.load(FlatConfig.class);
 
         String content = Files.readString(file);
-        assertTrue(content.contains("extra-user-key"), "User keys absent from latest config must be kept");
-        assertTrue(content.contains("keep-me"));
+        assertFalse(content.contains("extra-user-key"), "User keys absent from latest config must be dropped");
     }
 
     @Test
