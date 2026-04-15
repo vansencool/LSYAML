@@ -8,6 +8,8 @@
 Fast, readable, flexible, format-preserving.  
 LSYAML offers lightning-fast parsing while retaining the original formatting of your YAML files.
 
+</div>
+
 ---
 
 ## Features at a glance
