@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,30 +32,6 @@ import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 
 /**
  * Watches config files on disk and automatically reacts to file system events.
- * Each config class registered with {@link ConfigLoader} can be independently watched
- * with its own {@link WatcherOptions}.
- *
- * <p>The watcher runs on a background daemon thread and uses a debounce window to
- * collapse rapid successive events into a single dispatch.</p>
- *
- * <p><b>Example - watch with defaults:</b></p>
- * <pre>{@code
- * ConfigLoader.load(MyConfig.class);
- * ConfigWatcher.watch(MyConfig.class);
- * }</pre>
- *
- * <p><b>Example - watch with custom options:</b></p>
- * <pre>{@code
- * ConfigWatcher.watch(MyConfig.class, WatcherOptions.builder()
- *     .debounceMillis(500)
- *     .reloadOnChange(true)
- *     .recreateOnDelete(true)
- *     .loadOnCreate(true)
- *     .listener((file, action) -> System.out.println("Event: " + action + " on " + file))
- *     .build());
- * }</pre>
- *
- * <p>Call {@link #shutdown()} when the watcher is no longer needed to release resources.</p>
  */
 @SuppressWarnings("unused")
 public final class ConfigWatcher {
@@ -147,7 +124,7 @@ public final class ConfigWatcher {
      * Call {@link #shutdown()} to fully release all resources.
      */
     public static void unwatchAll() {
-        Set<Path> dirs = new java.util.HashSet<>();
+        Set<Path> dirs = new HashSet<>();
         for (Path file : fileToWatchers.keySet()) {
             dirs.add(file.getParent());
         }
@@ -195,7 +172,6 @@ public final class ConfigWatcher {
             try {
                 ws.close();
             } catch (IOException e) {
-                // ignore
             }
             watchService = null;
         }

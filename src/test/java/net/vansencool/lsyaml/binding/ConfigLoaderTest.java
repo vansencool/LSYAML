@@ -1,5 +1,6 @@
 package net.vansencool.lsyaml.binding;
 
+import net.vansencool.lsyaml.binding.key.FieldKeys;
 import net.vansencool.lsyaml.builder.MapBuilder;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
@@ -687,12 +688,12 @@ class ConfigLoaderTest {
 
     @Test
     void testCamelToSeparated() {
-        assertEquals("max-players", TypeConverters.camelToSeparated("maxPlayers", "-"));
-        assertEquals("max_players", TypeConverters.camelToSeparated("maxPlayers", "_"));
-        assertEquals("http-server", TypeConverters.camelToSeparated("HTTPServer", "-"));
-        assertEquals("max-connections", TypeConverters.camelToSeparated("MAX_CONNECTIONS", "-"));
-        assertEquals("name", TypeConverters.camelToSeparated("name", "-"));
-        assertEquals("server-name", TypeConverters.camelToSeparated("serverName", "-"));
+        assertEquals("max-players", FieldKeys.camelToSeparated("maxPlayers", "-"));
+        assertEquals("max_players", FieldKeys.camelToSeparated("maxPlayers", "_"));
+        assertEquals("http-server", FieldKeys.camelToSeparated("HTTPServer", "-"));
+        assertEquals("max-connections", FieldKeys.camelToSeparated("MAX_CONNECTIONS", "-"));
+        assertEquals("name", FieldKeys.camelToSeparated("name", "-"));
+        assertEquals("server-name", FieldKeys.camelToSeparated("serverName", "-"));
     }
 
     @ConfigFile("build/test-configs/hyphen-test.yml")

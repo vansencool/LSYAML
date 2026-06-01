@@ -13,17 +13,34 @@ import java.util.List;
 @SuppressWarnings("unused")
 public abstract class AbstractYamlNode implements YamlNode {
 
-    /** Metadata about this node, such as its position in the source document. */
+    /**
+     * Metadata about this node.
+     */
     protected @NotNull NodeMetadata metadata;
-    /** Comments that appear before this node in the YAML document. Each string represents a line of comment (without the leading #). */
+
+    /**
+     * Comment lines that appear before this node.
+     */
     protected @NotNull List<String> commentsBefore;
-    /** Comments that appear after this node. Each string represents a line of comment (without the leading #). */
+
+    /**
+     * Comment lines that appear after this node.
+     */
     protected @NotNull List<String> trailingComments;
-    /** An optional comment that appears on the same line as this node. */
+
+    /**
+     * Comment on the same line as this node.
+     */
     protected @Nullable String inlineComment;
-    /** Number of empty lines that appear before this node. */
+
+    /**
+     * Number of empty lines before this node.
+     */
     protected int emptyLinesBefore;
-    /** Number of empty lines that appear after this node. */
+
+    /**
+     * Number of empty lines after this node.
+     */
     protected int trailingEmptyLines;
 
     /**

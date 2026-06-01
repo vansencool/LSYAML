@@ -392,7 +392,7 @@ public class MapBuilder {
             this.inlineComment = value.getInlineComment();
             this.emptyLinesBefore = value.getEmptyLinesBefore();
             value.setEmptyLinesBefore(0);
-            value.setCommentsBefore(new java.util.ArrayList<>());
+            value.setCommentsBefore(new ArrayList<>());
             value.setInlineComment(null);
         }
 

@@ -1,6 +1,11 @@
 package net.vansencool.lsyaml.binding;
 
 import net.vansencool.lsyaml.LSYAML;
+import net.vansencool.lsyaml.binding.adapter.AdapterRegistry;
+import net.vansencool.lsyaml.binding.convert.read.NodeReader;
+import net.vansencool.lsyaml.binding.convert.write.NodeWriter;
+import net.vansencool.lsyaml.binding.key.FieldKeys;
+import net.vansencool.lsyaml.binding.type.TypeKinds;
 import net.vansencool.lsyaml.binding.watcher.ConfigWatcher;
 import net.vansencool.lsyaml.binding.watcher.WatcherOptions;
 import net.vansencool.lsyaml.builder.MapBuilder;
@@ -220,7 +225,7 @@ public final class ConfigLoader {
      * @param <T>     the type
      */
     public static <T> void registerAdapter(@NotNull Class<T> type, @NotNull ConfigAdapter<T> adapter) {
-        TypeConverters.registerAdapter(type, adapter);
+        AdapterRegistry.register(type, adapter);
     }
 
     /**
@@ -387,7 +392,6 @@ public final class ConfigLoader {
                     field.set(null, value);
                 }
             } catch (IllegalAccessException e) {
-                // Skip
             }
         }
 
@@ -407,7 +411,6 @@ public final class ConfigLoader {
                 Object value = field.get(null);
                 defaults.put(field, cloneValue(value));
             } catch (IllegalAccessException e) {
-                // Skip
             }
         }
 
@@ -419,7 +422,7 @@ public final class ConfigLoader {
         if (value == null) {
             return null;
         }
-        if (TypeConverters.isPrimitiveOrWrapper(value.getClass())) {
+        if (TypeKinds.isPrimitiveOrWrapper(value.getClass())) {
             return value;
         }
         if (value instanceof List<?> list) {
@@ -458,11 +461,11 @@ public final class ConfigLoader {
         int pendingAfter = 0;
         for (Field field : visibleFields) {
             field.setAccessible(true);
-            String key = TypeConverters.getKeyForField(field);
+            String key = FieldKeys.keyForField(field);
 
             try {
                 Object value = field.get(null);
-                YamlNode node = TypeConverters.toNode(value, field);
+                YamlNode node = NodeWriter.toNode(value, field);
 
                 Comment comment = field.getAnnotation(Comment.class);
                 if (comment != null) {
@@ -480,7 +483,6 @@ public final class ConfigLoader {
 
                 builder.put(key, node);
             } catch (IllegalAccessException e) {
-                // Skip
             }
         }
 
@@ -630,8 +632,8 @@ public final class ConfigLoader {
 
         for (Field field : cls.getDeclaredFields()) {
             if (shouldSkipField(field)) continue;
-            String preferred = TypeConverters.getKeyForField(field);
-            if (map.get(preferred) == null && TypeConverters.resolveNode(field, map) != null) {
+            String preferred = FieldKeys.keyForField(field);
+            if (map.get(preferred) == null && FieldKeys.resolveNode(field, map) != null) {
                 needsNormalization = true;
                 break;
             }
@@ -649,8 +651,8 @@ public final class ConfigLoader {
         for (Field field : cls.getDeclaredFields()) {
             if (shouldSkipField(field)) continue;
 
-            String preferred = TypeConverters.getKeyForField(field);
-            String actualKey = TypeConverters.resolveKey(field, map);
+            String preferred = FieldKeys.keyForField(field);
+            String actualKey = FieldKeys.resolveKey(field, map);
 
             if (actualKey == null) continue;
 
@@ -713,10 +715,10 @@ public final class ConfigLoader {
             }
 
             field.setAccessible(true);
-            YamlNode childNode = TypeConverters.resolveNode(field, node);
+            YamlNode childNode = FieldKeys.resolveNode(field, node);
 
             if (childNode != null) {
-                Object value = TypeConverters.fromNode(childNode, field, lines);
+                Object value = NodeReader.fromNode(childNode, field, lines);
                 if (value != null) {
                     try {
                         field.set(null, value);
