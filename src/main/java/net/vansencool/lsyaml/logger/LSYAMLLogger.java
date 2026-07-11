@@ -19,8 +19,7 @@ public final class LSYAMLLogger {
 
     private LSYAMLLogger() {}
 
-    @NotNull
-    private static LogAdapter detectAdapter() {
+    private static @NotNull LogAdapter detectAdapter() {
         try {
             Class.forName("org.slf4j.LoggerFactory");
             return new Slf4jLogAdapter(LOGGER_NAME);
@@ -43,8 +42,7 @@ public final class LSYAMLLogger {
      *
      * @return the active adapter
      */
-    @NotNull
-    public static LogAdapter getAdapter() {
+    public static @NotNull LogAdapter getAdapter() {
         return adapter;
     }
 

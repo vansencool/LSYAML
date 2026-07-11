@@ -34,16 +34,14 @@ public final class NodeReader {
     /**
      * Returns the Java value for a field from a YAML node.
      */
-    @Nullable
-    public static Object fromNode(@Nullable YamlNode node, @NotNull Field field) {
+    public static @Nullable Object fromNode(@Nullable YamlNode node, @NotNull Field field) {
         return fromNode(node, field, null);
     }
 
     /**
      * Returns the Java value for a field from a YAML node with source lines for error context.
      */
-    @Nullable
-    public static Object fromNode(@Nullable YamlNode node, @NotNull Field field, @Nullable String[] lines) {
+    public static @Nullable Object fromNode(@Nullable YamlNode node, @NotNull Field field, @Nullable String[] lines) {
         if (node == null) return null;
 
         Class<?> type = field.getType();
@@ -61,8 +59,7 @@ public final class NodeReader {
     /**
      * Returns the Java value for a scalar or branch node of a given type.
      */
-    @Nullable
-    private static Object convertFromNode(@Nullable YamlNode node, @NotNull Class<?> type) {
+    private static @Nullable Object convertFromNode(@Nullable YamlNode node, @NotNull Class<?> type) {
         return convertFromNode(node, type, null, null);
     }
 
@@ -70,8 +67,7 @@ public final class NodeReader {
      * Returns the Java value for a scalar or branch node of a given type with error context.
      */
     @SuppressWarnings("rawtypes")
-    @Nullable
-    private static Object convertFromNode(@Nullable YamlNode node, @NotNull Class<?> type, @Nullable String keyName, @Nullable String[] lines) {
+    private static @Nullable Object convertFromNode(@Nullable YamlNode node, @NotNull Class<?> type, @Nullable String keyName, @Nullable String[] lines) {
         if (node == null) return null;
 
         ConfigAdapter adapter = AdapterRegistry.adapter(type);
@@ -86,8 +82,7 @@ public final class NodeReader {
     /**
      * Returns the primitive or wrapper value for a scalar node, or null on type mismatch.
      */
-    @Nullable
-    private static Object convertScalar(@NotNull YamlNode node, @NotNull Class<?> type, @Nullable String keyName, @Nullable String[] lines) {
+    private static @Nullable Object convertScalar(@NotNull YamlNode node, @NotNull Class<?> type, @Nullable String keyName, @Nullable String[] lines) {
         if (!(node instanceof ScalarNode scalar)) {
             warnConversion(node, keyName, type.getSimpleName(), "Expected a scalar value but got " + node.getType(), lines);
             return null;
@@ -227,8 +222,7 @@ public final class NodeReader {
     /**
      * Returns the list value for a field from a list node.
      */
-    @Nullable
-    private static List<?> fromListNode(@Nullable YamlNode node, @NotNull Field field) {
+    private static @Nullable List<?> fromListNode(@Nullable YamlNode node, @NotNull Field field) {
         if (!(node instanceof ListNode listNode)) {
             if (node != null) {
                 LSYAMLLogger.warn("Expected a list for field '" + field.getName() + "' but got " + node.getType());
@@ -251,8 +245,7 @@ public final class NodeReader {
     /**
      * Returns the map value for a field from a map node.
      */
-    @Nullable
-    private static Map<String, ?> fromMapNode(@Nullable YamlNode node, @NotNull Field field) {
+    private static @Nullable Map<String, ?> fromMapNode(@Nullable YamlNode node, @NotNull Field field) {
         if (!(node instanceof MapNode mapNode)) {
             if (node != null) {
                 LSYAMLLogger.warn("Expected a map for field '" + field.getName() + "' but got " + node.getType());
@@ -282,8 +275,7 @@ public final class NodeReader {
     /**
      * Returns a populated branch instance for a map node of a given type.
      */
-    @Nullable
-    private static Object fromBranchNode(@Nullable YamlNode node, @NotNull Class<?> type, @Nullable String[] lines) {
+    private static @Nullable Object fromBranchNode(@Nullable YamlNode node, @NotNull Class<?> type, @Nullable String[] lines) {
         if (!(node instanceof MapNode mapNode)) {
             if (node != null) {
                 LSYAMLLogger.warn("Expected a map for branch type " + type.getSimpleName() + " but got " + node.getType());

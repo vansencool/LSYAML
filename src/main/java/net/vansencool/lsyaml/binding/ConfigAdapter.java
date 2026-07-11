@@ -62,8 +62,7 @@ public interface ConfigAdapter<T> {
      * @param node the node to convert
      * @return the converted value, or null if conversion fails
      */
-    @Nullable
-    T fromNode(@NotNull YamlNode node);
+    @Nullable T fromNode(@NotNull YamlNode node);
 
     /**
      * Converts a value to a YAML node.
@@ -71,6 +70,5 @@ public interface ConfigAdapter<T> {
      * @param value the value to convert
      * @return the node representation
      */
-    @NotNull
-    YamlNode toNode(@NotNull T value);
+    @NotNull YamlNode toNode(@NotNull T value);
 }

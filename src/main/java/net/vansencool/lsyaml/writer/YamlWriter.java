@@ -36,8 +36,7 @@ public class YamlWriter {
      * @param size the indent size
      * @return this writer
      */
-    @NotNull
-    public YamlWriter indentSize(int size) {
+    public @NotNull YamlWriter indentSize(int size) {
         this.indentSize = Math.max(1, size);
         return this;
     }
@@ -48,8 +47,7 @@ public class YamlWriter {
      * @param preserve true to preserve
      * @return this writer
      */
-    @NotNull
-    public YamlWriter preserveComments(boolean preserve) {
+    public @NotNull YamlWriter preserveComments(boolean preserve) {
         this.preserveComments = preserve;
         return this;
     }
@@ -60,8 +58,7 @@ public class YamlWriter {
      * @param preserve true to preserve
      * @return this writer
      */
-    @NotNull
-    public YamlWriter preserveEmptyLines(boolean preserve) {
+    public @NotNull YamlWriter preserveEmptyLines(boolean preserve) {
         this.preserveEmptyLines = preserve;
         return this;
     }
@@ -72,8 +69,7 @@ public class YamlWriter {
      * @param preserve true to preserve
      * @return this writer
      */
-    @NotNull
-    public YamlWriter preserveQuoteStyles(boolean preserve) {
+    public @NotNull YamlWriter preserveQuoteStyles(boolean preserve) {
         this.preserveQuoteStyles = preserve;
         return this;
     }
@@ -92,8 +88,7 @@ public class YamlWriter {
      * @param node the node to serialize
      * @return the YAML string
      */
-    @NotNull
-    public String write(@NotNull YamlNode node) {
+    public @NotNull String write(@NotNull YamlNode node) {
         StringBuilder sb = new StringBuilder();
         writeNode(sb, node, 0, true);
         return sb.toString();
@@ -293,8 +288,7 @@ public class YamlWriter {
         }
     }
 
-    @NotNull
-    private String formatKey(@NotNull String key, @NotNull ScalarStyle style) {
+    private @NotNull String formatKey(@NotNull String key, @NotNull ScalarStyle style) {
         if (!preserveQuoteStyles) {
             if (needsQuoting(key)) {
                 return "\"" + escapeDoubleQuoted(key) + "\"";
@@ -314,8 +308,7 @@ public class YamlWriter {
         };
     }
 
-    @NotNull
-    private String formatScalarValue(@NotNull ScalarNode scalar) {
+    private @NotNull String formatScalarValue(@NotNull ScalarNode scalar) {
         Object value = scalar.getValue();
 
         if (value == null) {
@@ -339,8 +332,7 @@ public class YamlWriter {
         };
     }
 
-    @NotNull
-    private String escapeDoubleQuoted(@NotNull String str) {
+    private @NotNull String escapeDoubleQuoted(@NotNull String str) {
         return str.replace("\\", "\\\\")
                 .replace("\"", "\\\"")
                 .replace("\n", "\\n")
@@ -366,8 +358,7 @@ public class YamlWriter {
         }
     }
 
-    @NotNull
-    private String formatLiteralBlock(@NotNull String str) {
+    private @NotNull String formatLiteralBlock(@NotNull String str) {
         StringBuilder sb = new StringBuilder("|\n");
         for (String line : str.split("\n", -1)) {
             sb.append("  ").append(line).append("\n");
@@ -375,8 +366,7 @@ public class YamlWriter {
         return sb.toString().stripTrailing();
     }
 
-    @NotNull
-    private String formatFoldedBlock(@NotNull String str) {
+    private @NotNull String formatFoldedBlock(@NotNull String str) {
         StringBuilder sb = new StringBuilder(">\n");
         for (String line : str.split("\n", -1)) {
             sb.append("  ").append(line).append("\n");

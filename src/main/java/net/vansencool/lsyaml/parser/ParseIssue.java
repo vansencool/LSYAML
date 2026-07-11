@@ -42,8 +42,7 @@ public final class ParseIssue {
      * @param lines   all lines of the document
      * @return the issue
      */
-    @NotNull
-    public static ParseIssue error(@NotNull String message, int line, int column, @NotNull String[] lines) {
+    public static @NotNull ParseIssue error(@NotNull String message, int line, int column, @NotNull String[] lines) {
         return create(Severity.ERROR, message, line, column, lines);
     }
 
@@ -56,14 +55,11 @@ public final class ParseIssue {
      * @param lines   all lines of the document
      * @return the issue
      */
-    @NotNull
-    public static ParseIssue warning(@NotNull String message, int line, int column, @NotNull String[] lines) {
+    public static @NotNull ParseIssue warning(@NotNull String message, int line, int column, @NotNull String[] lines) {
         return create(Severity.WARNING, message, line, column, lines);
     }
 
-    @NotNull
-    private static ParseIssue create(@NotNull Severity severity, @NotNull String message,
-                                     int line, int column, @NotNull String[] lines) {
+    private static @NotNull ParseIssue create(@NotNull Severity severity, @NotNull String message, int line, int column, @NotNull String[] lines) {
         String lineContent = null;
         List<String> before = List.of();
         List<String> after = List.of();
@@ -89,16 +85,14 @@ public final class ParseIssue {
     /**
      * @return the severity level
      */
-    @NotNull
-    public Severity getSeverity() {
+    public @NotNull Severity getSeverity() {
         return severity;
     }
 
     /**
      * @return the error/warning message
      */
-    @NotNull
-    public String getMessage() {
+    public @NotNull String getMessage() {
         return message;
     }
 
@@ -119,24 +113,21 @@ public final class ParseIssue {
     /**
      * @return the content of the problematic line, or null if unavailable
      */
-    @Nullable
-    public String getLineContent() {
+    public @Nullable String getLineContent() {
         return lineContent;
     }
 
     /**
      * @return lines before the issue (for context)
      */
-    @NotNull
-    public List<String> getContextBefore() {
+    public @NotNull List<String> getContextBefore() {
         return contextBefore;
     }
 
     /**
      * @return lines after the issue (for context)
      */
-    @NotNull
-    public List<String> getContextAfter() {
+    public @NotNull List<String> getContextAfter() {
         return contextAfter;
     }
 
@@ -159,8 +150,7 @@ public final class ParseIssue {
      *
      * @return formatted issue string
      */
-    @NotNull
-    public String format() {
+    public @NotNull String format() {
         StringBuilder sb = new StringBuilder();
 
         String icon = severity == Severity.ERROR ? "X" : "!";

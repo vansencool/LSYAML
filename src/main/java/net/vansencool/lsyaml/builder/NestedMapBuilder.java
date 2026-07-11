@@ -23,8 +23,7 @@ public class NestedMapBuilder extends MapBuilder {
      *
      * @return the parent builder
      */
-    @NotNull
-    public MapBuilder goBack() {
+    public @NotNull MapBuilder goBack() {
         parent.put(key, build());
         return parent;
     }
@@ -35,8 +34,7 @@ public class NestedMapBuilder extends MapBuilder {
      *
      * @return the root MapNode
      */
-    @NotNull
-    public MapNode done() {
+    public @NotNull MapNode done() {
         return goBack().build();
     }
 }

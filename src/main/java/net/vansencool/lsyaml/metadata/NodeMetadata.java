@@ -106,8 +106,7 @@ public class NodeMetadata {
      *
      * @return the indentation string
      */
-    @NotNull
-    public String getIndentString() {
+    public @NotNull String getIndentString() {
         return indentString;
     }
 
@@ -126,8 +125,7 @@ public class NodeMetadata {
      *
      * @return the anchor name, or null
      */
-    @Nullable
-    public String getAnchor() {
+    public @Nullable String getAnchor() {
         return anchor;
     }
 
@@ -145,8 +143,7 @@ public class NodeMetadata {
      *
      * @return the alias name, or null
      */
-    @Nullable
-    public String getAlias() {
+    public @Nullable String getAlias() {
         return alias;
     }
 
@@ -182,8 +179,7 @@ public class NodeMetadata {
      *
      * @return a copy
      */
-    @NotNull
-    public NodeMetadata copy() {
+    public @NotNull NodeMetadata copy() {
         NodeMetadata copy = new NodeMetadata(line, column, indentation);
         copy.indentString = this.indentString;
         copy.anchor = this.anchor;

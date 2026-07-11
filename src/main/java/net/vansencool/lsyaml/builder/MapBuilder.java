@@ -43,8 +43,7 @@ public class MapBuilder {
      *
      * @return a new builder
      */
-    @NotNull
-    public static MapBuilder create() {
+    public static @NotNull MapBuilder create() {
         return new MapBuilder();
     }
 
@@ -55,8 +54,7 @@ public class MapBuilder {
      * @param node the existing MapNode to wrap
      * @return a builder wrapping the node
      */
-    @NotNull
-    public static MapBuilder from(@NotNull MapNode node) {
+    public static @NotNull MapBuilder from(@NotNull MapNode node) {
         MapBuilder builder = new MapBuilder();
         builder.baseNode = node;
         builder.style = node.getStyle();
@@ -75,8 +73,7 @@ public class MapBuilder {
      * @param style the style
      * @return this builder
      */
-    @NotNull
-    public MapBuilder style(@NotNull CollectionStyle style) {
+    public @NotNull MapBuilder style(@NotNull CollectionStyle style) {
         this.style = style;
         return this;
     }
@@ -86,8 +83,7 @@ public class MapBuilder {
      *
      * @return this builder
      */
-    @NotNull
-    public MapBuilder flow() {
+    public @NotNull MapBuilder flow() {
         this.style = CollectionStyle.FLOW;
         return this;
     }
@@ -97,8 +93,7 @@ public class MapBuilder {
      *
      * @return this builder
      */
-    @NotNull
-    public MapBuilder block() {
+    public @NotNull MapBuilder block() {
         this.style = CollectionStyle.BLOCK;
         return this;
     }
@@ -109,8 +104,7 @@ public class MapBuilder {
      * @param comment the comment text
      * @return this builder
      */
-    @NotNull
-    public MapBuilder comment(@NotNull String comment) {
+    public @NotNull MapBuilder comment(@NotNull String comment) {
         this.commentsBefore.add(comment);
         return this;
     }
@@ -121,8 +115,7 @@ public class MapBuilder {
      * @param comment the comment text
      * @return this builder
      */
-    @NotNull
-    public MapBuilder inlineComment(@NotNull String comment) {
+    public @NotNull MapBuilder inlineComment(@NotNull String comment) {
         this.inlineComment = comment;
         return this;
     }
@@ -133,8 +126,7 @@ public class MapBuilder {
      * @param count number of empty lines
      * @return this builder
      */
-    @NotNull
-    public MapBuilder emptyLines(int count) {
+    public @NotNull MapBuilder emptyLines(int count) {
         this.emptyLinesBefore = count;
         return this;
     }
@@ -145,8 +137,7 @@ public class MapBuilder {
      * @param anchor the anchor name
      * @return this builder
      */
-    @NotNull
-    public MapBuilder anchor(@NotNull String anchor) {
+    public @NotNull MapBuilder anchor(@NotNull String anchor) {
         this.anchor = anchor;
         return this;
     }
@@ -158,8 +149,7 @@ public class MapBuilder {
      * @param value the value
      * @return this builder
      */
-    @NotNull
-    public MapBuilder put(@NotNull String key, @NotNull String value) {
+    public @NotNull MapBuilder put(@NotNull String key, @NotNull String value) {
         entries.add(new EntryBuilder(key, new ScalarNode(value)));
         return this;
     }
@@ -171,8 +161,7 @@ public class MapBuilder {
      * @param value the value
      * @return this builder
      */
-    @NotNull
-    public MapBuilder put(@NotNull String key, int value) {
+    public @NotNull MapBuilder put(@NotNull String key, int value) {
         entries.add(new EntryBuilder(key, new ScalarNode(value)));
         return this;
     }
@@ -184,8 +173,7 @@ public class MapBuilder {
      * @param value the value
      * @return this builder
      */
-    @NotNull
-    public MapBuilder put(@NotNull String key, long value) {
+    public @NotNull MapBuilder put(@NotNull String key, long value) {
         entries.add(new EntryBuilder(key, new ScalarNode(value)));
         return this;
     }
@@ -197,8 +185,7 @@ public class MapBuilder {
      * @param value the value
      * @return this builder
      */
-    @NotNull
-    public MapBuilder put(@NotNull String key, double value) {
+    public @NotNull MapBuilder put(@NotNull String key, double value) {
         entries.add(new EntryBuilder(key, new ScalarNode(value)));
         return this;
     }
@@ -210,8 +197,7 @@ public class MapBuilder {
      * @param value the value
      * @return this builder
      */
-    @NotNull
-    public MapBuilder put(@NotNull String key, boolean value) {
+    public @NotNull MapBuilder put(@NotNull String key, boolean value) {
         entries.add(new EntryBuilder(key, new ScalarNode(value)));
         return this;
     }
@@ -223,8 +209,7 @@ public class MapBuilder {
      * @param value the value node
      * @return this builder
      */
-    @NotNull
-    public MapBuilder put(@NotNull String key, @NotNull YamlNode value) {
+    public @NotNull MapBuilder put(@NotNull String key, @NotNull YamlNode value) {
         entries.add(new EntryBuilder(key, value));
         return this;
     }
@@ -236,8 +221,7 @@ public class MapBuilder {
      * @param builder the map builder
      * @return this builder
      */
-    @NotNull
-    public MapBuilder put(@NotNull String key, @NotNull MapBuilder builder) {
+    public @NotNull MapBuilder put(@NotNull String key, @NotNull MapBuilder builder) {
         entries.add(new EntryBuilder(key, builder.build()));
         return this;
     }
@@ -249,8 +233,7 @@ public class MapBuilder {
      * @param builder the list builder
      * @return this builder
      */
-    @NotNull
-    public MapBuilder put(@NotNull String key, @NotNull ListBuilder builder) {
+    public @NotNull MapBuilder put(@NotNull String key, @NotNull ListBuilder builder) {
         entries.add(new EntryBuilder(key, builder.build()));
         return this;
     }
@@ -263,8 +246,7 @@ public class MapBuilder {
      * @param style the scalar style
      * @return this builder
      */
-    @NotNull
-    public MapBuilder put(@NotNull String key, @NotNull String value, @NotNull ScalarStyle style) {
+    public @NotNull MapBuilder put(@NotNull String key, @NotNull String value, @NotNull ScalarStyle style) {
         entries.add(new EntryBuilder(key, new ScalarNode(value, style)));
         return this;
     }
@@ -275,8 +257,7 @@ public class MapBuilder {
      * @param key the key
      * @return the entry builder
      */
-    @NotNull
-    public EntryBuilder entry(@NotNull String key) {
+    public @NotNull EntryBuilder entry(@NotNull String key) {
         EntryBuilder eb = new EntryBuilder(key);
         entries.add(eb);
         return eb;
@@ -289,8 +270,7 @@ public class MapBuilder {
      * @param key the key for the nested map
      * @return a nested map builder
      */
-    @NotNull
-    public NestedMapBuilder map(@NotNull String key) {
+    public @NotNull NestedMapBuilder map(@NotNull String key) {
         return new NestedMapBuilder(this, key);
     }
 
@@ -301,8 +281,7 @@ public class MapBuilder {
      * @param key the key for the nested list
      * @return a nested list builder
      */
-    @NotNull
-    public NestedListBuilder list(@NotNull String key) {
+    public @NotNull NestedListBuilder list(@NotNull String key) {
         return new NestedListBuilder(this, key);
     }
 
@@ -312,8 +291,7 @@ public class MapBuilder {
      *
      * @return the constructed MapNode
      */
-    @NotNull
-    public MapNode build() {
+    public @NotNull MapNode build() {
         MapNode map;
         if (baseNode != null) {
             map = baseNode;
@@ -342,8 +320,7 @@ public class MapBuilder {
      * @return the modified MapNode
      * @throws IllegalStateException if not created from an existing node
      */
-    @NotNull
-    public MapNode apply() {
+    public @NotNull MapNode apply() {
         if (baseNode == null) {
             throw new IllegalStateException("apply() can only be called on builders created with from()");
         }
@@ -358,8 +335,7 @@ public class MapBuilder {
      * @return the parent builder
      * @throws IllegalStateException if called on a non-nested builder
      */
-    @NotNull
-    public MapBuilder goBack() {
+    public @NotNull MapBuilder goBack() {
         throw new IllegalStateException("goBack() can only be called on nested builders created via map()");
     }
 
@@ -420,8 +396,7 @@ public class MapBuilder {
          * @param value the value
          * @return the parent MapBuilder
          */
-        @NotNull
-        public MapBuilder value(@NotNull String value) {
+        public @NotNull MapBuilder value(@NotNull String value) {
             this.value = new ScalarNode(value);
             return MapBuilder.this;
         }
@@ -432,8 +407,7 @@ public class MapBuilder {
          * @param value the value
          * @return the parent MapBuilder
          */
-        @NotNull
-        public MapBuilder value(int value) {
+        public @NotNull MapBuilder value(int value) {
             this.value = new ScalarNode(value);
             return MapBuilder.this;
         }
@@ -444,8 +418,7 @@ public class MapBuilder {
          * @param value the value
          * @return the parent MapBuilder
          */
-        @NotNull
-        public MapBuilder value(boolean value) {
+        public @NotNull MapBuilder value(boolean value) {
             this.value = new ScalarNode(value);
             return MapBuilder.this;
         }
@@ -456,8 +429,7 @@ public class MapBuilder {
          * @param value the value node
          * @return the parent MapBuilder
          */
-        @NotNull
-        public MapBuilder value(@NotNull YamlNode value) {
+        public @NotNull MapBuilder value(@NotNull YamlNode value) {
             this.value = value;
             return MapBuilder.this;
         }
@@ -468,8 +440,7 @@ public class MapBuilder {
          * @param builder the map builder
          * @return the parent MapBuilder
          */
-        @NotNull
-        public MapBuilder value(@NotNull MapBuilder builder) {
+        public @NotNull MapBuilder value(@NotNull MapBuilder builder) {
             this.value = builder.build();
             return MapBuilder.this;
         }
@@ -480,8 +451,7 @@ public class MapBuilder {
          * @param builder the list builder
          * @return the parent MapBuilder
          */
-        @NotNull
-        public MapBuilder value(@NotNull ListBuilder builder) {
+        public @NotNull MapBuilder value(@NotNull ListBuilder builder) {
             this.value = builder.build();
             return MapBuilder.this;
         }
@@ -492,8 +462,7 @@ public class MapBuilder {
          * @param style the style
          * @return this entry builder
          */
-        @NotNull
-        public EntryBuilder keyStyle(@NotNull ScalarStyle style) {
+        public @NotNull EntryBuilder keyStyle(@NotNull ScalarStyle style) {
             this.keyStyle = style;
             return this;
         }
@@ -504,8 +473,7 @@ public class MapBuilder {
          * @param comment the comment
          * @return this entry builder
          */
-        @NotNull
-        public EntryBuilder comment(@NotNull String comment) {
+        public @NotNull EntryBuilder comment(@NotNull String comment) {
             this.commentsBefore.add(comment);
             return this;
         }
@@ -516,8 +484,7 @@ public class MapBuilder {
          * @param comment the comment
          * @return this entry builder
          */
-        @NotNull
-        public EntryBuilder inlineComment(@NotNull String comment) {
+        public @NotNull EntryBuilder inlineComment(@NotNull String comment) {
             this.inlineComment = comment;
             return this;
         }
@@ -528,14 +495,12 @@ public class MapBuilder {
          * @param count the count
          * @return this entry builder
          */
-        @NotNull
-        public EntryBuilder emptyLines(int count) {
+        public @NotNull EntryBuilder emptyLines(int count) {
             this.emptyLinesBefore = count;
             return this;
         }
 
-        @NotNull
-        MapNode.MapEntry buildEntry() {
+        @NotNull MapNode.MapEntry buildEntry() {
             if (value == null) {
                 throw new IllegalStateException("Entry value not set for key: " + key);
             }

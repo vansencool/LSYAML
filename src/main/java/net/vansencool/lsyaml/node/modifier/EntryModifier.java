@@ -35,8 +35,7 @@ public class EntryModifier {
      * @param value the value node
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier value(@NotNull YamlNode value) {
+    public @NotNull EntryModifier value(@NotNull YamlNode value) {
         ensureEntry();
         entry.setValue(value);
         return this;
@@ -48,8 +47,7 @@ public class EntryModifier {
      * @param value the string value
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier value(@NotNull String value) {
+    public @NotNull EntryModifier value(@NotNull String value) {
         return value(new ScalarNode(value));
     }
 
@@ -59,8 +57,7 @@ public class EntryModifier {
      * @param value the integer value
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier value(int value) {
+    public @NotNull EntryModifier value(int value) {
         return value(new ScalarNode(value));
     }
 
@@ -70,8 +67,7 @@ public class EntryModifier {
      * @param value the long value
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier value(long value) {
+    public @NotNull EntryModifier value(long value) {
         return value(new ScalarNode(value));
     }
 
@@ -81,8 +77,7 @@ public class EntryModifier {
      * @param value the double value
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier value(double value) {
+    public @NotNull EntryModifier value(double value) {
         return value(new ScalarNode(value));
     }
 
@@ -92,8 +87,7 @@ public class EntryModifier {
      * @param value the boolean value
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier value(boolean value) {
+    public @NotNull EntryModifier value(boolean value) {
         return value(new ScalarNode(value));
     }
 
@@ -102,8 +96,7 @@ public class EntryModifier {
      *
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier valueMap() {
+    public @NotNull EntryModifier valueMap() {
         return value(new MapNode());
     }
 
@@ -112,8 +105,7 @@ public class EntryModifier {
      *
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier valueList() {
+    public @NotNull EntryModifier valueList() {
         return value(new ListNode());
     }
 
@@ -123,8 +115,7 @@ public class EntryModifier {
      * @param comment the comment text (without #)
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier commentBefore(@NotNull String comment) {
+    public @NotNull EntryModifier commentBefore(@NotNull String comment) {
         ensureEntry();
         entry.addCommentBefore(comment);
         return this;
@@ -136,8 +127,7 @@ public class EntryModifier {
      * @param comments the comment texts (without #)
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier commentsBefore(@NotNull String... comments) {
+    public @NotNull EntryModifier commentsBefore(@NotNull String... comments) {
         ensureEntry();
         for (String comment : comments) {
             entry.addCommentBefore(comment);
@@ -150,8 +140,7 @@ public class EntryModifier {
      *
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier clearCommentsBefore() {
+    public @NotNull EntryModifier clearCommentsBefore() {
         ensureEntry();
         entry.setCommentsBefore(new ArrayList<>());
         return this;
@@ -163,8 +152,7 @@ public class EntryModifier {
      * @param comment the comment text (without #), or null to remove
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier inlineComment(@Nullable String comment) {
+    public @NotNull EntryModifier inlineComment(@Nullable String comment) {
         ensureEntry();
         entry.setInlineComment(comment);
         return this;
@@ -175,8 +163,7 @@ public class EntryModifier {
      *
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier clearInlineComment() {
+    public @NotNull EntryModifier clearInlineComment() {
         return inlineComment(null);
     }
 
@@ -186,8 +173,7 @@ public class EntryModifier {
      * @param count the number of empty lines
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier emptyLinesBefore(int count) {
+    public @NotNull EntryModifier emptyLinesBefore(int count) {
         ensureEntry();
         entry.setEmptyLinesBefore(count);
         return this;
@@ -199,8 +185,7 @@ public class EntryModifier {
      * @param style the scalar style for the key
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier keyStyle(@NotNull ScalarStyle style) {
+    public @NotNull EntryModifier keyStyle(@NotNull ScalarStyle style) {
         ensureEntry();
         entry.setKeyStyle(style);
         return this;
@@ -212,8 +197,7 @@ public class EntryModifier {
      * @param newKey the new key name
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier rename(@NotNull String newKey) {
+    public @NotNull EntryModifier rename(@NotNull String newKey) {
         if (entry != null && !key.equals(newKey)) {
             map.renameKey(key, newKey);
             entry = map.getEntry(newKey);
@@ -234,8 +218,7 @@ public class EntryModifier {
      *
      * @return the value, or null if entry doesn't exist
      */
-    @Nullable
-    public YamlNode getValue() {
+    public @Nullable YamlNode getValue() {
         return entry != null ? entry.getValue() : null;
     }
 
@@ -244,8 +227,7 @@ public class EntryModifier {
      *
      * @return list of comments, or empty list if entry doesn't exist
      */
-    @NotNull
-    public List<String> getCommentsBefore() {
+    public @NotNull List<String> getCommentsBefore() {
         return entry != null ? entry.getCommentsBefore() : new ArrayList<>();
     }
 
@@ -255,8 +237,7 @@ public class EntryModifier {
      * @param comments the comment texts (without #)
      * @return this modifier for chaining
      */
-    @NotNull
-    public EntryModifier setCommentsBefore(@NotNull String... comments) {
+    public @NotNull EntryModifier setCommentsBefore(@NotNull String... comments) {
         ensureEntry();
         entry.setCommentsBefore(Arrays.asList(comments));
         return this;
@@ -267,8 +248,7 @@ public class EntryModifier {
      *
      * @return the inline comment, or null
      */
-    @Nullable
-    public String getInlineComment() {
+    public @Nullable String getInlineComment() {
         return entry != null ? entry.getInlineComment() : null;
     }
 
@@ -286,8 +266,7 @@ public class EntryModifier {
      *
      * @return the entry, or null if it doesn't exist
      */
-    @Nullable
-    public MapNode.MapEntry getEntry() {
+    public @Nullable MapNode.MapEntry getEntry() {
         return entry;
     }
 
@@ -296,8 +275,7 @@ public class EntryModifier {
      *
      * @return the parent map
      */
-    @NotNull
-    public MapNode done() {
+    public @NotNull MapNode done() {
         return map;
     }
 

@@ -42,8 +42,7 @@ public final class WatcherOptions {
      *
      * @return a new builder
      */
-    @NotNull
-    public static Builder builder() {
+    public static @NotNull Builder builder() {
         return new Builder();
     }
 
@@ -53,8 +52,7 @@ public final class WatcherOptions {
      *
      * @return default options
      */
-    @NotNull
-    public static WatcherOptions defaults() {
+    public static @NotNull WatcherOptions defaults() {
         return new Builder().build();
     }
 
@@ -100,8 +98,7 @@ public final class WatcherOptions {
      *
      * @return the listener, or null
      */
-    @Nullable
-    public FileEventListener getListener() {
+    public @Nullable FileEventListener getListener() {
         return listener;
     }
 
@@ -127,8 +124,7 @@ public final class WatcherOptions {
          * @param debounceMillis debounce window in milliseconds
          * @return this builder
          */
-        @NotNull
-        public Builder debounceMillis(long debounceMillis) {
+        public @NotNull Builder debounceMillis(long debounceMillis) {
             this.debounceMillis = debounceMillis;
             return this;
         }
@@ -140,8 +136,7 @@ public final class WatcherOptions {
          * @param reloadOnChange true to enable
          * @return this builder
          */
-        @NotNull
-        public Builder reloadOnChange(boolean reloadOnChange) {
+        public @NotNull Builder reloadOnChange(boolean reloadOnChange) {
             this.reloadOnChange = reloadOnChange;
             return this;
         }
@@ -153,8 +148,7 @@ public final class WatcherOptions {
          * @param recreateOnDelete true to enable
          * @return this builder
          */
-        @NotNull
-        public Builder recreateOnDelete(boolean recreateOnDelete) {
+        public @NotNull Builder recreateOnDelete(boolean recreateOnDelete) {
             this.recreateOnDelete = recreateOnDelete;
             return this;
         }
@@ -166,8 +160,7 @@ public final class WatcherOptions {
          * @param loadOnCreate true to enable
          * @return this builder
          */
-        @NotNull
-        public Builder loadOnCreate(boolean loadOnCreate) {
+        public @NotNull Builder loadOnCreate(boolean loadOnCreate) {
             this.loadOnCreate = loadOnCreate;
             return this;
         }
@@ -178,8 +171,7 @@ public final class WatcherOptions {
          * @param listener the listener to invoke
          * @return this builder
          */
-        @NotNull
-        public Builder listener(@NotNull FileEventListener listener) {
+        public @NotNull Builder listener(@NotNull FileEventListener listener) {
             this.listener = listener;
             return this;
         }
@@ -189,8 +181,7 @@ public final class WatcherOptions {
          *
          * @return the built options
          */
-        @NotNull
-        public WatcherOptions build() {
+        public @NotNull WatcherOptions build() {
             return new WatcherOptions(this);
         }
     }

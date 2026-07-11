@@ -1,0 +1,171 @@
+package net.vansencool.lsyaml.parser.parse;
+
+import net.vansencool.lsyaml.node.ListNode;
+import net.vansencool.lsyaml.node.MapNode;
+import net.vansencool.lsyaml.node.ScalarNode;
+import net.vansencool.lsyaml.node.YamlNode;
+import net.vansencool.lsyaml.parser.ParseOptions;
+import net.vansencool.lsyaml.parser.text.Scan;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Shared parsing state holding the cursor, options, and the block, list, complex key, and value parsers.
+ */
+public final class ParseSession {
+
+    private final @NotNull Cursor cursor;
+    private final @NotNull ParseOptions options;
+    private final @NotNull BlockMap map;
+    private final @NotNull BlockList list;
+    private final @NotNull ComplexKey complexKey;
+    private final @NotNull Values values;
+    private boolean hasAnchors;
+
+    public ParseSession(@NotNull Cursor cursor, @NotNull ParseOptions options) {
+        this.cursor = cursor;
+        this.options = options;
+        this.map = new BlockMap(this);
+        this.list = new BlockList(this);
+        this.complexKey = new ComplexKey(this);
+        this.values = new Values(this);
+    }
+
+    /**
+     * Returns the shared cursor.
+     */
+    public @NotNull Cursor cursor() {
+        return cursor;
+    }
+
+    /**
+     * Returns the parse options.
+     */
+    public @NotNull ParseOptions options() {
+        return options;
+    }
+
+    /**
+     * Returns the block map parser.
+     */
+    public @NotNull BlockMap map() {
+        return map;
+    }
+
+    /**
+     * Returns the block list parser.
+     */
+    public @NotNull BlockList list() {
+        return list;
+    }
+
+    /**
+     * Returns the complex key parser.
+     */
+    public @NotNull ComplexKey complexKey() {
+        return complexKey;
+    }
+
+    /**
+     * Returns the value parser.
+     */
+    public @NotNull Values values() {
+        return values;
+    }
+
+    /**
+     * Records that the document contains at least one anchor.
+     */
+    public void markAnchors() {
+        this.hasAnchors = true;
+    }
+
+    /**
+     * Returns whether the document contains any anchor.
+     */
+    public boolean hasAnchors() {
+        return hasAnchors;
+    }
+
+    /**
+     * Returns the standalone comment text of the cursor line, excluding the hash.
+     */
+    public @NotNull String comment(@NotNull Cursor c) {
+        int hash = Scan.standaloneHash(c.source(), c.contentStart(), c.end());
+        return c.source().slice(hash, c.end());
+    }
+
+    /**
+     * Returns the index of an inline comment hash in a value string, or minus one.
+     */
+    public int inlineHash(@NotNull String value) {
+        boolean single = false;
+        boolean dbl = false;
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            if (ch == '\'' && !dbl) single = !single;
+            else if (ch == '"' && !single) dbl = !dbl;
+            else if (ch == '#' && !single && !dbl && i > 0 && value.charAt(i - 1) == ' ') return i;
+        }
+        return -1;
+    }
+
+    /**
+     * Advances over blank and comment lines, collecting comment text, and returns the blank count.
+     */
+    public int skipBlanksAndComments(@NotNull List<String> comments) {
+        int blanks = 0;
+        while (cursor.hasMore()) {
+            char first = cursor.firstChar();
+            if (first == 0) {
+                blanks++;
+                cursor.advance();
+            } else if (first == '#') {
+                comments.add(comment(cursor));
+                cursor.advance();
+            } else {
+                break;
+            }
+        }
+        return blanks;
+    }
+
+    /**
+     * Returns a flow node parsed from an inline value, collecting continuation lines.
+     */
+    public @NotNull YamlNode flow(@NotNull String value, char open) {
+        char close = open == '{' ? '}' : ']';
+        MultiLineFlow.Result collected = MultiLineFlow.collect(cursor, value, open, close);
+        YamlNode node = open == '{' ? Flow.map(collected.content()) : Flow.list(collected.content());
+        if (collected.multiLine()) {
+            if (node instanceof MapNode m) {
+                m.setMultiLineFlow(true);
+                m.setFlowIndent(collected.indent());
+            } else if (node instanceof ListNode l) {
+                l.setMultiLineFlow(true);
+                l.setFlowIndent(collected.indent());
+            }
+        }
+        return node;
+    }
+
+    /**
+     * Returns a block scalar node read from the cursor at the given indicator and indentation.
+     */
+    public @NotNull ScalarNode blockScalar(@NotNull String indicator, int indent) {
+        return BlockScalar.read(cursor, indicator, indent);
+    }
+
+    /**
+     * Returns a node parsed by treating an inline value as a re-indented block at the prior line.
+     */
+    public @NotNull YamlNode reparseInline(int indent, @NotNull String content, char marker) {
+        cursor.line(cursor.line() - 1);
+        cursor.override(cursor.line(), content, indent);
+        YamlNode node = marker == '-' ? list.parse(indent, new ArrayList<>(), 0) : map.parse(indent, new ArrayList<>(), 0);
+        cursor.clearOverride();
+        return node;
+    }
+}

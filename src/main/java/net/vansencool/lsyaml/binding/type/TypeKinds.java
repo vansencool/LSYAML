@@ -58,8 +58,7 @@ public final class TypeKinds {
     /**
      * Returns the first type argument of a generic type, or Object when it is not parameterized.
      */
-    @NotNull
-    public static Class<?> elementType(@NotNull Type genericType) {
+    public static @NotNull Class<?> elementType(@NotNull Type genericType) {
         if (genericType instanceof ParameterizedType pt) {
             Type[] typeArgs = pt.getActualTypeArguments();
             if (typeArgs.length > 0 && typeArgs[0] instanceof Class<?> clazz) {

@@ -49,8 +49,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
     }
 
     @Override
-    @NotNull
-    public NodeType getType() {
+    public @NotNull NodeType getType() {
         return NodeType.LIST;
     }
 
@@ -59,8 +58,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      *
      * @return the style
      */
-    @NotNull
-    public CollectionStyle getStyle() {
+    public @NotNull CollectionStyle getStyle() {
         return style;
     }
 
@@ -134,8 +132,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return the value node
      * @throws IndexOutOfBoundsException if index is invalid
      */
-    @NotNull
-    public YamlNode get(int index) {
+    public @NotNull YamlNode get(int index) {
         return entries.get(index).getValue();
     }
 
@@ -146,8 +143,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return the entry
      * @throws IndexOutOfBoundsException if index is invalid
      */
-    @NotNull
-    public ListEntry getEntry(int index) {
+    public @NotNull ListEntry getEntry(int index) {
         return entries.get(index);
     }
 
@@ -156,8 +152,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      *
      * @return list of entries
      */
-    @NotNull
-    public List<ListEntry> entries() {
+    public @NotNull List<ListEntry> entries() {
         return entries;
     }
 
@@ -167,8 +162,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param index the index
      * @return the string value, or null
      */
-    @Nullable
-    public String getString(int index) {
+    public @Nullable String getString(int index) {
         YamlNode node = get(index);
         if (node instanceof ScalarNode) {
             return ((ScalarNode) node).getStringValue();
@@ -182,8 +176,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param index the index
      * @return the map node, or null
      */
-    @Nullable
-    public MapNode getMap(int index) {
+    public @Nullable MapNode getMap(int index) {
         YamlNode node = get(index);
         if (node instanceof MapNode) {
             return (MapNode) node;
@@ -197,8 +190,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param index the index
      * @return the list node, or null
      */
-    @Nullable
-    public ListNode getList(int index) {
+    public @Nullable ListNode getList(int index) {
         YamlNode node = get(index);
         if (node instanceof ListNode) {
             return (ListNode) node;
@@ -212,8 +204,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param value the value to add
      * @return this list for chaining
      */
-    @NotNull
-    public ListNode add(@NotNull YamlNode value) {
+    public @NotNull ListNode add(@NotNull YamlNode value) {
         entries.add(new ListEntry(value));
         return this;
     }
@@ -224,8 +215,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param value the string value
      * @return this list for chaining
      */
-    @NotNull
-    public ListNode add(@NotNull String value) {
+    public @NotNull ListNode add(@NotNull String value) {
         return add(new ScalarNode(value));
     }
 
@@ -235,8 +225,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param value the integer value
      * @return this list for chaining
      */
-    @NotNull
-    public ListNode add(int value) {
+    public @NotNull ListNode add(int value) {
         return add(new ScalarNode(value));
     }
 
@@ -246,8 +235,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param value the boolean value
      * @return this list for chaining
      */
-    @NotNull
-    public ListNode add(boolean value) {
+    public @NotNull ListNode add(boolean value) {
         return add(new ScalarNode(value));
     }
 
@@ -257,8 +245,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param entry the entry to add
      * @return this list for chaining
      */
-    @NotNull
-    public ListNode addEntry(@NotNull ListEntry entry) {
+    public @NotNull ListNode addEntry(@NotNull ListEntry entry) {
         entries.add(entry);
         return this;
     }
@@ -270,8 +257,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return a list entry modifier for fluent configuration
      * @throws IndexOutOfBoundsException if index is invalid
      */
-    @NotNull
-    public ListEntryModifier modify(int index) {
+    public @NotNull ListEntryModifier modify(int index) {
         return new ListEntryModifier(this, index);
     }
 
@@ -283,8 +269,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      * @throws IndexOutOfBoundsException if index is invalid
      */
-    @NotNull
-    public ListNode setString(int index, @NotNull String value) {
+    public @NotNull ListNode setString(int index, @NotNull String value) {
         return set(index, new ScalarNode(value));
     }
 
@@ -296,8 +281,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      * @throws IndexOutOfBoundsException if index is invalid
      */
-    @NotNull
-    public ListNode setInt(int index, int value) {
+    public @NotNull ListNode setInt(int index, int value) {
         return set(index, new ScalarNode(value));
     }
 
@@ -309,8 +293,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      * @throws IndexOutOfBoundsException if index is invalid
      */
-    @NotNull
-    public ListNode setLong(int index, long value) {
+    public @NotNull ListNode setLong(int index, long value) {
         return set(index, new ScalarNode(value));
     }
 
@@ -322,8 +305,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      * @throws IndexOutOfBoundsException if index is invalid
      */
-    @NotNull
-    public ListNode setDouble(int index, double value) {
+    public @NotNull ListNode setDouble(int index, double value) {
         return set(index, new ScalarNode(value));
     }
 
@@ -335,8 +317,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      * @throws IndexOutOfBoundsException if index is invalid
      */
-    @NotNull
-    public ListNode setBoolean(int index, boolean value) {
+    public @NotNull ListNode setBoolean(int index, boolean value) {
         return set(index, new ScalarNode(value));
     }
 
@@ -348,8 +329,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      * @throws IndexOutOfBoundsException if index is invalid
      */
-    @NotNull
-    public ListNode setComments(int index, @NotNull String... comments) {
+    public @NotNull ListNode setComments(int index, @NotNull String... comments) {
         entries.get(index).setCommentsBefore(Arrays.asList(comments));
         return this;
     }
@@ -362,8 +342,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      * @throws IndexOutOfBoundsException if index is invalid
      */
-    @NotNull
-    public ListNode addComment(int index, @NotNull String comment) {
+    public @NotNull ListNode addComment(int index, @NotNull String comment) {
         entries.get(index).addCommentBefore(comment);
         return this;
     }
@@ -375,8 +354,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      * @throws IndexOutOfBoundsException if index is invalid
      */
-    @NotNull
-    public ListNode clearComments(int index) {
+    public @NotNull ListNode clearComments(int index) {
         entries.get(index).setCommentsBefore(new ArrayList<>());
         return this;
     }
@@ -390,8 +368,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      * @throws IndexOutOfBoundsException if index is invalid
      */
-    @NotNull
-    public ListNode setInlineComment(int index, @Nullable String comment) {
+    public @NotNull ListNode setInlineComment(int index, @Nullable String comment) {
         entries.get(index).setInlineComment(comment);
         return this;
     }
@@ -404,8 +381,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      * @throws IndexOutOfBoundsException if index is invalid
      */
-    @NotNull
-    public ListNode setEmptyLinesBefore(int index, int count) {
+    public @NotNull ListNode setEmptyLinesBefore(int index, int count) {
         entries.get(index).setEmptyLinesBefore(count);
         return this;
     }
@@ -417,8 +393,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param commentBefore the comment text (without #)
      * @return this list for chaining
      */
-    @NotNull
-    public ListNode addWithComment(@NotNull YamlNode value, @NotNull String commentBefore) {
+    public @NotNull ListNode addWithComment(@NotNull YamlNode value, @NotNull String commentBefore) {
         ListEntry entry = new ListEntry(value);
         entry.addCommentBefore(commentBefore);
         return addEntry(entry);
@@ -431,8 +406,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param commentBefore the comment text (without #)
      * @return this list for chaining
      */
-    @NotNull
-    public ListNode addWithComment(@NotNull String value, @NotNull String commentBefore) {
+    public @NotNull ListNode addWithComment(@NotNull String value, @NotNull String commentBefore) {
         return addWithComment(new ScalarNode(value), commentBefore);
     }
 
@@ -442,8 +416,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param comment the comment text (without #)
      * @return this list for chaining
      */
-    @NotNull
-    public ListNode addTrailingComment(@NotNull String comment) {
+    public @NotNull ListNode addTrailingComment(@NotNull String comment) {
         trailingComments.add(comment);
         return this;
     }
@@ -454,8 +427,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param comments the comment texts (without #)
      * @return this list for chaining
      */
-    @NotNull
-    public ListNode setTrailingComments(@NotNull String... comments) {
+    public @NotNull ListNode setTrailingComments(@NotNull String... comments) {
         trailingComments.clear();
         trailingComments.addAll(Arrays.asList(comments));
         return this;
@@ -466,8 +438,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      *
      * @return this list for chaining
      */
-    @NotNull
-    public ListNode clearTrailingComments() {
+    public @NotNull ListNode clearTrailingComments() {
         trailingComments.clear();
         return this;
     }
@@ -479,8 +450,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param value the value to insert
      * @return this list for chaining
      */
-    @NotNull
-    public ListNode insert(int index, @NotNull YamlNode value) {
+    public @NotNull ListNode insert(int index, @NotNull YamlNode value) {
         entries.add(index, new ListEntry(value));
         return this;
     }
@@ -492,8 +462,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param value the value to set
      * @return this list for chaining
      */
-    @NotNull
-    public ListNode set(int index, @NotNull YamlNode value) {
+    public @NotNull ListNode set(int index, @NotNull YamlNode value) {
         entries.get(index).setValue(value);
         return this;
     }
@@ -504,8 +473,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @param index the index
      * @return the removed value
      */
-    @NotNull
-    public YamlNode remove(int index) {
+    public @NotNull YamlNode remove(int index) {
         return entries.remove(index).getValue();
     }
 
@@ -517,14 +485,12 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
     }
 
     @Override
-    @NotNull
-    public Iterator<YamlNode> iterator() {
+    public @NotNull Iterator<YamlNode> iterator() {
         return entries.stream().map(ListEntry::getValue).iterator();
     }
 
     @Override
-    @NotNull
-    public YamlNode copy() {
+    public @NotNull YamlNode copy() {
         ListNode copy = new ListNode(metadata.copy());
         copy.style = this.style;
         copy.multiLineFlow = this.multiLineFlow;
@@ -537,8 +503,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
     }
 
     @Override
-    @NotNull
-    public String toYaml(int indent, int currentLevel) {
+    public @NotNull String toYaml(int indent, int currentLevel) {
         StringBuilder sb = new StringBuilder();
         sb.append(buildCommentPrefix(indent, currentLevel));
 
@@ -556,8 +521,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
         return sb.toString();
     }
 
-    @NotNull
-    String toYamlWithoutAnchor(int indent, int currentLevel) {
+    @NotNull String toYamlWithoutAnchor(int indent, int currentLevel) {
         StringBuilder sb = new StringBuilder();
         sb.append(buildCommentPrefix(indent, currentLevel));
 
@@ -667,8 +631,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
             this.emptyLinesBefore = 0;
         }
 
-        @NotNull
-        public YamlNode getValue() {
+        public @NotNull YamlNode getValue() {
             return value;
         }
 
@@ -676,8 +639,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
             this.value = value;
         }
 
-        @NotNull
-        public List<String> getCommentsBefore() {
+        public @NotNull List<String> getCommentsBefore() {
             return commentsBefore;
         }
 
@@ -689,8 +651,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
             this.commentsBefore.add(comment);
         }
 
-        @Nullable
-        public String getInlineComment() {
+        public @Nullable String getInlineComment() {
             return inlineComment;
         }
 
@@ -706,8 +667,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
             this.emptyLinesBefore = Math.max(0, count);
         }
 
-        @NotNull
-        public ListEntry copy() {
+        public @NotNull ListEntry copy() {
             ListEntry copy = new ListEntry(value.copy());
             copy.commentsBefore = new ArrayList<>(this.commentsBefore);
             copy.inlineComment = this.inlineComment;

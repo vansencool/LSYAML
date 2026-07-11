@@ -40,8 +40,7 @@ public class ScalarBuilder {
      *
      * @return a new builder
      */
-    @NotNull
-    public static ScalarBuilder create() {
+    public static @NotNull ScalarBuilder create() {
         return new ScalarBuilder();
     }
 
@@ -51,8 +50,7 @@ public class ScalarBuilder {
      * @param value the string value
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder string(@NotNull String value) {
+    public @NotNull ScalarBuilder string(@NotNull String value) {
         this.value = value;
         return this;
     }
@@ -63,8 +61,7 @@ public class ScalarBuilder {
      * @param value the integer value
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder integer(int value) {
+    public @NotNull ScalarBuilder integer(int value) {
         this.value = value;
         return this;
     }
@@ -75,8 +72,7 @@ public class ScalarBuilder {
      * @param value the long value
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder longVal(long value) {
+    public @NotNull ScalarBuilder longVal(long value) {
         this.value = value;
         return this;
     }
@@ -87,8 +83,7 @@ public class ScalarBuilder {
      * @param value the double value
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder doubleVal(double value) {
+    public @NotNull ScalarBuilder doubleVal(double value) {
         this.value = value;
         return this;
     }
@@ -99,8 +94,7 @@ public class ScalarBuilder {
      * @param value the boolean value
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder bool(boolean value) {
+    public @NotNull ScalarBuilder bool(boolean value) {
         this.value = value;
         return this;
     }
@@ -110,8 +104,7 @@ public class ScalarBuilder {
      *
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder nullValue() {
+    public @NotNull ScalarBuilder nullValue() {
         this.value = null;
         return this;
     }
@@ -122,8 +115,7 @@ public class ScalarBuilder {
      * @param style the style
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder style(@NotNull ScalarStyle style) {
+    public @NotNull ScalarBuilder style(@NotNull ScalarStyle style) {
         this.style = style;
         return this;
     }
@@ -133,8 +125,7 @@ public class ScalarBuilder {
      *
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder plain() {
+    public @NotNull ScalarBuilder plain() {
         this.style = ScalarStyle.PLAIN;
         return this;
     }
@@ -144,8 +135,7 @@ public class ScalarBuilder {
      *
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder singleQuoted() {
+    public @NotNull ScalarBuilder singleQuoted() {
         this.style = ScalarStyle.SINGLE_QUOTED;
         return this;
     }
@@ -155,8 +145,7 @@ public class ScalarBuilder {
      *
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder doubleQuoted() {
+    public @NotNull ScalarBuilder doubleQuoted() {
         this.style = ScalarStyle.DOUBLE_QUOTED;
         return this;
     }
@@ -166,8 +155,7 @@ public class ScalarBuilder {
      *
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder literal() {
+    public @NotNull ScalarBuilder literal() {
         this.style = ScalarStyle.LITERAL;
         return this;
     }
@@ -177,8 +165,7 @@ public class ScalarBuilder {
      *
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder folded() {
+    public @NotNull ScalarBuilder folded() {
         this.style = ScalarStyle.FOLDED;
         return this;
     }
@@ -189,8 +176,7 @@ public class ScalarBuilder {
      * @param comment the comment text
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder comment(@NotNull String comment) {
+    public @NotNull ScalarBuilder comment(@NotNull String comment) {
         this.commentsBefore.add(comment);
         return this;
     }
@@ -201,8 +187,7 @@ public class ScalarBuilder {
      * @param comment the comment text
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder inlineComment(@NotNull String comment) {
+    public @NotNull ScalarBuilder inlineComment(@NotNull String comment) {
         this.inlineComment = comment;
         return this;
     }
@@ -213,8 +198,7 @@ public class ScalarBuilder {
      * @param count number of empty lines
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder emptyLines(int count) {
+    public @NotNull ScalarBuilder emptyLines(int count) {
         this.emptyLinesBefore = count;
         return this;
     }
@@ -225,8 +209,7 @@ public class ScalarBuilder {
      * @param anchor the anchor name
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder anchor(@NotNull String anchor) {
+    public @NotNull ScalarBuilder anchor(@NotNull String anchor) {
         this.anchor = anchor;
         return this;
     }
@@ -237,8 +220,7 @@ public class ScalarBuilder {
      * @param tag the tag
      * @return this builder
      */
-    @NotNull
-    public ScalarBuilder tag(@NotNull String tag) {
+    public @NotNull ScalarBuilder tag(@NotNull String tag) {
         this.tag = tag;
         return this;
     }
@@ -248,8 +230,7 @@ public class ScalarBuilder {
      *
      * @return the constructed ScalarNode
      */
-    @NotNull
-    public ScalarNode build() {
+    public @NotNull ScalarNode build() {
         ScalarNode scalar = new ScalarNode(value, style);
         scalar.setCommentsBefore(commentsBefore);
         scalar.setInlineComment(inlineComment);

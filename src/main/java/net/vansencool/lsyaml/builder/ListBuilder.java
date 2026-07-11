@@ -40,8 +40,7 @@ public class ListBuilder {
      *
      * @return a new builder
      */
-    @NotNull
-    public static ListBuilder create() {
+    public static @NotNull ListBuilder create() {
         return new ListBuilder();
     }
 
@@ -52,8 +51,7 @@ public class ListBuilder {
      * @param node the existing ListNode to wrap
      * @return a builder wrapping the node
      */
-    @NotNull
-    public static ListBuilder from(@NotNull ListNode node) {
+    public static @NotNull ListBuilder from(@NotNull ListNode node) {
         ListBuilder builder = new ListBuilder();
         builder.baseNode = node;
         builder.style = node.getStyle();
@@ -72,8 +70,7 @@ public class ListBuilder {
      * @param style the style
      * @return this builder
      */
-    @NotNull
-    public ListBuilder style(@NotNull CollectionStyle style) {
+    public @NotNull ListBuilder style(@NotNull CollectionStyle style) {
         this.style = style;
         return this;
     }
@@ -83,8 +80,7 @@ public class ListBuilder {
      *
      * @return this builder
      */
-    @NotNull
-    public ListBuilder flow() {
+    public @NotNull ListBuilder flow() {
         this.style = CollectionStyle.FLOW;
         return this;
     }
@@ -94,8 +90,7 @@ public class ListBuilder {
      *
      * @return this builder
      */
-    @NotNull
-    public ListBuilder block() {
+    public @NotNull ListBuilder block() {
         this.style = CollectionStyle.BLOCK;
         return this;
     }
@@ -106,8 +101,7 @@ public class ListBuilder {
      * @param comment the comment text
      * @return this builder
      */
-    @NotNull
-    public ListBuilder comment(@NotNull String comment) {
+    public @NotNull ListBuilder comment(@NotNull String comment) {
         this.commentsBefore.add(comment);
         return this;
     }
@@ -118,8 +112,7 @@ public class ListBuilder {
      * @param comment the comment text
      * @return this builder
      */
-    @NotNull
-    public ListBuilder inlineComment(@NotNull String comment) {
+    public @NotNull ListBuilder inlineComment(@NotNull String comment) {
         this.inlineComment = comment;
         return this;
     }
@@ -130,8 +123,7 @@ public class ListBuilder {
      * @param count number of empty lines
      * @return this builder
      */
-    @NotNull
-    public ListBuilder emptyLines(int count) {
+    public @NotNull ListBuilder emptyLines(int count) {
         this.emptyLinesBefore = count;
         return this;
     }
@@ -142,8 +134,7 @@ public class ListBuilder {
      * @param anchor the anchor name
      * @return this builder
      */
-    @NotNull
-    public ListBuilder anchor(@NotNull String anchor) {
+    public @NotNull ListBuilder anchor(@NotNull String anchor) {
         this.anchor = anchor;
         return this;
     }
@@ -154,8 +145,7 @@ public class ListBuilder {
      * @param value the value
      * @return this builder
      */
-    @NotNull
-    public ListBuilder add(@NotNull String value) {
+    public @NotNull ListBuilder add(@NotNull String value) {
         items.add(new ItemBuilder(new ScalarNode(value)));
         return this;
     }
@@ -166,8 +156,7 @@ public class ListBuilder {
      * @param value the value
      * @return this builder
      */
-    @NotNull
-    public ListBuilder add(int value) {
+    public @NotNull ListBuilder add(int value) {
         items.add(new ItemBuilder(new ScalarNode(value)));
         return this;
     }
@@ -178,8 +167,7 @@ public class ListBuilder {
      * @param value the value
      * @return this builder
      */
-    @NotNull
-    public ListBuilder add(long value) {
+    public @NotNull ListBuilder add(long value) {
         items.add(new ItemBuilder(new ScalarNode(value)));
         return this;
     }
@@ -190,8 +178,7 @@ public class ListBuilder {
      * @param value the value
      * @return this builder
      */
-    @NotNull
-    public ListBuilder add(double value) {
+    public @NotNull ListBuilder add(double value) {
         items.add(new ItemBuilder(new ScalarNode(value)));
         return this;
     }
@@ -202,8 +189,7 @@ public class ListBuilder {
      * @param value the value
      * @return this builder
      */
-    @NotNull
-    public ListBuilder add(boolean value) {
+    public @NotNull ListBuilder add(boolean value) {
         items.add(new ItemBuilder(new ScalarNode(value)));
         return this;
     }
@@ -214,8 +200,7 @@ public class ListBuilder {
      * @param value the value node
      * @return this builder
      */
-    @NotNull
-    public ListBuilder add(@NotNull YamlNode value) {
+    public @NotNull ListBuilder add(@NotNull YamlNode value) {
         items.add(new ItemBuilder(value));
         return this;
     }
@@ -226,8 +211,7 @@ public class ListBuilder {
      * @param builder the map builder
      * @return this builder
      */
-    @NotNull
-    public ListBuilder add(@NotNull MapBuilder builder) {
+    public @NotNull ListBuilder add(@NotNull MapBuilder builder) {
         items.add(new ItemBuilder(builder.build()));
         return this;
     }
@@ -238,8 +222,7 @@ public class ListBuilder {
      * @param builder the list builder
      * @return this builder
      */
-    @NotNull
-    public ListBuilder add(@NotNull ListBuilder builder) {
+    public @NotNull ListBuilder add(@NotNull ListBuilder builder) {
         items.add(new ItemBuilder(builder.build()));
         return this;
     }
@@ -251,8 +234,7 @@ public class ListBuilder {
      * @param style the scalar style
      * @return this builder
      */
-    @NotNull
-    public ListBuilder add(@NotNull String value, @NotNull ScalarStyle style) {
+    public @NotNull ListBuilder add(@NotNull String value, @NotNull ScalarStyle style) {
         items.add(new ItemBuilder(new ScalarNode(value, style)));
         return this;
     }
@@ -262,8 +244,7 @@ public class ListBuilder {
      *
      * @return the item builder
      */
-    @NotNull
-    public ItemBuilder item() {
+    public @NotNull ItemBuilder item() {
         ItemBuilder ib = new ItemBuilder();
         items.add(ib);
         return ib;
@@ -275,8 +256,7 @@ public class ListBuilder {
      *
      * @return the constructed ListNode
      */
-    @NotNull
-    public ListNode build() {
+    public @NotNull ListNode build() {
         ListNode list;
         if (baseNode != null) {
             list = baseNode;
@@ -305,8 +285,7 @@ public class ListBuilder {
      * @return the modified ListNode
      * @throws IllegalStateException if not created from an existing node
      */
-    @NotNull
-    public ListNode apply() {
+    public @NotNull ListNode apply() {
         if (baseNode == null) {
             throw new IllegalStateException("apply() can only be called on builders created with from()");
         }
@@ -343,8 +322,7 @@ public class ListBuilder {
          * @param value the value
          * @return the parent ListBuilder
          */
-        @NotNull
-        public ListBuilder value(@NotNull String value) {
+        public @NotNull ListBuilder value(@NotNull String value) {
             this.value = new ScalarNode(value);
             return ListBuilder.this;
         }
@@ -355,8 +333,7 @@ public class ListBuilder {
          * @param value the value
          * @return the parent ListBuilder
          */
-        @NotNull
-        public ListBuilder value(int value) {
+        public @NotNull ListBuilder value(int value) {
             this.value = new ScalarNode(value);
             return ListBuilder.this;
         }
@@ -367,8 +344,7 @@ public class ListBuilder {
          * @param value the value
          * @return the parent ListBuilder
          */
-        @NotNull
-        public ListBuilder value(boolean value) {
+        public @NotNull ListBuilder value(boolean value) {
             this.value = new ScalarNode(value);
             return ListBuilder.this;
         }
@@ -379,8 +355,7 @@ public class ListBuilder {
          * @param value the value node
          * @return the parent ListBuilder
          */
-        @NotNull
-        public ListBuilder value(@NotNull YamlNode value) {
+        public @NotNull ListBuilder value(@NotNull YamlNode value) {
             this.value = value;
             return ListBuilder.this;
         }
@@ -391,8 +366,7 @@ public class ListBuilder {
          * @param builder the map builder
          * @return the parent ListBuilder
          */
-        @NotNull
-        public ListBuilder value(@NotNull MapBuilder builder) {
+        public @NotNull ListBuilder value(@NotNull MapBuilder builder) {
             this.value = builder.build();
             return ListBuilder.this;
         }
@@ -403,8 +377,7 @@ public class ListBuilder {
          * @param builder the list builder
          * @return the parent ListBuilder
          */
-        @NotNull
-        public ListBuilder value(@NotNull ListBuilder builder) {
+        public @NotNull ListBuilder value(@NotNull ListBuilder builder) {
             this.value = builder.build();
             return ListBuilder.this;
         }
@@ -415,8 +388,7 @@ public class ListBuilder {
          * @param comment the comment
          * @return this item builder
          */
-        @NotNull
-        public ItemBuilder comment(@NotNull String comment) {
+        public @NotNull ItemBuilder comment(@NotNull String comment) {
             this.commentsBefore.add(comment);
             return this;
         }
@@ -427,8 +399,7 @@ public class ListBuilder {
          * @param comment the comment
          * @return this item builder
          */
-        @NotNull
-        public ItemBuilder inlineComment(@NotNull String comment) {
+        public @NotNull ItemBuilder inlineComment(@NotNull String comment) {
             this.inlineComment = comment;
             return this;
         }
@@ -439,14 +410,12 @@ public class ListBuilder {
          * @param count the count
          * @return this item builder
          */
-        @NotNull
-        public ItemBuilder emptyLines(int count) {
+        public @NotNull ItemBuilder emptyLines(int count) {
             this.emptyLinesBefore = count;
             return this;
         }
 
-        @NotNull
-        ListNode.ListEntry buildEntry() {
+        @NotNull ListNode.ListEntry buildEntry() {
             if (value == null) {
                 throw new IllegalStateException("Item value not set");
             }

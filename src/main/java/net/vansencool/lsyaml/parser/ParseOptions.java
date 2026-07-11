@@ -22,8 +22,7 @@ public final class ParseOptions {
      *
      * @return default options
      */
-    @NotNull
-    public static ParseOptions defaults() {
+    public static @NotNull ParseOptions defaults() {
         return new ParseOptions(true, DuplicateKeyBehavior.SILENT);
     }
 
@@ -33,8 +32,7 @@ public final class ParseOptions {
      *
      * @return lenient options
      */
-    @NotNull
-    public static ParseOptions lenient() {
+    public static @NotNull ParseOptions lenient() {
         return new ParseOptions(false, DuplicateKeyBehavior.SILENT);
     }
 
@@ -43,8 +41,7 @@ public final class ParseOptions {
      *
      * @return new builder
      */
-    @NotNull
-    public static Builder builder() {
+    public static @NotNull Builder builder() {
         return new Builder();
     }
 
@@ -60,8 +57,7 @@ public final class ParseOptions {
      *
      * @return the duplicate key behavior
      */
-    @NotNull
-    public DuplicateKeyBehavior getDuplicateKeyBehavior() {
+    public @NotNull DuplicateKeyBehavior getDuplicateKeyBehavior() {
         return duplicateKeyBehavior;
     }
 
@@ -70,13 +66,21 @@ public final class ParseOptions {
      * defined in the same mapping.
      */
     public enum DuplicateKeyBehavior {
-        /** Log a warning and override the previous value with the new one. */
+        /**
+         * Log a warning and override the previous value with the new one.
+         */
         WARN_AND_OVERRIDE,
-        /** Log a warning and keep the first value, ignoring subsequent duplicates. */
+        /**
+         * Log a warning and keep the first value, ignoring subsequent duplicates.
+         */
         WARN_AND_KEEP,
-        /** Silently override the previous value (default behaviour). */
+        /**
+         * Silently override the previous value (default behaviour).
+         */
         SILENT,
-        /** Throw an exception on the first duplicate key encountered. */
+        /**
+         * Throw an exception on the first duplicate key encountered.
+         */
         ERROR
     }
 
@@ -92,14 +96,12 @@ public final class ParseOptions {
 
         /**
          * Enables or disables strict mode.
-         * When enabled, the parser validates YAML structure more rigorously
-         * and provides detailed error messages with line/column info.
+         * When enabled, the parser validates YAML structure more rigorously.
          *
          * @param strict true to enable strict mode
          * @return this builder
          */
-        @NotNull
-        public Builder strict(boolean strict) {
+        public @NotNull Builder strict(boolean strict) {
             this.strict = strict;
             return this;
         }
@@ -110,8 +112,7 @@ public final class ParseOptions {
          * @param behavior the duplicate key behavior
          * @return this builder
          */
-        @NotNull
-        public Builder duplicateKeyBehavior(@NotNull DuplicateKeyBehavior behavior) {
+        public @NotNull Builder duplicateKeyBehavior(@NotNull DuplicateKeyBehavior behavior) {
             this.duplicateKeyBehavior = behavior;
             return this;
         }
@@ -121,8 +122,7 @@ public final class ParseOptions {
          *
          * @return the options
          */
-        @NotNull
-        public ParseOptions build() {
+        public @NotNull ParseOptions build() {
             return new ParseOptions(strict, duplicateKeyBehavior);
         }
     }

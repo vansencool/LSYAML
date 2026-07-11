@@ -28,8 +28,7 @@ public final class AdapterRegistry {
      * Returns the adapter for a type, or null if none is registered.
      */
     @SuppressWarnings("unchecked")
-    @Nullable
-    public static <T> ConfigAdapter<T> adapter(@NotNull Class<T> type) {
+    public static @Nullable <T> ConfigAdapter<T> adapter(@NotNull Class<T> type) {
         return (ConfigAdapter<T>) adapters.get(type);
     }
 

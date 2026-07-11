@@ -32,8 +32,7 @@ public class ListEntryModifier {
      * @param value the value node
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier value(@NotNull YamlNode value) {
+    public @NotNull ListEntryModifier value(@NotNull YamlNode value) {
         getEntry().setValue(value);
         return this;
     }
@@ -44,8 +43,7 @@ public class ListEntryModifier {
      * @param value the string value
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier value(@NotNull String value) {
+    public @NotNull ListEntryModifier value(@NotNull String value) {
         return value(new ScalarNode(value));
     }
 
@@ -55,8 +53,7 @@ public class ListEntryModifier {
      * @param value the integer value
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier value(int value) {
+    public @NotNull ListEntryModifier value(int value) {
         return value(new ScalarNode(value));
     }
 
@@ -66,8 +63,7 @@ public class ListEntryModifier {
      * @param value the long value
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier value(long value) {
+    public @NotNull ListEntryModifier value(long value) {
         return value(new ScalarNode(value));
     }
 
@@ -77,8 +73,7 @@ public class ListEntryModifier {
      * @param value the double value
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier value(double value) {
+    public @NotNull ListEntryModifier value(double value) {
         return value(new ScalarNode(value));
     }
 
@@ -88,8 +83,7 @@ public class ListEntryModifier {
      * @param value the boolean value
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier value(boolean value) {
+    public @NotNull ListEntryModifier value(boolean value) {
         return value(new ScalarNode(value));
     }
 
@@ -98,8 +92,7 @@ public class ListEntryModifier {
      *
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier valueMap() {
+    public @NotNull ListEntryModifier valueMap() {
         return value(new MapNode());
     }
 
@@ -108,8 +101,7 @@ public class ListEntryModifier {
      *
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier valueList() {
+    public @NotNull ListEntryModifier valueList() {
         return value(new ListNode());
     }
 
@@ -119,8 +111,7 @@ public class ListEntryModifier {
      * @param comment the comment text (without #)
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier commentBefore(@NotNull String comment) {
+    public @NotNull ListEntryModifier commentBefore(@NotNull String comment) {
         getEntry().addCommentBefore(comment);
         return this;
     }
@@ -131,8 +122,7 @@ public class ListEntryModifier {
      * @param comments the comment texts (without #)
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier commentsBefore(@NotNull String... comments) {
+    public @NotNull ListEntryModifier commentsBefore(@NotNull String... comments) {
         for (String comment : comments) {
             getEntry().addCommentBefore(comment);
         }
@@ -144,8 +134,7 @@ public class ListEntryModifier {
      *
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier clearCommentsBefore() {
+    public @NotNull ListEntryModifier clearCommentsBefore() {
         getEntry().setCommentsBefore(new ArrayList<>());
         return this;
     }
@@ -156,8 +145,7 @@ public class ListEntryModifier {
      * @param comment the comment text (without #), or null to remove
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier inlineComment(@Nullable String comment) {
+    public @NotNull ListEntryModifier inlineComment(@Nullable String comment) {
         getEntry().setInlineComment(comment);
         return this;
     }
@@ -167,8 +155,7 @@ public class ListEntryModifier {
      *
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier clearInlineComment() {
+    public @NotNull ListEntryModifier clearInlineComment() {
         return inlineComment(null);
     }
 
@@ -178,8 +165,7 @@ public class ListEntryModifier {
      * @param count the number of empty lines
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier emptyLinesBefore(int count) {
+    public @NotNull ListEntryModifier emptyLinesBefore(int count) {
         getEntry().setEmptyLinesBefore(count);
         return this;
     }
@@ -196,8 +182,7 @@ public class ListEntryModifier {
      *
      * @return the value
      */
-    @NotNull
-    public YamlNode getValue() {
+    public @NotNull YamlNode getValue() {
         return getEntry().getValue();
     }
 
@@ -206,8 +191,7 @@ public class ListEntryModifier {
      *
      * @return list of comments
      */
-    @NotNull
-    public List<String> getCommentsBefore() {
+    public @NotNull List<String> getCommentsBefore() {
         return getEntry().getCommentsBefore();
     }
 
@@ -217,8 +201,7 @@ public class ListEntryModifier {
      * @param comments the comment texts (without #)
      * @return this modifier for chaining
      */
-    @NotNull
-    public ListEntryModifier setCommentsBefore(@NotNull String... comments) {
+    public @NotNull ListEntryModifier setCommentsBefore(@NotNull String... comments) {
         getEntry().setCommentsBefore(Arrays.asList(comments));
         return this;
     }
@@ -228,8 +211,7 @@ public class ListEntryModifier {
      *
      * @return the inline comment, or null
      */
-    @Nullable
-    public String getInlineComment() {
+    public @Nullable String getInlineComment() {
         return getEntry().getInlineComment();
     }
 
@@ -247,8 +229,7 @@ public class ListEntryModifier {
      *
      * @return the entry
      */
-    @NotNull
-    public ListNode.ListEntry getEntry() {
+    public @NotNull ListNode.ListEntry getEntry() {
         return list.getEntry(index);
     }
 
@@ -257,8 +238,7 @@ public class ListEntryModifier {
      *
      * @return the parent list
      */
-    @NotNull
-    public ListNode done() {
+    public @NotNull ListNode done() {
         return list;
     }
 }

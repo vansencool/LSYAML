@@ -71,8 +71,7 @@ public class ScalarNode extends AbstractYamlNode {
     }
 
     @Override
-    @NotNull
-    public NodeType getType() {
+    public @NotNull NodeType getType() {
         return NodeType.SCALAR;
     }
 
@@ -81,8 +80,7 @@ public class ScalarNode extends AbstractYamlNode {
      *
      * @return the value, or null
      */
-    @Nullable
-    public Object getValue() {
+    public @Nullable Object getValue() {
         return value;
     }
 
@@ -101,8 +99,7 @@ public class ScalarNode extends AbstractYamlNode {
      *
      * @return string representation, or null if value is null
      */
-    @Nullable
-    public String getStringValue() {
+    public @Nullable String getStringValue() {
         if (value == null) {
             return null;
         }
@@ -113,8 +110,7 @@ public class ScalarNode extends AbstractYamlNode {
         return str;
     }
 
-    @NotNull
-    private String foldString(@NotNull String text) {
+    private @NotNull String foldString(@NotNull String text) {
         StringBuilder result = new StringBuilder();
         String[] lines = text.split("\n", -1);
         boolean previousWasBlank = false;
@@ -193,8 +189,7 @@ public class ScalarNode extends AbstractYamlNode {
      *
      * @return the string representation of the value, or null
      */
-    @Nullable
-    public String getString() {
+    public @Nullable String getString() {
         return value != null ? value.toString() : null;
     }
 
@@ -203,8 +198,7 @@ public class ScalarNode extends AbstractYamlNode {
      *
      * @return the integer value, or null if the value is null or not parseable
      */
-    @Nullable
-    public Integer getInt() {
+    public @Nullable Integer getInt() {
         String val = getString();
         if (val == null) return null;
         try {
@@ -219,8 +213,7 @@ public class ScalarNode extends AbstractYamlNode {
      *
      * @return the long value, or null if the value is null or not parseable
      */
-    @Nullable
-    public Long getLong() {
+    public @Nullable Long getLong() {
         String val = getString();
         if (val == null) return null;
         try {
@@ -235,8 +228,7 @@ public class ScalarNode extends AbstractYamlNode {
      *
      * @return the double value, or null if the value is null or not parseable
      */
-    @Nullable
-    public Double getDouble() {
+    public @Nullable Double getDouble() {
         String val = getString();
         if (val == null) return null;
         try {
@@ -252,8 +244,7 @@ public class ScalarNode extends AbstractYamlNode {
      *
      * @return the boolean value, or null if the value is null or not a boolean
      */
-    @Nullable
-    public Boolean getBoolean() {
+    public @Nullable Boolean getBoolean() {
         String val = getString();
         if (val == null) return null;
         if (val.equalsIgnoreCase("true") || val.equalsIgnoreCase("yes") || val.equalsIgnoreCase("on")) {
@@ -281,8 +272,7 @@ public class ScalarNode extends AbstractYamlNode {
      *
      * @return the scalar style
      */
-    @NotNull
-    public ScalarStyle getStyle() {
+    public @NotNull ScalarStyle getStyle() {
         return style;
     }
 
@@ -300,8 +290,7 @@ public class ScalarNode extends AbstractYamlNode {
      *
      * @return the raw value, or null if generated
      */
-    @Nullable
-    public String getRawValue() {
+    public @Nullable String getRawValue() {
         return rawValue;
     }
 
@@ -319,8 +308,7 @@ public class ScalarNode extends AbstractYamlNode {
      *
      * @return the tag, or null
      */
-    @Nullable
-    public String getTag() {
+    public @Nullable String getTag() {
         return tag;
     }
 
@@ -334,8 +322,7 @@ public class ScalarNode extends AbstractYamlNode {
     }
 
     @Override
-    @NotNull
-    public YamlNode copy() {
+    public @NotNull YamlNode copy() {
         ScalarNode copy = new ScalarNode(value, style, metadata.copy());
         copy.rawValue = this.rawValue;
         copy.tag = this.tag;
@@ -344,8 +331,7 @@ public class ScalarNode extends AbstractYamlNode {
     }
 
     @Override
-    @NotNull
-    public String toYaml(int indent, int currentLevel) {
+    public @NotNull String toYaml(int indent, int currentLevel) {
         StringBuilder sb = new StringBuilder();
         sb.append(buildCommentPrefix(indent, currentLevel));
 

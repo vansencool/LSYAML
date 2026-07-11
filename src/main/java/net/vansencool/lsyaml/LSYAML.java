@@ -8,9 +8,10 @@ import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
+import net.vansencool.lsyaml.parser.ParseIssue;
 import net.vansencool.lsyaml.parser.ParseOptions;
 import net.vansencool.lsyaml.parser.ParseResult;
-import net.vansencool.lsyaml.parser.YamlParser;
+import net.vansencool.lsyaml.parser.YamlParsing;
 import net.vansencool.lsyaml.writer.YamlWriter;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,6 +20,8 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * LSYAML - A fast, format-preserving YAML parser and generator.
@@ -57,7 +60,6 @@ import java.nio.file.Path;
 @SuppressWarnings("unused")
 public final class LSYAML {
 
-    private static final ThreadLocal<YamlParser> PARSER = ThreadLocal.withInitial(YamlParser::new);
     private static final YamlWriter DEFAULT_WRITER = new YamlWriter();
 
     private LSYAML() {
@@ -69,9 +71,8 @@ public final class LSYAML {
      * @param yaml the YAML content
      * @return the root MapNode
      */
-    @NotNull
-    public static MapNode parse(@NotNull String yaml) {
-        YamlNode node = PARSER.get().parse(yaml);
+    public static @NotNull MapNode parse(@NotNull String yaml) {
+        YamlNode node = YamlParsing.parse(yaml, ParseOptions.defaults());
         if (node instanceof MapNode) {
             return (MapNode) node;
         }
@@ -85,9 +86,8 @@ public final class LSYAML {
      * @param options parse options
      * @return the root MapNode
      */
-    @NotNull
-    public static MapNode parse(@NotNull String yaml, @NotNull ParseOptions options) {
-        YamlNode node = PARSER.get().parseWithOptions(yaml, options);
+    public static @NotNull MapNode parse(@NotNull String yaml, @NotNull ParseOptions options) {
+        YamlNode node = YamlParsing.parse(yaml, options);
         if (node instanceof MapNode) {
             return (MapNode) node;
         }
@@ -100,9 +100,8 @@ public final class LSYAML {
      * @param yaml the YAML content
      * @return the root node
      */
-    @NotNull
-    public static YamlNode parseAny(@NotNull String yaml) {
-        return PARSER.get().parse(yaml);
+    public static @NotNull YamlNode parseAny(@NotNull String yaml) {
+        return YamlParsing.parse(yaml, ParseOptions.defaults());
     }
 
     /**
@@ -112,9 +111,8 @@ public final class LSYAML {
      * @param options parse options
      * @return the root node
      */
-    @NotNull
-    public static YamlNode parseAny(@NotNull String yaml, @NotNull ParseOptions options) {
-        return PARSER.get().parseWithOptions(yaml, options);
+    public static @NotNull YamlNode parseAny(@NotNull String yaml, @NotNull ParseOptions options) {
+        return YamlParsing.parse(yaml, options);
     }
 
     /**
@@ -124,9 +122,8 @@ public final class LSYAML {
      * @param yaml the YAML content
      * @return the parse result with node and any issues
      */
-    @NotNull
-    public static ParseResult parseDetailed(@NotNull String yaml) {
-        return PARSER.get().parseDetailed(yaml, ParseOptions.defaults());
+    public static @NotNull ParseResult parseDetailed(@NotNull String yaml) {
+        return parseDetailed(yaml, ParseOptions.defaults());
     }
 
     /**
@@ -136,9 +133,15 @@ public final class LSYAML {
      * @param options parse options
      * @return the parse result with node and any issues
      */
-    @NotNull
-    public static ParseResult parseDetailed(@NotNull String yaml, @NotNull ParseOptions options) {
-        return PARSER.get().parseDetailed(yaml, options);
+    public static @NotNull ParseResult parseDetailed(@NotNull String yaml, @NotNull ParseOptions options) {
+        List<ParseIssue> issues = new ArrayList<>();
+        try {
+            YamlNode node = YamlParsing.parseDetailed(yaml, options, issues);
+            return issues.isEmpty() ? ParseResult.success(node) : ParseResult.withIssues(node, issues);
+        } catch (YamlParseException e) {
+            issues.add(ParseIssue.error(e.getMessage() != null ? e.getMessage() : "Unknown error", 0, 0, new String[0]));
+            return ParseResult.failure(issues);
+        }
     }
 
     /**
@@ -147,8 +150,7 @@ public final class LSYAML {
      * @param yaml the YAML content
      * @return the root ListNode
      */
-    @NotNull
-    public static ListNode parseList(@NotNull String yaml) {
+    public static @NotNull ListNode parseList(@NotNull String yaml) {
         YamlNode node = parseAny(yaml);
         if (node instanceof ListNode) {
             return (ListNode) node;
@@ -162,8 +164,7 @@ public final class LSYAML {
      * @param yaml the YAML content
      * @return the root ScalarNode
      */
-    @NotNull
-    public static ScalarNode parseScalar(@NotNull String yaml) {
+    public static @NotNull ScalarNode parseScalar(@NotNull String yaml) {
         YamlNode node = parseAny(yaml);
         if (node instanceof ScalarNode) {
             return (ScalarNode) node;
@@ -178,8 +179,7 @@ public final class LSYAML {
      * @param path the path to the YAML file
      * @return the root MapNode
      */
-    @NotNull
-    public static MapNode parseFile(@NotNull Path path) {
+    public static @NotNull MapNode parseFile(@NotNull Path path) {
         try {
             String content = Files.readString(path, StandardCharsets.UTF_8);
             return parse(content);
@@ -195,8 +195,7 @@ public final class LSYAML {
      * @param path the path to the YAML file
      * @return the root node
      */
-    @NotNull
-    public static YamlNode parseAnyFile(@NotNull Path path) {
+    public static @NotNull YamlNode parseAnyFile(@NotNull Path path) {
         try {
             String content = Files.readString(path, StandardCharsets.UTF_8);
             return parseAny(content);
@@ -211,8 +210,7 @@ public final class LSYAML {
      * @param path the path to the YAML file
      * @return the root ListNode
      */
-    @NotNull
-    public static ListNode parseListFile(@NotNull Path path) {
+    public static @NotNull ListNode parseListFile(@NotNull Path path) {
         try {
             String content = Files.readString(path, StandardCharsets.UTF_8);
             return parseList(content);
@@ -227,8 +225,7 @@ public final class LSYAML {
      * @param path the path to the YAML file
      * @return the root ScalarNode
      */
-    @NotNull
-    public static ScalarNode parseScalarFile(@NotNull Path path) {
+    public static @NotNull ScalarNode parseScalarFile(@NotNull Path path) {
         try {
             String content = Files.readString(path, StandardCharsets.UTF_8);
             return parseScalar(content);
@@ -244,8 +241,7 @@ public final class LSYAML {
      * @param path the path to the YAML file
      * @return the root MapNode
      */
-    @NotNull
-    public static MapNode parseMapFile(@NotNull Path path) {
+    public static @NotNull MapNode parseMapFile(@NotNull Path path) {
         return parseFile(path);
     }
 
@@ -272,8 +268,7 @@ public final class LSYAML {
      * @param node the node to serialize
      * @return the YAML string
      */
-    @NotNull
-    public static String write(@NotNull YamlNode node) {
+    public static @NotNull String write(@NotNull YamlNode node) {
         return DEFAULT_WRITER.write(node);
     }
 
@@ -297,19 +292,8 @@ public final class LSYAML {
      *
      * @return a new YamlWriter
      */
-    @NotNull
-    public static YamlWriter writer() {
+    public static @NotNull YamlWriter writer() {
         return new YamlWriter();
-    }
-
-    /**
-     * Creates a new YAML parser.
-     *
-     * @return a new YamlParser
-     */
-    @NotNull
-    public static YamlParser parser() {
-        return new YamlParser();
     }
 
     /**
@@ -317,8 +301,7 @@ public final class LSYAML {
      *
      * @return a new MapBuilder
      */
-    @NotNull
-    public static MapBuilder map() {
+    public static @NotNull MapBuilder map() {
         return new MapBuilder();
     }
 
@@ -327,8 +310,7 @@ public final class LSYAML {
      *
      * @return a new ListBuilder
      */
-    @NotNull
-    public static ListBuilder list() {
+    public static @NotNull ListBuilder list() {
         return new ListBuilder();
     }
 
@@ -337,8 +319,7 @@ public final class LSYAML {
      *
      * @return a new ScalarBuilder
      */
-    @NotNull
-    public static ScalarBuilder scalar() {
+    public static @NotNull ScalarBuilder scalar() {
         return new ScalarBuilder();
     }
 
@@ -347,8 +328,7 @@ public final class LSYAML {
      *
      * @return a new empty MapNode
      */
-    @NotNull
-    public static MapNode emptyMap() {
+    public static @NotNull MapNode emptyMap() {
         return new MapNode();
     }
 
@@ -357,8 +337,7 @@ public final class LSYAML {
      *
      * @return a new empty ListNode
      */
-    @NotNull
-    public static ListNode emptyList() {
+    public static @NotNull ListNode emptyList() {
         return new ListNode();
     }
 
@@ -369,8 +348,7 @@ public final class LSYAML {
      * @param override the override map
      * @return a new merged MapNode
      */
-    @NotNull
-    public static MapNode merge(@NotNull MapNode base, @NotNull MapNode override) {
+    public static @NotNull MapNode merge(@NotNull MapNode base, @NotNull MapNode override) {
         MapNode result = (MapNode) base.copy();
 
         for (MapNode.MapEntry entry : override.entries()) {
@@ -393,8 +371,7 @@ public final class LSYAML {
      * @param node the node to copy
      * @return a deep copy
      */
-    @NotNull
-    public static YamlNode copy(@NotNull YamlNode node) {
+    public static @NotNull YamlNode copy(@NotNull YamlNode node) {
         return node.copy();
     }
 }

@@ -70,8 +70,7 @@ public abstract class AbstractYamlNode implements YamlNode {
     }
 
     @Override
-    @NotNull
-    public NodeMetadata getMetadata() {
+    public @NotNull NodeMetadata getMetadata() {
         return metadata;
     }
 
@@ -81,8 +80,7 @@ public abstract class AbstractYamlNode implements YamlNode {
     }
 
     @Override
-    @NotNull
-    public List<String> getCommentsBefore() {
+    public @NotNull List<String> getCommentsBefore() {
         return commentsBefore;
     }
 
@@ -92,8 +90,7 @@ public abstract class AbstractYamlNode implements YamlNode {
     }
 
     @Override
-    @Nullable
-    public String getInlineComment() {
+    public @Nullable String getInlineComment() {
         return inlineComment;
     }
 
@@ -117,8 +114,7 @@ public abstract class AbstractYamlNode implements YamlNode {
         this.emptyLinesBefore = Math.max(0, count);
     }
 
-    @NotNull
-    public List<String> getTrailingComments() {
+    public @NotNull List<String> getTrailingComments() {
         return trailingComments;
     }
 
@@ -135,8 +131,7 @@ public abstract class AbstractYamlNode implements YamlNode {
     }
 
     @Override
-    @NotNull
-    public String toYaml() {
+    public @NotNull String toYaml() {
         return toYaml(2, 0);
     }
 

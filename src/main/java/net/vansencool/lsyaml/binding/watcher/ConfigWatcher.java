@@ -365,16 +365,14 @@ public final class ConfigWatcher {
         }
     }
 
-    @Nullable
-    private static WatchAction toAction(@NotNull WatchEvent.Kind<?> kind) {
+    private static @Nullable WatchAction toAction(@NotNull WatchEvent.Kind<?> kind) {
         if (kind == ENTRY_CREATE) return WatchAction.CREATED;
         if (kind == ENTRY_MODIFY) return WatchAction.MODIFIED;
         if (kind == ENTRY_DELETE) return WatchAction.DELETED;
         return null;
     }
 
-    @NotNull
-    private static Path resolveFilePath(@NotNull Class<?> cls) {
+    private static @NotNull Path resolveFilePath(@NotNull Class<?> cls) {
         ConfigFile fileAnn = cls.getAnnotation(ConfigFile.class);
         if (fileAnn == null) {
             throw new IllegalArgumentException("Class " + cls.getName() + " is not annotated with @ConfigFile");

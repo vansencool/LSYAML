@@ -66,8 +66,7 @@ public class MapNode extends AbstractYamlNode {
     }
 
     @Override
-    @NotNull
-    public NodeType getType() {
+    public @NotNull NodeType getType() {
         return NodeType.MAP;
     }
 
@@ -76,8 +75,7 @@ public class MapNode extends AbstractYamlNode {
      *
      * @return the style
      */
-    @NotNull
-    public CollectionStyle getStyle() {
+    public @NotNull CollectionStyle getStyle() {
         return style;
     }
 
@@ -131,8 +129,7 @@ public class MapNode extends AbstractYamlNode {
      *
      * @return set of keys
      */
-    @NotNull
-    public Set<String> keys() {
+    public @NotNull Set<String> keys() {
         return entries.keySet();
     }
 
@@ -141,8 +138,7 @@ public class MapNode extends AbstractYamlNode {
      *
      * @return collection of entries
      */
-    @NotNull
-    public Collection<MapEntry> entries() {
+    public @NotNull Collection<MapEntry> entries() {
         return entries.values();
     }
 
@@ -180,8 +176,7 @@ public class MapNode extends AbstractYamlNode {
      * @param key the key
      * @return the value node, or null if not found
      */
-    @Nullable
-    public YamlNode get(@NotNull String key) {
+    public @Nullable YamlNode get(@NotNull String key) {
         MapEntry entry = entries.get(key);
         if (entry != null) {
             return entry.getValue();
@@ -199,8 +194,7 @@ public class MapNode extends AbstractYamlNode {
      * @param key the key
      * @return the entry, or null if not found
      */
-    @Nullable
-    public MapEntry getEntry(@NotNull String key) {
+    public @Nullable MapEntry getEntry(@NotNull String key) {
         return entries.get(key);
     }
 
@@ -212,8 +206,7 @@ public class MapNode extends AbstractYamlNode {
      * @param value the value node
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode put(@NotNull String key, @NotNull YamlNode value) {
+    public @NotNull MapNode put(@NotNull String key, @NotNull YamlNode value) {
         MapEntry existing = entries.get(key);
         if (existing != null) {
             existing.setValue(value);
@@ -230,8 +223,7 @@ public class MapNode extends AbstractYamlNode {
      * @param value the string value
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode put(@NotNull String key, @NotNull String value) {
+    public @NotNull MapNode put(@NotNull String key, @NotNull String value) {
         return put(key, new ScalarNode(value));
     }
 
@@ -242,8 +234,7 @@ public class MapNode extends AbstractYamlNode {
      * @param value the integer value
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode put(@NotNull String key, int value) {
+    public @NotNull MapNode put(@NotNull String key, int value) {
         return put(key, new ScalarNode(value));
     }
 
@@ -254,8 +245,7 @@ public class MapNode extends AbstractYamlNode {
      * @param value the long value
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode put(@NotNull String key, long value) {
+    public @NotNull MapNode put(@NotNull String key, long value) {
         return put(key, new ScalarNode(value));
     }
 
@@ -266,8 +256,7 @@ public class MapNode extends AbstractYamlNode {
      * @param value the double value
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode put(@NotNull String key, double value) {
+    public @NotNull MapNode put(@NotNull String key, double value) {
         return put(key, new ScalarNode(value));
     }
 
@@ -278,8 +267,7 @@ public class MapNode extends AbstractYamlNode {
      * @param value the boolean value
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode put(@NotNull String key, boolean value) {
+    public @NotNull MapNode put(@NotNull String key, boolean value) {
         return put(key, new ScalarNode(value));
     }
 
@@ -289,8 +277,7 @@ public class MapNode extends AbstractYamlNode {
      * @param entry the entry to put
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode putEntry(@NotNull MapEntry entry) {
+    public @NotNull MapNode putEntry(@NotNull MapEntry entry) {
         entries.put(entry.getKey(), entry);
         return this;
     }
@@ -301,8 +288,7 @@ public class MapNode extends AbstractYamlNode {
      * @param key the key to modify
      * @return an entry modifier for fluent configuration
      */
-    @NotNull
-    public EntryModifier modify(@NotNull String key) {
+    public @NotNull EntryModifier modify(@NotNull String key) {
         return new EntryModifier(this, key);
     }
 
@@ -314,8 +300,7 @@ public class MapNode extends AbstractYamlNode {
      * @param beforeKey the key to insert before
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode insertBefore(@NotNull String key, @NotNull YamlNode value, @NotNull String beforeKey) {
+    public @NotNull MapNode insertBefore(@NotNull String key, @NotNull YamlNode value, @NotNull String beforeKey) {
         return insertBefore(new MapEntry(key, value), beforeKey);
     }
 
@@ -326,8 +311,7 @@ public class MapNode extends AbstractYamlNode {
      * @param beforeKey the key to insert before
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode insertBefore(@NotNull MapEntry entry, @NotNull String beforeKey) {
+    public @NotNull MapNode insertBefore(@NotNull MapEntry entry, @NotNull String beforeKey) {
         if (!entries.containsKey(beforeKey)) {
             return putEntry(entry);
         }
@@ -351,8 +335,7 @@ public class MapNode extends AbstractYamlNode {
      * @param afterKey the key to insert after
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode insertAfter(@NotNull String key, @NotNull YamlNode value, @NotNull String afterKey) {
+    public @NotNull MapNode insertAfter(@NotNull String key, @NotNull YamlNode value, @NotNull String afterKey) {
         return insertAfter(new MapEntry(key, value), afterKey);
     }
 
@@ -363,8 +346,7 @@ public class MapNode extends AbstractYamlNode {
      * @param afterKey the key to insert after
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode insertAfter(@NotNull MapEntry entry, @NotNull String afterKey) {
+    public @NotNull MapNode insertAfter(@NotNull MapEntry entry, @NotNull String afterKey) {
         if (!entries.containsKey(afterKey)) {
             return putEntry(entry);
         }
@@ -387,8 +369,7 @@ public class MapNode extends AbstractYamlNode {
      * @param newKey the new key name
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode renameKey(@NotNull String oldKey, @NotNull String newKey) {
+    public @NotNull MapNode renameKey(@NotNull String oldKey, @NotNull String newKey) {
         if (!entries.containsKey(oldKey) || oldKey.equals(newKey)) {
             return this;
         }
@@ -415,8 +396,7 @@ public class MapNode extends AbstractYamlNode {
      * @param comments the comment texts (without #)
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode setComments(@NotNull String key, @NotNull String... comments) {
+    public @NotNull MapNode setComments(@NotNull String key, @NotNull String... comments) {
         MapEntry entry = entries.get(key);
         if (entry != null) {
             entry.setCommentsBefore(Arrays.asList(comments));
@@ -432,8 +412,7 @@ public class MapNode extends AbstractYamlNode {
      * @param comment the comment text (without #)
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode addComment(@NotNull String key, @NotNull String comment) {
+    public @NotNull MapNode addComment(@NotNull String key, @NotNull String comment) {
         MapEntry entry = entries.get(key);
         if (entry != null) {
             entry.addCommentBefore(comment);
@@ -448,8 +427,7 @@ public class MapNode extends AbstractYamlNode {
      * @param key the key
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode clearComments(@NotNull String key) {
+    public @NotNull MapNode clearComments(@NotNull String key) {
         MapEntry entry = entries.get(key);
         if (entry != null) {
             entry.setCommentsBefore(new ArrayList<>());
@@ -466,8 +444,7 @@ public class MapNode extends AbstractYamlNode {
      * @param comment the comment text (without #), or null to remove
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode setInlineComment(@NotNull String key, @Nullable String comment) {
+    public @NotNull MapNode setInlineComment(@NotNull String key, @Nullable String comment) {
         MapEntry entry = entries.get(key);
         if (entry != null) {
             entry.setInlineComment(comment);
@@ -483,8 +460,7 @@ public class MapNode extends AbstractYamlNode {
      * @param count the number of empty lines (clamped to zero if negative)
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode setEmptyLinesBefore(@NotNull String key, int count) {
+    public @NotNull MapNode setEmptyLinesBefore(@NotNull String key, int count) {
         MapEntry entry = entries.get(key);
         if (entry != null) {
             entry.setEmptyLinesBefore(count);
@@ -498,8 +474,7 @@ public class MapNode extends AbstractYamlNode {
      * @param comment the comment text (without #)
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode addTrailingComment(@NotNull String comment) {
+    public @NotNull MapNode addTrailingComment(@NotNull String comment) {
         trailingComments.add(comment);
         return this;
     }
@@ -510,8 +485,7 @@ public class MapNode extends AbstractYamlNode {
      * @param comments the comment texts (without #)
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode setTrailingComments(@NotNull String... comments) {
+    public @NotNull MapNode setTrailingComments(@NotNull String... comments) {
         trailingComments.clear();
         trailingComments.addAll(Arrays.asList(comments));
         return this;
@@ -522,8 +496,7 @@ public class MapNode extends AbstractYamlNode {
      *
      * @return this map for chaining
      */
-    @NotNull
-    public MapNode clearTrailingComments() {
+    public @NotNull MapNode clearTrailingComments() {
         trailingComments.clear();
         return this;
     }
@@ -534,8 +507,7 @@ public class MapNode extends AbstractYamlNode {
      * @param key the key to remove
      * @return the removed value, or null
      */
-    @Nullable
-    public YamlNode remove(@NotNull String key) {
+    public @Nullable YamlNode remove(@NotNull String key) {
         MapEntry entry = entries.remove(key);
         return entry != null ? entry.getValue() : null;
     }
@@ -555,8 +527,7 @@ public class MapNode extends AbstractYamlNode {
      * @param path the dot-separated path
      * @return the node at the path, or null if not found
      */
-    @Nullable
-    public YamlNode getPath(@NotNull String path) {
+    public @Nullable YamlNode getPath(@NotNull String path) {
         if (path.isEmpty()) return this;
 
         String[] parts = path.split("\\.");
@@ -603,8 +574,7 @@ public class MapNode extends AbstractYamlNode {
      * @param path the dot-separated path
      * @return the string value, or null if not found
      */
-    @Nullable
-    public String getString(@NotNull String path) {
+    public @Nullable String getString(@NotNull String path) {
         YamlNode node = getPath(path);
         return node instanceof ScalarNode s ? s.getString() : null;
     }
@@ -616,8 +586,7 @@ public class MapNode extends AbstractYamlNode {
      * @param defaultValue the value to return if missing
      * @return the string value
      */
-    @NotNull
-    public String getString(@NotNull String path, @NotNull String defaultValue) {
+    public @NotNull String getString(@NotNull String path, @NotNull String defaultValue) {
         String val = getString(path);
         return val != null ? val : defaultValue;
     }
@@ -629,8 +598,7 @@ public class MapNode extends AbstractYamlNode {
      * @param key the literal key
      * @return the string value, or null if not found
      */
-    @Nullable
-    public String getStringLiteral(@NotNull String key) {
+    public @Nullable String getStringLiteral(@NotNull String key) {
         YamlNode child = get(key);
         return child instanceof ScalarNode s ? s.getString() : null;
     }
@@ -642,8 +610,7 @@ public class MapNode extends AbstractYamlNode {
      * @param defaultValue the value to return if missing
      * @return the string value
      */
-    @NotNull
-    public String getStringLiteral(@NotNull String key, @NotNull String defaultValue) {
+    public @NotNull String getStringLiteral(@NotNull String key, @NotNull String defaultValue) {
         String val = getStringLiteral(key);
         return val != null ? val : defaultValue;
     }
@@ -654,8 +621,7 @@ public class MapNode extends AbstractYamlNode {
      * @param path the dot-separated path
      * @return the integer value, or null if not found or not parseable
      */
-    @Nullable
-    public Integer getInt(@NotNull String path) {
+    public @Nullable Integer getInt(@NotNull String path) {
         YamlNode node = getPath(path);
         return node instanceof ScalarNode s ? s.getInt() : null;
     }
@@ -678,8 +644,7 @@ public class MapNode extends AbstractYamlNode {
      * @param key the literal key
      * @return the integer value, or null if not found or not parseable
      */
-    @Nullable
-    public Integer getIntLiteral(@NotNull String key) {
+    public @Nullable Integer getIntLiteral(@NotNull String key) {
         YamlNode child = get(key);
         return child instanceof ScalarNode s ? s.getInt() : null;
     }
@@ -702,8 +667,7 @@ public class MapNode extends AbstractYamlNode {
      * @param path the dot-separated path
      * @return the long value, or null if not found or not parseable
      */
-    @Nullable
-    public Long getLong(@NotNull String path) {
+    public @Nullable Long getLong(@NotNull String path) {
         YamlNode node = getPath(path);
         return node instanceof ScalarNode s ? s.getLong() : null;
     }
@@ -726,8 +690,7 @@ public class MapNode extends AbstractYamlNode {
      * @param key the literal key
      * @return the long value, or null if not found or not parseable
      */
-    @Nullable
-    public Long getLongLiteral(@NotNull String key) {
+    public @Nullable Long getLongLiteral(@NotNull String key) {
         YamlNode child = get(key);
         return child instanceof ScalarNode s ? s.getLong() : null;
     }
@@ -750,8 +713,7 @@ public class MapNode extends AbstractYamlNode {
      * @param path the dot-separated path
      * @return the double value, or null if not found or not parseable
      */
-    @Nullable
-    public Double getDouble(@NotNull String path) {
+    public @Nullable Double getDouble(@NotNull String path) {
         YamlNode node = getPath(path);
         return node instanceof ScalarNode s ? s.getDouble() : null;
     }
@@ -774,8 +736,7 @@ public class MapNode extends AbstractYamlNode {
      * @param key the literal key
      * @return the double value, or null if not found or not parseable
      */
-    @Nullable
-    public Double getDoubleLiteral(@NotNull String key) {
+    public @Nullable Double getDoubleLiteral(@NotNull String key) {
         YamlNode child = get(key);
         return child instanceof ScalarNode s ? s.getDouble() : null;
     }
@@ -798,8 +759,7 @@ public class MapNode extends AbstractYamlNode {
      * @param path the dot-separated path
      * @return the boolean value, or null if not found or not a boolean
      */
-    @Nullable
-    public Boolean getBoolean(@NotNull String path) {
+    public @Nullable Boolean getBoolean(@NotNull String path) {
         YamlNode node = getPath(path);
         return node instanceof ScalarNode s ? s.getBoolean() : null;
     }
@@ -822,8 +782,7 @@ public class MapNode extends AbstractYamlNode {
      * @param key the literal key
      * @return the boolean value, or null if not found or not a boolean
      */
-    @Nullable
-    public Boolean getBooleanLiteral(@NotNull String key) {
+    public @Nullable Boolean getBooleanLiteral(@NotNull String key) {
         YamlNode child = get(key);
         return child instanceof ScalarNode s ? s.getBoolean() : null;
     }
@@ -846,8 +805,7 @@ public class MapNode extends AbstractYamlNode {
      * @param path the dot-separated path
      * @return the map node, or null if not found or not a map
      */
-    @Nullable
-    public MapNode getMap(@NotNull String path) {
+    public @Nullable MapNode getMap(@NotNull String path) {
         YamlNode node = getPath(path);
         return node instanceof MapNode map ? map : null;
     }
@@ -859,8 +817,7 @@ public class MapNode extends AbstractYamlNode {
      * @param defaultValue the value to return if missing or not a map
      * @return the map node
      */
-    @NotNull
-    public MapNode getMap(@NotNull String path, @NotNull MapNode defaultValue) {
+    public @NotNull MapNode getMap(@NotNull String path, @NotNull MapNode defaultValue) {
         MapNode result = getMap(path);
         return result != null ? result : defaultValue;
     }
@@ -871,8 +828,7 @@ public class MapNode extends AbstractYamlNode {
      * @param key the literal key
      * @return the map node, or null if not found or not a map
      */
-    @Nullable
-    public MapNode getMapLiteral(@NotNull String key) {
+    public @Nullable MapNode getMapLiteral(@NotNull String key) {
         YamlNode child = get(key);
         return child instanceof MapNode map ? map : null;
     }
@@ -884,8 +840,7 @@ public class MapNode extends AbstractYamlNode {
      * @param defaultValue the value to return if missing or not a map
      * @return the map node
      */
-    @NotNull
-    public MapNode getMapLiteral(@NotNull String key, @NotNull MapNode defaultValue) {
+    public @NotNull MapNode getMapLiteral(@NotNull String key, @NotNull MapNode defaultValue) {
         MapNode result = getMapLiteral(key);
         return result != null ? result : defaultValue;
     }
@@ -896,8 +851,7 @@ public class MapNode extends AbstractYamlNode {
      * @param path the dot-separated path
      * @return the list node, or null if not found or not a list
      */
-    @Nullable
-    public ListNode getList(@NotNull String path) {
+    public @Nullable ListNode getList(@NotNull String path) {
         YamlNode node = getPath(path);
         return node instanceof ListNode list ? list : null;
     }
@@ -909,8 +863,7 @@ public class MapNode extends AbstractYamlNode {
      * @param defaultValue the value to return if missing or not a list
      * @return the list node
      */
-    @NotNull
-    public ListNode getList(@NotNull String path, @NotNull ListNode defaultValue) {
+    public @NotNull ListNode getList(@NotNull String path, @NotNull ListNode defaultValue) {
         ListNode result = getList(path);
         return result != null ? result : defaultValue;
     }
@@ -921,8 +874,7 @@ public class MapNode extends AbstractYamlNode {
      * @param key the literal key
      * @return the list node, or null if not found or not a list
      */
-    @Nullable
-    public ListNode getListLiteral(@NotNull String key) {
+    public @Nullable ListNode getListLiteral(@NotNull String key) {
         YamlNode child = get(key);
         return child instanceof ListNode list ? list : null;
     }
@@ -934,8 +886,7 @@ public class MapNode extends AbstractYamlNode {
      * @param defaultValue the value to return if missing or not a list
      * @return the list node
      */
-    @NotNull
-    public ListNode getListLiteral(@NotNull String key, @NotNull ListNode defaultValue) {
+    public @NotNull ListNode getListLiteral(@NotNull String key, @NotNull ListNode defaultValue) {
         ListNode result = getListLiteral(key);
         return result != null ? result : defaultValue;
     }
@@ -1070,8 +1021,7 @@ public class MapNode extends AbstractYamlNode {
      * @param path the dot-separated path
      * @return the removed value, or null if not found
      */
-    @Nullable
-    public YamlNode removeAtPath(@NotNull String path) {
+    public @Nullable YamlNode removeAtPath(@NotNull String path) {
         String[] parts = path.split("\\.", -1);
         if (parts.length == 1) {
             return remove(path);
@@ -1086,8 +1036,7 @@ public class MapNode extends AbstractYamlNode {
     }
 
     @Override
-    @NotNull
-    public YamlNode copy() {
+    public @NotNull YamlNode copy() {
         MapNode copy = new MapNode(metadata.copy());
         copy.style = this.style;
         copy.multiLineFlow = this.multiLineFlow;
@@ -1100,8 +1049,7 @@ public class MapNode extends AbstractYamlNode {
     }
 
     @Override
-    @NotNull
-    public String toYaml(int indent, int currentLevel) {
+    public @NotNull String toYaml(int indent, int currentLevel) {
         StringBuilder sb = new StringBuilder();
         sb.append(buildCommentPrefix(indent, currentLevel));
 
@@ -1119,8 +1067,7 @@ public class MapNode extends AbstractYamlNode {
         return sb.toString();
     }
 
-    @NotNull
-    String toYamlWithoutAnchor(int indent, int currentLevel) {
+    @NotNull String toYamlWithoutAnchor(int indent, int currentLevel) {
         StringBuilder sb = new StringBuilder();
         sb.append(buildCommentPrefix(indent, currentLevel));
 
@@ -1276,8 +1223,7 @@ public class MapNode extends AbstractYamlNode {
          *
          * @return the key
          */
-        @NotNull
-        public String getKey() {
+        public @NotNull String getKey() {
             return key;
         }
 
@@ -1296,8 +1242,7 @@ public class MapNode extends AbstractYamlNode {
          *
          * @return the complex key node, or null if using a simple string key
          */
-        @Nullable
-        public YamlNode getComplexKey() {
+        public @Nullable YamlNode getComplexKey() {
             return complexKey;
         }
 
@@ -1326,8 +1271,7 @@ public class MapNode extends AbstractYamlNode {
          *
          * @return the value node
          */
-        @NotNull
-        public YamlNode getValue() {
+        public @NotNull YamlNode getValue() {
             return value;
         }
 
@@ -1345,8 +1289,7 @@ public class MapNode extends AbstractYamlNode {
          *
          * @return the key scalar style
          */
-        @NotNull
-        public ScalarStyle getKeyStyle() {
+        public @NotNull ScalarStyle getKeyStyle() {
             return keyStyle;
         }
 
@@ -1364,8 +1307,7 @@ public class MapNode extends AbstractYamlNode {
          *
          * @return list of comment texts (without #)
          */
-        @NotNull
-        public List<String> getCommentsBefore() {
+        public @NotNull List<String> getCommentsBefore() {
             return commentsBefore;
         }
 
@@ -1392,8 +1334,7 @@ public class MapNode extends AbstractYamlNode {
          *
          * @return the inline comment text (without #), or null
          */
-        @Nullable
-        public String getInlineComment() {
+        public @Nullable String getInlineComment() {
             return inlineComment;
         }
 
@@ -1429,8 +1370,7 @@ public class MapNode extends AbstractYamlNode {
          *
          * @return the resolved merge map, or null
          */
-        @Nullable
-        public MapNode getResolvedMergeMap() {
+        public @Nullable MapNode getResolvedMergeMap() {
             return resolvedMergeMap;
         }
 
@@ -1448,8 +1388,7 @@ public class MapNode extends AbstractYamlNode {
          *
          * @return the formatted key string
          */
-        @NotNull
-        public String formatKey() {
+        public @NotNull String formatKey() {
             return switch (keyStyle) {
                 case SINGLE_QUOTED -> "'" + key.replace("'", "''") + "'";
                 case DOUBLE_QUOTED -> "\"" + key.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
@@ -1474,8 +1413,7 @@ public class MapNode extends AbstractYamlNode {
          *
          * @return a copy of this entry
          */
-        @NotNull
-        public MapEntry copy() {
+        public @NotNull MapEntry copy() {
             MapEntry copy = new MapEntry(key, value.copy(), keyStyle);
             copy.commentsBefore = new ArrayList<>(this.commentsBefore);
             copy.inlineComment = this.inlineComment;

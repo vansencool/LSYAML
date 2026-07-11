@@ -33,8 +33,7 @@ public final class NodeWriter {
     /**
      * Returns the YAML node for a field value.
      */
-    @NotNull
-    public static YamlNode toNode(@Nullable Object value, @NotNull Field field) {
+    public static @NotNull YamlNode toNode(@Nullable Object value, @NotNull Field field) {
         if (value == null) return new ScalarNode(null);
 
         if (value instanceof List<?> list) return listToNode(list, field);
@@ -48,8 +47,7 @@ public final class NodeWriter {
      * Returns the YAML node for a scalar or branch value of a given type.
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    @NotNull
-    public static YamlNode convertToNode(@Nullable Object value, @NotNull Class<?> type) {
+    public static @NotNull YamlNode convertToNode(@Nullable Object value, @NotNull Class<?> type) {
         if (value == null) return new ScalarNode(null);
 
         ConfigAdapter adapter = AdapterRegistry.adapter(type);
@@ -64,8 +62,7 @@ public final class NodeWriter {
     /**
      * Returns the list node for a list field value.
      */
-    @NotNull
-    private static ListNode listToNode(@NotNull List<?> list, @NotNull Field field) {
+    private static @NotNull ListNode listToNode(@NotNull List<?> list, @NotNull Field field) {
         ListBuilder builder = ListBuilder.create();
         Class<?> elementType = TypeKinds.elementType(field.getGenericType());
 
@@ -83,8 +80,7 @@ public final class NodeWriter {
     /**
      * Returns the map node for a map value.
      */
-    @NotNull
-    private static MapNode mapToNode(@NotNull Map<?, ?> map) {
+    private static @NotNull MapNode mapToNode(@NotNull Map<?, ?> map) {
         MapBuilder builder = MapBuilder.create();
 
         for (Map.Entry<?, ?> entry : map.entrySet()) {
@@ -104,8 +100,7 @@ public final class NodeWriter {
     /**
      * Returns the map node for a branch value, applying field comments and spacing.
      */
-    @NotNull
-    private static MapNode branchToNode(@NotNull Object branch) {
+    private static @NotNull MapNode branchToNode(@NotNull Object branch) {
         MapBuilder builder = MapBuilder.create();
         Class<?> type = branch.getClass();
 

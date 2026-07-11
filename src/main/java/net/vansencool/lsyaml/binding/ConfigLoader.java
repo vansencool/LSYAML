@@ -189,8 +189,7 @@ public final class ConfigLoader {
      * @return an open input stream for the resource
      * @throws IllegalArgumentException if the resource cannot be found
      */
-    @NotNull
-    public static InputStream getResource(@NotNull Class<?> relativeTo, @NotNull String resourcePath) {
+    public static @NotNull InputStream getResource(@NotNull Class<?> relativeTo, @NotNull String resourcePath) {
         InputStream stream = relativeTo.getClassLoader().getResourceAsStream(resourcePath);
         if (stream == null) {
             stream = relativeTo.getResourceAsStream("/" + resourcePath);
@@ -315,8 +314,7 @@ public final class ConfigLoader {
      * @param cls config class
      * @return root {@link MapNode} for this config, or null if not loaded
      */
-    @Nullable
-    public static MapNode node(@NotNull Class<?> cls) {
+    public static @Nullable MapNode node(@NotNull Class<?> cls) {
         return loadedNodes.get(cls);
     }
 
@@ -326,8 +324,7 @@ public final class ConfigLoader {
      * @param cls the config class
      * @return the config file path, or null if not loaded
      */
-    @Nullable
-    public static Path path(@NotNull Class<?> cls) {
+    public static @Nullable Path path(@NotNull Class<?> cls) {
         return configPaths.get(cls);
     }
 
@@ -417,8 +414,7 @@ public final class ConfigLoader {
         defaultValues.put(cls, defaults);
     }
 
-    @Nullable
-    private static Object cloneValue(@Nullable Object value) {
+    private static @Nullable Object cloneValue(@Nullable Object value) {
         if (value == null) {
             return null;
         }
@@ -437,13 +433,11 @@ public final class ConfigLoader {
         return value;
     }
 
-    @NotNull
-    private static MapNode buildFromDefaults(@NotNull Class<?> cls) {
+    private static @NotNull MapNode buildFromDefaults(@NotNull Class<?> cls) {
         return buildFromFields(cls);
     }
 
-    @NotNull
-    private static MapNode buildFromFields(@NotNull Class<?> cls) {
+    private static @NotNull MapNode buildFromFields(@NotNull Class<?> cls) {
         MapBuilder builder = MapBuilder.create();
 
         Space classSpace = cls.getAnnotation(Space.class);
@@ -568,8 +562,7 @@ public final class ConfigLoader {
         setLatestConfig(cls, stream);
     }
 
-    @NotNull
-    private static MapNode resolveLatestSource(@NotNull Class<?> cls) {
+    private static @NotNull MapNode resolveLatestSource(@NotNull Class<?> cls) {
         String yaml = latestConfigs.get(cls);
         if (yaml != null) {
             YamlNode node = LSYAML.parseAny(yaml);
@@ -591,8 +584,7 @@ public final class ConfigLoader {
      * @param latest the latest/default config template
      * @return the merged config
      */
-    @NotNull
-    private static MapNode mergeNodes(@NotNull MapNode user, @NotNull MapNode latest) {
+    private static @NotNull MapNode mergeNodes(@NotNull MapNode user, @NotNull MapNode latest) {
         MapNode merged = new MapNode(user.getMetadata());
         merged.setEmptyLinesBefore(user.getEmptyLinesBefore());
         merged.setCommentsBefore(user.getCommentsBefore());
@@ -626,8 +618,7 @@ public final class ConfigLoader {
         return merged;
     }
 
-    @NotNull
-    private static MapNode normalizeKeys(@NotNull MapNode map, @NotNull Class<?> cls) {
+    private static @NotNull MapNode normalizeKeys(@NotNull MapNode map, @NotNull Class<?> cls) {
         boolean needsNormalization = false;
 
         for (Field field : cls.getDeclaredFields()) {

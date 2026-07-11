@@ -30,8 +30,7 @@ public final class ParseResult {
      * @param node the parsed node
      * @return the result
      */
-    @NotNull
-    public static ParseResult success(@NotNull YamlNode node) {
+    public static @NotNull ParseResult success(@NotNull YamlNode node) {
         return new ParseResult(node, List.of(), true);
     }
 
@@ -42,8 +41,7 @@ public final class ParseResult {
      * @param warnings the warnings encountered
      * @return the result
      */
-    @NotNull
-    public static ParseResult successWithWarnings(@NotNull YamlNode node, @NotNull List<ParseIssue> warnings) {
+    public static @NotNull ParseResult successWithWarnings(@NotNull YamlNode node, @NotNull List<ParseIssue> warnings) {
         return new ParseResult(node, warnings, true);
     }
 
@@ -53,8 +51,7 @@ public final class ParseResult {
      * @param issues the issues that caused failure
      * @return the result
      */
-    @NotNull
-    public static ParseResult failure(@NotNull List<ParseIssue> issues) {
+    public static @NotNull ParseResult failure(@NotNull List<ParseIssue> issues) {
         return new ParseResult(null, issues, false);
     }
 
@@ -65,8 +62,7 @@ public final class ParseResult {
      * @param issues all issues encountered
      * @return the result
      */
-    @NotNull
-    public static ParseResult withIssues(@Nullable YamlNode node, @NotNull List<ParseIssue> issues) {
+    public static @NotNull ParseResult withIssues(@Nullable YamlNode node, @NotNull List<ParseIssue> issues) {
         boolean hasErrors = issues.stream().anyMatch(ParseIssue::isError);
         return new ParseResult(node, issues, !hasErrors);
     }
@@ -102,8 +98,7 @@ public final class ParseResult {
     /**
      * @return the parsed node, or null if parsing failed
      */
-    @Nullable
-    public YamlNode getNode() {
+    public @Nullable YamlNode getNode() {
         return node;
     }
 
@@ -113,8 +108,7 @@ public final class ParseResult {
      * @return the parsed node
      * @throws YamlParseException if parsing failed
      */
-    @NotNull
-    public YamlNode getNodeOrThrow() {
+    public @NotNull YamlNode getNodeOrThrow() {
         if (node == null || !success) {
             throw new YamlParseException(formatIssues());
         }
@@ -124,24 +118,21 @@ public final class ParseResult {
     /**
      * @return all issues (errors and warnings)
      */
-    @NotNull
-    public List<ParseIssue> getIssues() {
+    public @NotNull List<ParseIssue> getIssues() {
         return issues;
     }
 
     /**
      * @return only error issues
      */
-    @NotNull
-    public List<ParseIssue> getErrors() {
+    public @NotNull List<ParseIssue> getErrors() {
         return issues.stream().filter(ParseIssue::isError).toList();
     }
 
     /**
      * @return only warning issues
      */
-    @NotNull
-    public List<ParseIssue> getWarnings() {
+    public @NotNull List<ParseIssue> getWarnings() {
         return issues.stream().filter(ParseIssue::isWarning).toList();
     }
 
@@ -171,8 +162,7 @@ public final class ParseResult {
      *
      * @return formatted issues
      */
-    @NotNull
-    public String formatIssues() {
+    public @NotNull String formatIssues() {
         if (issues.isEmpty()) {
             return "No issues";
         }

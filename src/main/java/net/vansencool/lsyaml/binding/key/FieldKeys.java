@@ -22,8 +22,7 @@ public final class FieldKeys {
     /**
      * Returns the YAML node for a field from a map using key fallback logic.
      */
-    @Nullable
-    public static YamlNode resolveNode(@NotNull Field field, @NotNull MapNode map) {
+    public static @Nullable YamlNode resolveNode(@NotNull Field field, @NotNull MapNode map) {
         ExplicitKey explicitKeyAnn = field.getAnnotation(ExplicitKey.class);
         if (explicitKeyAnn != null) {
             return map.get(explicitKeyAnn.value());
@@ -55,8 +54,7 @@ public final class FieldKeys {
     /**
      * Returns the map key that matches a field, or null when no key matches.
      */
-    @Nullable
-    public static String resolveKey(@NotNull Field field, @NotNull MapNode map) {
+    public static @Nullable String resolveKey(@NotNull Field field, @NotNull MapNode map) {
         ExplicitKey explicitKeyAnn = field.getAnnotation(ExplicitKey.class);
         if (explicitKeyAnn != null) {
             return map.get(explicitKeyAnn.value()) != null ? explicitKeyAnn.value() : null;
@@ -89,8 +87,7 @@ public final class FieldKeys {
     /**
      * Returns the YAML key name a field writes to.
      */
-    @NotNull
-    public static String keyForField(@NotNull Field field) {
+    public static @NotNull String keyForField(@NotNull Field field) {
         ExplicitKey explicitKeyAnn = field.getAnnotation(ExplicitKey.class);
         if (explicitKeyAnn != null) {
             return explicitKeyAnn.value();
@@ -112,8 +109,7 @@ public final class FieldKeys {
     /**
      * Returns the preferred key separator for a field, or null when no {@link PreferKeysWith} applies.
      */
-    @Nullable
-    private static String preferredSeparator(@NotNull Field field) {
+    private static @Nullable String preferredSeparator(@NotNull Field field) {
         PreferKeysWith fieldAnn = field.getAnnotation(PreferKeysWith.class);
         if (fieldAnn != null) return fieldAnn.value();
 
@@ -130,8 +126,7 @@ public final class FieldKeys {
     /**
      * Returns a camelCase or UPPER_CASE name rewritten as a separated lowercase key.
      */
-    @NotNull
-    public static String camelToSeparated(@NotNull String name, @NotNull String separator) {
+    public static @NotNull String camelToSeparated(@NotNull String name, @NotNull String separator) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < name.length(); i++) {
             char c = name.charAt(i);

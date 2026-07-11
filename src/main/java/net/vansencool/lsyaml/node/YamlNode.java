@@ -21,8 +21,7 @@ public interface YamlNode {
      *
      * @return the node type
      */
-    @NotNull
-    NodeType getType();
+    @NotNull NodeType getType();
 
     /**
      * Returns the metadata associated with this node.
@@ -30,8 +29,7 @@ public interface YamlNode {
      *
      * @return the node metadata
      */
-    @NotNull
-    NodeMetadata getMetadata();
+    @NotNull NodeMetadata getMetadata();
 
     /**
      * Sets the metadata for this node.
@@ -45,8 +43,7 @@ public interface YamlNode {
      *
      * @return list of comment strings (without # prefix)
      */
-    @NotNull
-    List<String> getCommentsBefore();
+    @NotNull List<String> getCommentsBefore();
 
     /**
      * Sets comments that appear before this node.
@@ -60,8 +57,7 @@ public interface YamlNode {
      *
      * @return the inline comment, or null if none
      */
-    @Nullable
-    String getInlineComment();
+    @Nullable String getInlineComment();
 
     /**
      * Sets the inline comment for this node.
@@ -111,8 +107,7 @@ public interface YamlNode {
      *
      * @return a deep copy
      */
-    @NotNull
-    YamlNode copy();
+    @NotNull YamlNode copy();
 
     /**
      * Converts this node to a YAML string using the node's own built-in serialization.
@@ -130,8 +125,7 @@ public interface YamlNode {
      *
      * @return YAML string with 2-space indentation and all preservation options enabled
      */
-    @NotNull
-    String toYaml();
+    @NotNull String toYaml();
 
     /**
      * Converts this node to a YAML string with the specified indentation level.
@@ -145,8 +139,7 @@ public interface YamlNode {
      * @param currentLevel the current nesting depth (0 for the root node)
      * @return YAML string
      */
-    @NotNull
-    String toYaml(int indent, int currentLevel);
+    @NotNull String toYaml(int indent, int currentLevel);
 
     /**
      * Returns true if this node is a map.
@@ -181,8 +174,7 @@ public interface YamlNode {
      * @return this node as a MapNode
      * @throws IllegalStateException if this is not a MapNode
      */
-    @NotNull
-    default MapNode asMap() {
+    default @NotNull MapNode asMap() {
         if (this instanceof MapNode map) {
             return map;
         }
@@ -195,8 +187,7 @@ public interface YamlNode {
      * @return this node as a ListNode
      * @throws IllegalStateException if this is not a ListNode
      */
-    @NotNull
-    default ListNode asList() {
+    default @NotNull ListNode asList() {
         if (this instanceof ListNode list) {
             return list;
         }
@@ -209,8 +200,7 @@ public interface YamlNode {
      * @return this node as a ScalarNode
      * @throws IllegalStateException if this is not a ScalarNode
      */
-    @NotNull
-    default ScalarNode asScalar() {
+    default @NotNull ScalarNode asScalar() {
         if (this instanceof ScalarNode scalar) {
             return scalar;
         }
