@@ -551,6 +551,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
         if (style == CollectionStyle.FLOW) {
             sb.append(toFlowYaml(indent, currentLevel));
             sb.append(buildInlineComment());
+            sb.append(buildTrailingComments(indent, currentLevel));
         } else {
             sb.append(toBlockYaml(indent, currentLevel));
         }
@@ -606,8 +607,12 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
         StringBuilder sb = new StringBuilder();
         String indentStr = " ".repeat(indent * currentLevel);
 
+        boolean first = true;
         for (ListEntry entry : entries) {
-            sb.append("\n");
+            if (!first || currentLevel > 0) {
+                sb.append("\n");
+            }
+            first = false;
 
             for (AdjacentLine line : entry.getLeadingLines()) {
                 if (line.isComment()) {

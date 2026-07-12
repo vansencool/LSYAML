@@ -130,6 +130,7 @@ public class YamlWriter {
             if (preserveComments && map.getInlineComment() != null) {
                 sb.append(" #").append(map.getInlineComment());
             }
+            writeTrailing(sb, map, indent);
             return;
         }
 
@@ -163,7 +164,13 @@ public class YamlWriter {
 
             YamlNode value = entry.getValue();
 
-            if (value instanceof MapNode || value instanceof ListNode) {
+            if (isFlowCollection(value)) {
+                sb.append(" ");
+                if (preserveComments && entry.getInlineComment() != null) {
+                    sb.append("#").append(entry.getInlineComment()).append("\n").append(indent);
+                }
+                writeNode(sb, value, level + 1, false);
+            } else if (value instanceof MapNode || value instanceof ListNode) {
                 if (preserveComments && entry.getInlineComment() != null) {
                     sb.append(" #").append(entry.getInlineComment());
                 }
@@ -178,6 +185,11 @@ public class YamlWriter {
         }
 
         writeTrailing(sb, map, indent);
+    }
+
+    private boolean isFlowCollection(@NotNull YamlNode node) {
+        return (node instanceof MapNode map && map.getStyle() == CollectionStyle.FLOW)
+                || (node instanceof ListNode list && list.getStyle() == CollectionStyle.FLOW);
     }
 
     private void writeTrailing(@NotNull StringBuilder sb, @NotNull YamlNode node, @NotNull String indent) {
@@ -226,11 +238,16 @@ public class YamlWriter {
             if (preserveComments && list.getInlineComment() != null) {
                 sb.append(" #").append(list.getInlineComment());
             }
+            writeTrailing(sb, list, indent);
             return;
         }
 
+        boolean first = true;
         for (ListNode.ListEntry entry : list.entries()) {
-            sb.append("\n");
+            if (!first || !isRoot) {
+                sb.append("\n");
+            }
+            first = false;
 
             for (AdjacentLine line : entry.getLeadingLines()) {
                 if (line.isComment()) {

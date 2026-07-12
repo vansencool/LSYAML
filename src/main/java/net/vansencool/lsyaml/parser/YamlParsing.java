@@ -78,6 +78,9 @@ public final class YamlParsing {
             result = session.flow(cursor.trimmedContent().toString(), firstChar);
             cursor.advance();
             if (!pending.isEmpty()) result.setLeadingLines(pending);
+            List<AdjacentLine> trailing = new ArrayList<>();
+            session.skipBlanksAndComments(trailing);
+            if (!trailing.isEmpty()) result.setTrailingLines(trailing);
         } else {
             result = session.map().parse(0, pending);
         }

@@ -1074,6 +1074,7 @@ public class MapNode extends AbstractYamlNode {
         if (style == CollectionStyle.FLOW) {
             sb.append(toFlowYaml(indent, currentLevel));
             sb.append(buildInlineComment());
+            sb.append(buildTrailingComments(indent, currentLevel));
         } else {
             sb.append(toBlockYaml(indent, currentLevel));
         }
