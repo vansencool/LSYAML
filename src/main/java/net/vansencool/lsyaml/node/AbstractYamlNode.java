@@ -19,14 +19,14 @@ public abstract class AbstractYamlNode implements YamlNode {
     protected @NotNull NodeMetadata metadata;
 
     /**
-     * Comment lines that appear before this node.
+     * Blank and comment lines before this node, in source order.
      */
-    protected @Nullable List<String> commentsBefore;
+    protected @Nullable List<AdjacentLine> leadingLines;
 
     /**
-     * Comment lines that appear after this node.
+     * Blank and comment lines after this node, in source order.
      */
-    protected @Nullable List<String> trailingComments;
+    protected @Nullable List<AdjacentLine> trailingLines;
 
     /**
      * Comment on the same line as this node.
@@ -34,25 +34,11 @@ public abstract class AbstractYamlNode implements YamlNode {
     protected @Nullable String inlineComment;
 
     /**
-     * Number of empty lines before this node.
-     */
-    protected int emptyLinesBefore;
-
-    /**
-     * Number of empty lines after this node.
-     */
-    protected int trailingEmptyLines;
-
-    /**
      * Creates a new AbstractYamlNode with default metadata and no comments.
      */
     protected AbstractYamlNode() {
         this.metadata = new NodeMetadata();
-        this.commentsBefore = null;
-        this.trailingComments = null;
         this.inlineComment = null;
-        this.emptyLinesBefore = 0;
-        this.trailingEmptyLines = 0;
     }
 
     /**
@@ -62,11 +48,7 @@ public abstract class AbstractYamlNode implements YamlNode {
      */
     protected AbstractYamlNode(@NotNull NodeMetadata metadata) {
         this.metadata = metadata;
-        this.commentsBefore = null;
-        this.trailingComments = null;
         this.inlineComment = null;
-        this.emptyLinesBefore = 0;
-        this.trailingEmptyLines = 0;
     }
 
     @Override
@@ -79,14 +61,62 @@ public abstract class AbstractYamlNode implements YamlNode {
         this.metadata = metadata;
     }
 
+    /**
+     * Returns the blank and comment lines before this node, in source order.
+     */
+    public @NotNull List<AdjacentLine> getLeadingLines() {
+        return leadingLines == null ? List.of() : leadingLines;
+    }
+
+    /**
+     * Replaces the ordered blank and comment lines before this node.
+     */
+    public void setLeadingLines(@NotNull List<AdjacentLine> lines) {
+        this.leadingLines = lines.isEmpty() ? null : new ArrayList<>(lines);
+    }
+
+    /**
+     * Appends one blank or comment line before this node.
+     */
+    public void addLeadingLine(@NotNull AdjacentLine line) {
+        if (this.leadingLines == null) {
+            this.leadingLines = new ArrayList<>();
+        }
+        this.leadingLines.add(line);
+    }
+
+    /**
+     * Returns the blank and comment lines after this node, in source order.
+     */
+    public @NotNull List<AdjacentLine> getTrailingLines() {
+        return trailingLines == null ? List.of() : trailingLines;
+    }
+
+    /**
+     * Replaces the ordered blank and comment lines after this node.
+     */
+    public void setTrailingLines(@NotNull List<AdjacentLine> lines) {
+        this.trailingLines = lines.isEmpty() ? null : new ArrayList<>(lines);
+    }
+
+    /**
+     * Appends one blank or comment line after this node.
+     */
+    public void addTrailingLine(@NotNull AdjacentLine line) {
+        if (this.trailingLines == null) {
+            this.trailingLines = new ArrayList<>();
+        }
+        this.trailingLines.add(line);
+    }
+
     @Override
     public @NotNull List<String> getCommentsBefore() {
-        return commentsBefore == null ? List.of() : commentsBefore;
+        return commentsOf(leadingLines);
     }
 
     @Override
     public void setCommentsBefore(@NotNull List<String> comments) {
-        this.commentsBefore = comments;
+        this.leadingLines = mergeComments(leadingLines, comments);
     }
 
     @Override
@@ -101,36 +131,89 @@ public abstract class AbstractYamlNode implements YamlNode {
 
     @Override
     public void addCommentBefore(@NotNull String comment) {
-        if (this.commentsBefore == null) {
-            this.commentsBefore = new ArrayList<>();
-        }
-        this.commentsBefore.add(comment);
+        addLeadingLine(AdjacentLine.comment(comment));
     }
 
     @Override
     public int getEmptyLinesBefore() {
-        return emptyLinesBefore;
+        return blanksOf(leadingLines);
     }
 
     @Override
     public void setEmptyLinesBefore(int count) {
-        this.emptyLinesBefore = Math.max(0, count);
+        this.leadingLines = mergeBlanks(leadingLines, Math.max(0, count));
     }
 
     public @NotNull List<String> getTrailingComments() {
-        return trailingComments == null ? List.of() : trailingComments;
+        return commentsOf(trailingLines);
     }
 
     public void setTrailingComments(@NotNull List<String> comments) {
-        this.trailingComments = comments;
+        this.trailingLines = mergeComments(trailingLines, comments);
     }
 
     public int getTrailingEmptyLines() {
-        return trailingEmptyLines;
+        return blanksOf(trailingLines);
     }
 
     public void setTrailingEmptyLines(int count) {
-        this.trailingEmptyLines = Math.max(0, count);
+        this.trailingLines = mergeBlanks(trailingLines, Math.max(0, count));
+    }
+
+    static @NotNull List<String> commentsOf(@Nullable List<AdjacentLine> lines) {
+        if (lines == null) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        for (AdjacentLine line : lines) {
+            if (line.isComment()) {
+                result.add(line.content());
+            }
+        }
+        return result;
+    }
+
+    static int blanksOf(@Nullable List<AdjacentLine> lines) {
+        if (lines == null) {
+            return 0;
+        }
+        int count = 0;
+        for (AdjacentLine line : lines) {
+            if (line.isBlank()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    static @Nullable List<AdjacentLine> mergeComments(@Nullable List<AdjacentLine> lines, @NotNull List<String> comments) {
+        List<AdjacentLine> result = new ArrayList<>();
+        for (String comment : comments) {
+            result.add(AdjacentLine.comment(comment));
+        }
+        if (lines != null) {
+            for (AdjacentLine line : lines) {
+                if (line.isBlank()) {
+                    result.add(line);
+                }
+            }
+        }
+        return result.isEmpty() ? null : result;
+    }
+
+    static @Nullable List<AdjacentLine> mergeBlanks(@Nullable List<AdjacentLine> lines, int count) {
+        List<AdjacentLine> result = new ArrayList<>();
+        if (lines != null) {
+            for (AdjacentLine line : lines) {
+                if (line.isComment()) {
+                    result.add(line);
+                }
+            }
+        }
+        for (int i = 0; i < count; i++) {
+            result.add(AdjacentLine.blank());
+        }
+        return result.isEmpty() ? null : result;
     }
 
     @Override
@@ -139,17 +222,18 @@ public abstract class AbstractYamlNode implements YamlNode {
     }
 
     protected @NotNull String buildCommentPrefix(int indent, int currentLevel) {
+        if (leadingLines == null) {
+            return "";
+        }
         StringBuilder sb = new StringBuilder();
         String indentStr = " ".repeat(indent * currentLevel);
-
-        sb.append("\n".repeat(Math.max(0, emptyLinesBefore)));
-
-        if (commentsBefore != null) {
-            for (String comment : commentsBefore) {
-                sb.append(indentStr).append("#").append(comment).append("\n");
+        for (AdjacentLine line : leadingLines) {
+            if (line.isComment()) {
+                sb.append(indentStr).append("#").append(line.content()).append("\n");
+            } else {
+                sb.append("\n");
             }
         }
-
         return sb.toString();
     }
 
@@ -161,24 +245,24 @@ public abstract class AbstractYamlNode implements YamlNode {
     }
 
     protected @NotNull String buildTrailingComments(int indent, int currentLevel) {
-        if (trailingComments == null || trailingComments.isEmpty()) {
+        if (trailingLines == null || trailingLines.isEmpty()) {
             return "";
         }
         StringBuilder sb = new StringBuilder();
         String indentStr = " ".repeat(indent * currentLevel);
-
-        for (String comment : trailingComments) {
-            sb.append("\n").append(indentStr).append("#").append(comment);
+        for (AdjacentLine line : trailingLines) {
+            if (line.isComment()) {
+                sb.append("\n").append(indentStr).append("#").append(line.content());
+            } else {
+                sb.append("\n");
+            }
         }
-
         return sb.toString();
     }
 
     protected void copyCommentsTo(@NotNull AbstractYamlNode target) {
-        target.commentsBefore = this.commentsBefore == null ? null : new ArrayList<>(this.commentsBefore);
-        target.trailingComments = this.trailingComments == null ? null : new ArrayList<>(this.trailingComments);
+        target.leadingLines = this.leadingLines == null ? null : new ArrayList<>(this.leadingLines);
+        target.trailingLines = this.trailingLines == null ? null : new ArrayList<>(this.trailingLines);
         target.inlineComment = this.inlineComment;
-        target.emptyLinesBefore = this.emptyLinesBefore;
-        target.trailingEmptyLines = this.trailingEmptyLines;
     }
 }

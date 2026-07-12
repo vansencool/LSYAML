@@ -329,7 +329,17 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @throws IndexOutOfBoundsException if index is invalid
      */
     public @NotNull ListNode setComments(int index, @NotNull String... comments) {
-        entries.get(index).setCommentsBefore(Arrays.asList(comments));
+        ListEntry entry = entries.get(index);
+        List<AdjacentLine> lines = new ArrayList<>();
+        for (String comment : comments) {
+            lines.add(AdjacentLine.comment(comment));
+        }
+        for (AdjacentLine line : entry.getLeadingLines()) {
+            if (line.isBlank()) {
+                lines.add(line);
+            }
+        }
+        entry.setLeadingLines(lines);
         return this;
     }
 
@@ -342,7 +352,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @throws IndexOutOfBoundsException if index is invalid
      */
     public @NotNull ListNode addComment(int index, @NotNull String comment) {
-        entries.get(index).addCommentBefore(comment);
+        entries.get(index).addLeadingLine(AdjacentLine.comment(comment));
         return this;
     }
 
@@ -354,7 +364,14 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @throws IndexOutOfBoundsException if index is invalid
      */
     public @NotNull ListNode clearComments(int index) {
-        entries.get(index).setCommentsBefore(new ArrayList<>());
+        ListEntry entry = entries.get(index);
+        List<AdjacentLine> lines = new ArrayList<>();
+        for (AdjacentLine line : entry.getLeadingLines()) {
+            if (line.isBlank()) {
+                lines.add(line);
+            }
+        }
+        entry.setLeadingLines(lines);
         return this;
     }
 
@@ -381,7 +398,17 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @throws IndexOutOfBoundsException if index is invalid
      */
     public @NotNull ListNode setEmptyLinesBefore(int index, int count) {
-        entries.get(index).setEmptyLinesBefore(count);
+        ListEntry entry = entries.get(index);
+        List<AdjacentLine> lines = new ArrayList<>();
+        for (AdjacentLine line : entry.getLeadingLines()) {
+            if (line.isComment()) {
+                lines.add(line);
+            }
+        }
+        for (int i = 0; i < Math.max(0, count); i++) {
+            lines.add(AdjacentLine.blank());
+        }
+        entry.setLeadingLines(lines);
         return this;
     }
 
@@ -394,7 +421,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      */
     public @NotNull ListNode addWithComment(@NotNull YamlNode value, @NotNull String commentBefore) {
         ListEntry entry = new ListEntry(value);
-        entry.addCommentBefore(commentBefore);
+        entry.addLeadingLine(AdjacentLine.comment(commentBefore));
         return addEntry(entry);
     }
 
@@ -416,10 +443,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      */
     public @NotNull ListNode addTrailingComment(@NotNull String comment) {
-        if (trailingComments == null) {
-            trailingComments = new ArrayList<>();
-        }
-        trailingComments.add(comment);
+        addTrailingLine(AdjacentLine.comment(comment));
         return this;
     }
 
@@ -430,11 +454,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      */
     public @NotNull ListNode setTrailingComments(@NotNull String... comments) {
-        if (trailingComments == null) {
-            trailingComments = new ArrayList<>();
-        }
-        trailingComments.clear();
-        trailingComments.addAll(Arrays.asList(comments));
+        setTrailingComments(Arrays.asList(comments));
         return this;
     }
 
@@ -444,9 +464,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      */
     public @NotNull ListNode clearTrailingComments() {
-        if (trailingComments != null) {
-            trailingComments.clear();
-        }
+        setTrailingLines(List.of());
         return this;
     }
 
@@ -591,10 +609,12 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
         for (ListEntry entry : entries) {
             sb.append("\n");
 
-            sb.append("\n".repeat(Math.max(0, entry.getEmptyLinesBefore())));
-
-            for (String comment : entry.getCommentsBefore()) {
-                sb.append(indentStr).append("#").append(comment).append("\n");
+            for (AdjacentLine line : entry.getLeadingLines()) {
+                if (line.isComment()) {
+                    sb.append(indentStr).append("#").append(line.content()).append("\n");
+                } else {
+                    sb.append("\n");
+                }
             }
 
             sb.append(indentStr).append("-");
@@ -639,15 +659,12 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
     public static class ListEntry {
 
         private @NotNull YamlNode value;
-        private @NotNull List<String> commentsBefore;
+        private @Nullable List<AdjacentLine> leadingLines;
         private @Nullable String inlineComment;
-        private int emptyLinesBefore;
 
         public ListEntry(@NotNull YamlNode value) {
             this.value = value;
-            this.commentsBefore = new ArrayList<>();
             this.inlineComment = null;
-            this.emptyLinesBefore = 0;
         }
 
         public @NotNull YamlNode getValue() {
@@ -658,16 +675,63 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
             this.value = value;
         }
 
+        /**
+         * Returns the list of comments before this entry.
+         */
         public @NotNull List<String> getCommentsBefore() {
-            return commentsBefore;
+            return AbstractYamlNode.commentsOf(leadingLines);
         }
 
+        /**
+         * Sets the comments before this entry, replacing existing ones.
+         */
         public void setCommentsBefore(@NotNull List<String> comments) {
-            this.commentsBefore = new ArrayList<>(comments);
+            this.leadingLines = AbstractYamlNode.mergeComments(leadingLines, comments);
         }
 
+        /**
+         * Adds a comment before this entry.
+         */
         public void addCommentBefore(@NotNull String comment) {
-            this.commentsBefore.add(comment);
+            addLeadingLine(AdjacentLine.comment(comment));
+        }
+
+        /**
+         * Returns the number of blank lines before this entry.
+         */
+        public int getEmptyLinesBefore() {
+            return AbstractYamlNode.blanksOf(leadingLines);
+        }
+
+        /**
+         * Sets the number of blank lines before this entry.
+         */
+        public void setEmptyLinesBefore(int count) {
+            this.leadingLines = AbstractYamlNode.mergeBlanks(leadingLines, Math.max(0, count));
+        }
+
+        /**
+         * Returns the blank and comment lines before this entry, in source order.
+         */
+        public @NotNull List<AdjacentLine> getLeadingLines() {
+            return leadingLines == null ? List.of() : leadingLines;
+        }
+
+        /**
+         * Replaces the ordered blank and comment lines before this entry.
+         */
+        public void setLeadingLines(@NotNull List<AdjacentLine> lines) {
+            this.leadingLines = lines.isEmpty() ? null : new ArrayList<>(lines);
+        }
+
+        /**
+         * Appends one blank or comment line before this entry.
+         */
+        public void addLeadingLine(@NotNull AdjacentLine line) {
+            if (this.leadingLines == null) {
+                this.leadingLines = new ArrayList<>();
+            }
+            this.leadingLines.add(line);
         }
 
         public @Nullable String getInlineComment() {
@@ -678,19 +742,10 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
             this.inlineComment = inlineComment;
         }
 
-        public int getEmptyLinesBefore() {
-            return emptyLinesBefore;
-        }
-
-        public void setEmptyLinesBefore(int count) {
-            this.emptyLinesBefore = Math.max(0, count);
-        }
-
         public @NotNull ListEntry copy() {
             ListEntry copy = new ListEntry(value.copy());
-            copy.commentsBefore = new ArrayList<>(this.commentsBefore);
+            copy.leadingLines = this.leadingLines == null ? null : new ArrayList<>(this.leadingLines);
             copy.inlineComment = this.inlineComment;
-            copy.emptyLinesBefore = this.emptyLinesBefore;
             return copy;
         }
     }

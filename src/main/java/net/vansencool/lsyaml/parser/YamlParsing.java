@@ -3,6 +3,7 @@ package net.vansencool.lsyaml.parser;
 import net.vansencool.lsyaml.diagnostic.Diagnostic;
 import net.vansencool.lsyaml.diagnostic.Severity;
 import net.vansencool.lsyaml.exceptions.YamlParseException;
+import net.vansencool.lsyaml.node.AdjacentLine;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.YamlNode;
 import net.vansencool.lsyaml.parser.parse.AnchorResolver;
@@ -60,27 +61,25 @@ public final class YamlParsing {
         Cursor cursor = new Cursor(source, lines);
         ParseSession session = new ParseSession(cursor, options);
 
-        List<String> pendingComments = new ArrayList<>();
-        int pendingEmptyLines = session.skipBlanksAndComments(pendingComments);
+        List<AdjacentLine> pending = new ArrayList<>();
+        session.skipBlanksAndComments(pending);
 
         if (!cursor.hasMore()) {
             MapNode empty = new MapNode();
-            empty.setCommentsBefore(pendingComments);
-            empty.setEmptyLinesBefore(pendingEmptyLines);
+            empty.setLeadingLines(pending);
             return empty;
         }
 
         char firstChar = cursor.firstChar();
         YamlNode result;
         if (firstChar == '-') {
-            result = session.list().parse(0, pendingComments, pendingEmptyLines);
+            result = session.list().parse(0, pending);
         } else if (firstChar == '{' || firstChar == '[') {
             result = session.flow(cursor.trimmedContent().toString(), firstChar);
             cursor.advance();
-            if (!pendingComments.isEmpty()) result.setCommentsBefore(pendingComments);
-            if (pendingEmptyLines > 0) result.setEmptyLinesBefore(pendingEmptyLines);
+            if (!pending.isEmpty()) result.setLeadingLines(pending);
         } else {
-            result = session.map().parse(0, pendingComments, pendingEmptyLines);
+            result = session.map().parse(0, pending);
         }
 
         List<YamlNode> anchored = session.anchored();

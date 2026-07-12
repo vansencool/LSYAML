@@ -39,6 +39,48 @@ public interface YamlNode {
     void setMetadata(@NotNull NodeMetadata metadata);
 
     /**
+     * Returns the blank and comment lines before this node, in source order.
+     *
+     * @return the ordered leading lines
+     */
+    @NotNull List<AdjacentLine> getLeadingLines();
+
+    /**
+     * Replaces the ordered blank and comment lines before this node.
+     *
+     * @param lines the ordered leading lines
+     */
+    void setLeadingLines(@NotNull List<AdjacentLine> lines);
+
+    /**
+     * Appends one blank or comment line before this node.
+     *
+     * @param line the leading line
+     */
+    void addLeadingLine(@NotNull AdjacentLine line);
+
+    /**
+     * Returns the blank and comment lines after this node, in source order.
+     *
+     * @return the ordered trailing lines
+     */
+    @NotNull List<AdjacentLine> getTrailingLines();
+
+    /**
+     * Replaces the ordered blank and comment lines after this node.
+     *
+     * @param lines the ordered trailing lines
+     */
+    void setTrailingLines(@NotNull List<AdjacentLine> lines);
+
+    /**
+     * Appends one blank or comment line after this node.
+     *
+     * @param line the trailing line
+     */
+    void addTrailingLine(@NotNull AdjacentLine line);
+
+    /**
      * Returns comments that appear before this node.
      *
      * @return list of comment strings (without # prefix)

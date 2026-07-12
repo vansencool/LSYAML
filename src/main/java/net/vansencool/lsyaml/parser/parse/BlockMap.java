@@ -2,6 +2,7 @@ package net.vansencool.lsyaml.parser.parse;
 
 import net.vansencool.lsyaml.exceptions.YamlParseException;
 import net.vansencool.lsyaml.logger.LSYAMLLogger;
+import net.vansencool.lsyaml.node.AdjacentLine;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
@@ -25,20 +26,19 @@ public final class BlockMap {
      * Returns a block map parsed from the cursor at the expected indentation.
      */
     @NotNull
-    public MapNode parse(int expectedIndent, @NotNull List<String> initialComments, int initialEmptyLines) {
+    public MapNode parse(int expectedIndent, @NotNull List<AdjacentLine> initialLeading) {
         Cursor cursor = session.cursor();
         MapNode map = new MapNode();
         map.getMetadata().setLine(cursor.line() + 1);
         map.getMetadata().setIndentation(expectedIndent);
 
-        List<String> pendingComments = new ArrayList<>(initialComments);
-        int pendingEmptyLines = initialEmptyLines;
+        List<AdjacentLine> pending = new ArrayList<>(initialLeading);
 
         while (cursor.hasMore()) {
             char firstChar = cursor.firstChar();
 
             if (firstChar == 0) {
-                pendingEmptyLines++;
+                pending.add(AdjacentLine.blank());
                 cursor.advance();
                 continue;
             }
@@ -47,22 +47,21 @@ public final class BlockMap {
 
             if (firstChar == '#') {
                 if (indent < expectedIndent) break;
-                pendingComments.add(session.comment(cursor));
+                pending.add(AdjacentLine.comment(session.comment(cursor)));
                 cursor.advance();
                 continue;
             }
 
             if (indent < expectedIndent || firstChar == '-') {
-                attachTrailing(map, pendingComments, pendingEmptyLines);
+                attachTrailing(map, pending);
                 break;
             }
 
             if (firstChar == '?') {
-                MapNode.MapEntry entry = session.complexKey().parse(pendingComments, pendingEmptyLines, indent);
+                MapNode.MapEntry entry = session.complexKey().parse(pending, indent);
                 if (entry != null) {
                     put(map, entry);
-                    pendingComments = new ArrayList<>();
-                    pendingEmptyLines = 0;
+                    pending = new ArrayList<>();
                     if (map.size() == 1) expectedIndent = indent;
                     continue;
                 }
@@ -75,20 +74,18 @@ public final class BlockMap {
 
             int entryLine = cursor.line() + 1;
             MapNode.MapEntry entry = new MapNode.MapEntry(key.key(), new ScalarNode(null), key.keyStyle());
-            entry.setCommentsBefore(pendingComments);
-            entry.setEmptyLinesBefore(pendingEmptyLines);
-            pendingComments = new ArrayList<>();
-            pendingEmptyLines = 0;
+            entry.setLeadingLines(pending);
+            pending = new ArrayList<>();
             if (key.inlineComment() != null) entry.setInlineComment(key.inlineComment());
 
             cursor.advance();
 
             if (key.value().isEmpty()) {
-                pendingEmptyLines += fillEmptyValue(entry, indent);
+                addBlanks(pending, fillEmptyValue(entry, indent));
             } else {
                 String anchor = Anchors.anchorOnly(key.value());
                 if (anchor != null) {
-                    pendingEmptyLines += fillAnchoredValue(entry, indent, anchor);
+                    addBlanks(pending, fillAnchoredValue(entry, indent, anchor));
                 } else {
                     entry.setValue(session.values().parse(key.value(), indent));
                 }
@@ -103,14 +100,20 @@ public final class BlockMap {
             if (map.size() == 1) expectedIndent = indent;
         }
 
-        attachTrailing(map, pendingComments, pendingEmptyLines);
+        attachTrailing(map, pending);
         return map;
+    }
+
+    private void addBlanks(@NotNull List<AdjacentLine> pending, int count) {
+        for (int i = 0; i < count; i++) {
+            pending.add(AdjacentLine.blank());
+        }
     }
 
     private int fillEmptyValue(@NotNull MapNode.MapEntry entry, int indent) {
         Cursor cursor = session.cursor();
-        List<String> nestedComments = new ArrayList<>();
-        int nestedEmptyLines = session.skipBlanksAndComments(nestedComments);
+        List<AdjacentLine> nested = new ArrayList<>();
+        session.skipBlanksAndComments(nested);
 
         if (!cursor.hasMore()) {
             entry.setValue(new ScalarNode(null));
@@ -121,8 +124,8 @@ public final class BlockMap {
         char nextFirst = cursor.firstChar();
         if (nextIndent > indent && nextFirst != 0) {
             YamlNode value = nextFirst == '-'
-                    ? session.list().parse(nextIndent, nestedComments, nestedEmptyLines)
-                    : parse(nextIndent, nestedComments, nestedEmptyLines);
+                    ? session.list().parse(nextIndent, nested)
+                    : parse(nextIndent, nested);
             entry.setValue(value);
             int trailing = value.getTrailingEmptyLines();
             value.setTrailingEmptyLines(0);
@@ -130,24 +133,24 @@ public final class BlockMap {
         }
 
         entry.setValue(new ScalarNode(null));
-        if (!nestedComments.isEmpty() || nestedEmptyLines > 0) {
-            cursor.line(cursor.line() - (nestedComments.size() + nestedEmptyLines));
+        if (!nested.isEmpty()) {
+            cursor.line(cursor.line() - nested.size());
         }
         return 0;
     }
 
     private int fillAnchoredValue(@NotNull MapNode.MapEntry entry, int indent, @NotNull String anchor) {
         Cursor cursor = session.cursor();
-        List<String> nestedComments = new ArrayList<>();
-        int nestedEmptyLines = session.skipBlanksAndComments(nestedComments);
+        List<AdjacentLine> nested = new ArrayList<>();
+        session.skipBlanksAndComments(nested);
 
         if (cursor.hasMore()) {
             int nextIndent = cursor.indent();
             char nextFirst = cursor.firstChar();
             if (nextIndent > indent && nextFirst != 0) {
                 YamlNode value = nextFirst == '-'
-                        ? session.list().parse(nextIndent, nestedComments, nestedEmptyLines)
-                        : parse(nextIndent, nestedComments, nestedEmptyLines);
+                        ? session.list().parse(nextIndent, nested)
+                        : parse(nextIndent, nested);
                 value.getMetadata().setAnchor(anchor);
                 session.markAnchor(value);
                 entry.setValue(value);
@@ -161,16 +164,15 @@ public final class BlockMap {
         nullNode.getMetadata().setAnchor(anchor);
         session.markAnchor(nullNode);
         entry.setValue(nullNode);
-        if (!nestedComments.isEmpty() || nestedEmptyLines > 0) {
-            cursor.line(cursor.line() - (nestedComments.size() + nestedEmptyLines));
+        if (!nested.isEmpty()) {
+            cursor.line(cursor.line() - nested.size());
         }
         return 0;
     }
 
-    private void attachTrailing(@NotNull MapNode map, @NotNull List<String> comments, int emptyLines) {
-        if (!comments.isEmpty() || emptyLines > 0) {
-            map.setTrailingComments(comments);
-            map.setTrailingEmptyLines(emptyLines);
+    private void attachTrailing(@NotNull MapNode map, @NotNull List<AdjacentLine> trailing) {
+        if (!trailing.isEmpty()) {
+            map.setTrailingLines(trailing);
         }
     }
 

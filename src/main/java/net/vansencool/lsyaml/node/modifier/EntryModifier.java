@@ -1,6 +1,7 @@
 package net.vansencool.lsyaml.node.modifier;
 
 import net.vansencool.lsyaml.metadata.ScalarStyle;
+import net.vansencool.lsyaml.node.AdjacentLine;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
@@ -9,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -117,7 +117,7 @@ public class EntryModifier {
      */
     public @NotNull EntryModifier commentBefore(@NotNull String comment) {
         ensureEntry();
-        entry.addCommentBefore(comment);
+        entry.addLeadingLine(AdjacentLine.comment(comment));
         return this;
     }
 
@@ -130,7 +130,7 @@ public class EntryModifier {
     public @NotNull EntryModifier commentsBefore(@NotNull String... comments) {
         ensureEntry();
         for (String comment : comments) {
-            entry.addCommentBefore(comment);
+            entry.addLeadingLine(AdjacentLine.comment(comment));
         }
         return this;
     }
@@ -142,7 +142,13 @@ public class EntryModifier {
      */
     public @NotNull EntryModifier clearCommentsBefore() {
         ensureEntry();
-        entry.setCommentsBefore(new ArrayList<>());
+        List<AdjacentLine> lines = new ArrayList<>();
+        for (AdjacentLine line : entry.getLeadingLines()) {
+            if (line.isBlank()) {
+                lines.add(line);
+            }
+        }
+        entry.setLeadingLines(lines);
         return this;
     }
 
@@ -175,7 +181,16 @@ public class EntryModifier {
      */
     public @NotNull EntryModifier emptyLinesBefore(int count) {
         ensureEntry();
-        entry.setEmptyLinesBefore(count);
+        List<AdjacentLine> lines = new ArrayList<>();
+        for (AdjacentLine line : entry.getLeadingLines()) {
+            if (line.isComment()) {
+                lines.add(line);
+            }
+        }
+        for (int i = 0; i < Math.max(0, count); i++) {
+            lines.add(AdjacentLine.blank());
+        }
+        entry.setLeadingLines(lines);
         return this;
     }
 
@@ -228,7 +243,15 @@ public class EntryModifier {
      * @return list of comments, or empty list if entry doesn't exist
      */
     public @NotNull List<String> getCommentsBefore() {
-        return entry != null ? entry.getCommentsBefore() : new ArrayList<>();
+        List<String> comments = new ArrayList<>();
+        if (entry != null) {
+            for (AdjacentLine line : entry.getLeadingLines()) {
+                if (line.isComment()) {
+                    comments.add(line.content());
+                }
+            }
+        }
+        return comments;
     }
 
     /**
@@ -239,7 +262,16 @@ public class EntryModifier {
      */
     public @NotNull EntryModifier setCommentsBefore(@NotNull String... comments) {
         ensureEntry();
-        entry.setCommentsBefore(Arrays.asList(comments));
+        List<AdjacentLine> lines = new ArrayList<>();
+        for (String comment : comments) {
+            lines.add(AdjacentLine.comment(comment));
+        }
+        for (AdjacentLine line : entry.getLeadingLines()) {
+            if (line.isBlank()) {
+                lines.add(line);
+            }
+        }
+        entry.setLeadingLines(lines);
         return this;
     }
 

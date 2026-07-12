@@ -1,5 +1,6 @@
 package net.vansencool.lsyaml.parser.parse;
 
+import net.vansencool.lsyaml.node.AdjacentLine;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
@@ -136,23 +137,21 @@ public final class ParseSession {
     }
 
     /**
-     * Advances over blank and comment lines, collecting comment text, and returns the blank count.
+     * Advances over blank and comment lines, appending each to the given list in source order.
      */
-    public int skipBlanksAndComments(@NotNull List<String> comments) {
-        int blanks = 0;
+    public void skipBlanksAndComments(@NotNull List<AdjacentLine> leading) {
         while (cursor.hasMore()) {
             char first = cursor.firstChar();
             if (first == 0) {
-                blanks++;
+                leading.add(AdjacentLine.blank());
                 cursor.advance();
             } else if (first == '#') {
-                comments.add(comment(cursor));
+                leading.add(AdjacentLine.comment(comment(cursor)));
                 cursor.advance();
             } else {
                 break;
             }
         }
-        return blanks;
     }
 
     /**
@@ -187,7 +186,7 @@ public final class ParseSession {
     public @NotNull YamlNode reparseInline(int indent, @NotNull String content, char marker) {
         cursor.line(cursor.line() - 1);
         cursor.override(cursor.line(), content, indent);
-        YamlNode node = marker == '-' ? list.parse(indent, new ArrayList<>(), 0) : map.parse(indent, new ArrayList<>(), 0);
+        YamlNode node = marker == '-' ? list.parse(indent, new ArrayList<>()) : map.parse(indent, new ArrayList<>());
         cursor.clearOverride();
         return node;
     }

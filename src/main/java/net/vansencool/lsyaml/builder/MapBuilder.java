@@ -2,6 +2,7 @@ package net.vansencool.lsyaml.builder;
 
 import net.vansencool.lsyaml.metadata.CollectionStyle;
 import net.vansencool.lsyaml.metadata.ScalarStyle;
+import net.vansencool.lsyaml.node.AdjacentLine;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
@@ -505,9 +506,15 @@ public class MapBuilder {
                 throw new IllegalStateException("Entry value not set for key: " + key);
             }
             MapNode.MapEntry entry = new MapNode.MapEntry(key, value, keyStyle);
-            entry.setCommentsBefore(commentsBefore);
+            List<AdjacentLine> leading = new ArrayList<>();
+            for (String comment : commentsBefore) {
+                leading.add(AdjacentLine.comment(comment));
+            }
+            for (int i = 0; i < emptyLinesBefore; i++) {
+                leading.add(AdjacentLine.blank());
+            }
+            entry.setLeadingLines(leading);
             entry.setInlineComment(inlineComment);
-            entry.setEmptyLinesBefore(emptyLinesBefore);
             return entry;
         }
     }

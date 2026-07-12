@@ -2,6 +2,7 @@ package net.vansencool.lsyaml.writer;
 
 import net.vansencool.lsyaml.metadata.CollectionStyle;
 import net.vansencool.lsyaml.metadata.ScalarStyle;
+import net.vansencool.lsyaml.node.AdjacentLine;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
@@ -107,16 +108,16 @@ public class YamlWriter {
     private void writeMap(@NotNull StringBuilder sb, @NotNull MapNode map, int level, boolean isRoot) {
         String indent = " ".repeat(indentSize * level);
 
-        if (preserveEmptyLines && map.getEmptyLinesBefore() > 0 && !isRoot) {
-            sb.append("\n".repeat(Math.max(0, map.getEmptyLinesBefore())));
-        }
-
-        if (preserveComments) {
-            for (String comment : map.getCommentsBefore()) {
-                if (!isRoot || !sb.isEmpty()) {
-                    sb.append(indent);
+        for (AdjacentLine line : map.getLeadingLines()) {
+            if (line.isComment()) {
+                if (preserveComments) {
+                    if (!isRoot || !sb.isEmpty()) {
+                        sb.append(indent);
+                    }
+                    sb.append("#").append(line.content()).append("\n");
                 }
-                sb.append("#").append(comment).append("\n");
+            } else if (preserveEmptyLines && !isRoot) {
+                sb.append("\n");
             }
         }
 
@@ -139,13 +140,13 @@ public class YamlWriter {
             }
             first = false;
 
-            if (preserveEmptyLines && entry.getEmptyLinesBefore() > 0) {
-                sb.append("\n".repeat(Math.max(0, entry.getEmptyLinesBefore())));
-            }
-
-            if (preserveComments) {
-                for (String comment : entry.getCommentsBefore()) {
-                    sb.append(indent).append("#").append(comment).append("\n");
+            for (AdjacentLine line : entry.getLeadingLines()) {
+                if (line.isComment()) {
+                    if (preserveComments) {
+                        sb.append(indent).append("#").append(line.content()).append("\n");
+                    }
+                } else if (preserveEmptyLines) {
+                    sb.append("\n");
                 }
             }
 
@@ -175,6 +176,20 @@ public class YamlWriter {
                 }
             }
         }
+
+        writeTrailing(sb, map, indent);
+    }
+
+    private void writeTrailing(@NotNull StringBuilder sb, @NotNull YamlNode node, @NotNull String indent) {
+        for (AdjacentLine line : node.getTrailingLines()) {
+            if (line.isComment()) {
+                if (preserveComments) {
+                    sb.append("\n").append(indent).append("#").append(line.content());
+                }
+            } else if (preserveEmptyLines) {
+                sb.append("\n");
+            }
+        }
     }
 
     private void writeFlowMap(@NotNull StringBuilder sb, @NotNull MapNode map) {
@@ -192,13 +207,13 @@ public class YamlWriter {
     private void writeList(@NotNull StringBuilder sb, @NotNull ListNode list, int level, boolean isRoot) {
         String indent = " ".repeat(indentSize * level);
 
-        if (preserveEmptyLines && list.getEmptyLinesBefore() > 0 && !isRoot) {
-            sb.append("\n".repeat(Math.max(0, list.getEmptyLinesBefore())));
-        }
-
-        if (preserveComments) {
-            for (String comment : list.getCommentsBefore()) {
-                sb.append(indent).append("#").append(comment).append("\n");
+        for (AdjacentLine line : list.getLeadingLines()) {
+            if (line.isComment()) {
+                if (preserveComments) {
+                    sb.append(indent).append("#").append(line.content()).append("\n");
+                }
+            } else if (preserveEmptyLines && !isRoot) {
+                sb.append("\n");
             }
         }
 
@@ -217,13 +232,13 @@ public class YamlWriter {
         for (ListNode.ListEntry entry : list.entries()) {
             sb.append("\n");
 
-            if (preserveEmptyLines && entry.getEmptyLinesBefore() > 0) {
-                sb.append("\n".repeat(Math.max(0, entry.getEmptyLinesBefore())));
-            }
-
-            if (preserveComments) {
-                for (String comment : entry.getCommentsBefore()) {
-                    sb.append(indent).append("#").append(comment).append("\n");
+            for (AdjacentLine line : entry.getLeadingLines()) {
+                if (line.isComment()) {
+                    if (preserveComments) {
+                        sb.append(indent).append("#").append(line.content()).append("\n");
+                    }
+                } else if (preserveEmptyLines) {
+                    sb.append("\n");
                 }
             }
 
@@ -244,6 +259,8 @@ public class YamlWriter {
                 }
             }
         }
+
+        writeTrailing(sb, list, indent);
     }
 
     private void writeFlowList(@NotNull StringBuilder sb, @NotNull ListNode list) {

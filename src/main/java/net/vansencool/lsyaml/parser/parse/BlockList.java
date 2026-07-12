@@ -1,5 +1,6 @@
 package net.vansencool.lsyaml.parser.parse;
 
+import net.vansencool.lsyaml.node.AdjacentLine;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
@@ -24,20 +25,19 @@ public final class BlockList {
      * Returns a block list parsed from the cursor at the expected indentation.
      */
     @NotNull
-    public ListNode parse(int expectedIndent, @NotNull List<String> initialComments, int initialEmptyLines) {
+    public ListNode parse(int expectedIndent, @NotNull List<AdjacentLine> initialLeading) {
         Cursor cursor = session.cursor();
         ListNode list = new ListNode();
         list.getMetadata().setLine(cursor.line() + 1);
         list.getMetadata().setIndentation(expectedIndent);
 
-        List<String> pendingComments = new ArrayList<>(initialComments);
-        int pendingEmptyLines = initialEmptyLines;
+        List<AdjacentLine> pending = new ArrayList<>(initialLeading);
 
         while (cursor.hasMore()) {
             char firstChar = cursor.firstChar();
 
             if (firstChar == 0) {
-                pendingEmptyLines++;
+                pending.add(AdjacentLine.blank());
                 cursor.advance();
                 continue;
             }
@@ -46,27 +46,25 @@ public final class BlockList {
 
             if (firstChar == '#') {
                 if (indent < expectedIndent) break;
-                pendingComments.add(session.comment(cursor));
+                pending.add(AdjacentLine.comment(session.comment(cursor)));
                 cursor.advance();
                 continue;
             }
 
             if (indent < expectedIndent || firstChar != '-') {
-                attachTrailing(list, pendingComments, pendingEmptyLines);
+                attachTrailing(list, pending);
                 break;
             }
 
             Slice lineContent = cursor.trimmedContent();
             if (lineContent.length() > 1 && lineContent.charAt(1) != ' ' && lineContent.charAt(1) != '\t') {
-                attachTrailing(list, pendingComments, pendingEmptyLines);
+                attachTrailing(list, pending);
                 break;
             }
 
             ListNode.ListEntry entry = new ListNode.ListEntry(new ScalarNode(null));
-            entry.setCommentsBefore(pendingComments);
-            entry.setEmptyLinesBefore(pendingEmptyLines);
-            pendingComments = new ArrayList<>();
-            pendingEmptyLines = 0;
+            entry.setLeadingLines(pending);
+            pending = new ArrayList<>();
 
             Slice valueSlice = valueAfterDash(lineContent);
             int hash = session.inlineHash(valueSlice);
@@ -76,21 +74,23 @@ public final class BlockList {
             }
 
             cursor.advance();
-            pendingEmptyLines += fillEntry(entry, valueSlice.toString(), indent);
+            for (int i = 0, n = fillEntry(entry, valueSlice.toString(), indent); i < n; i++) {
+                pending.add(AdjacentLine.blank());
+            }
 
             list.addEntry(entry);
             if (list.size() == 1) expectedIndent = indent;
         }
 
-        attachTrailing(list, pendingComments, pendingEmptyLines);
+        attachTrailing(list, pending);
         return list;
     }
 
     private int fillEntry(@NotNull ListNode.ListEntry entry, @NotNull String valueStr, int indent) {
         Cursor cursor = session.cursor();
         if (valueStr.isEmpty()) {
-            List<String> nestedComments = new ArrayList<>();
-            int nestedEmptyLines = session.skipBlanksAndComments(nestedComments);
+            List<AdjacentLine> nested = new ArrayList<>();
+            session.skipBlanksAndComments(nested);
             if (!cursor.hasMore()) {
                 entry.setValue(new ScalarNode(null));
                 return 0;
@@ -99,16 +99,16 @@ public final class BlockList {
             char nextFirst = cursor.firstChar();
             if (nextIndent > indent && nextFirst != 0) {
                 YamlNode value = nextFirst == '-'
-                        ? parse(nextIndent, nestedComments, nestedEmptyLines)
-                        : session.map().parse(nextIndent, nestedComments, nestedEmptyLines);
+                        ? parse(nextIndent, nested)
+                        : session.map().parse(nextIndent, nested);
                 entry.setValue(value);
                 int trailing = value.getTrailingEmptyLines();
                 value.setTrailingEmptyLines(0);
                 return trailing;
             }
             entry.setValue(new ScalarNode(null));
-            if (!nestedComments.isEmpty() || nestedEmptyLines > 0) {
-                cursor.line(cursor.line() - (nestedComments.size() + nestedEmptyLines));
+            if (!nested.isEmpty()) {
+                cursor.line(cursor.line() - nested.size());
             }
             return 0;
         }
@@ -153,10 +153,9 @@ public final class BlockList {
         return false;
     }
 
-    private void attachTrailing(@NotNull ListNode list, @NotNull List<String> comments, int emptyLines) {
-        if (!comments.isEmpty() || emptyLines > 0) {
-            list.setTrailingComments(comments);
-            list.setTrailingEmptyLines(emptyLines);
+    private void attachTrailing(@NotNull ListNode list, @NotNull List<AdjacentLine> trailing) {
+        if (!trailing.isEmpty()) {
+            list.setTrailingLines(trailing);
         }
     }
 }

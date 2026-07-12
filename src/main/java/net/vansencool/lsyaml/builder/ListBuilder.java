@@ -2,6 +2,7 @@ package net.vansencool.lsyaml.builder;
 
 import net.vansencool.lsyaml.metadata.CollectionStyle;
 import net.vansencool.lsyaml.metadata.ScalarStyle;
+import net.vansencool.lsyaml.node.AdjacentLine;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
@@ -420,9 +421,15 @@ public class ListBuilder {
                 throw new IllegalStateException("Item value not set");
             }
             ListNode.ListEntry entry = new ListNode.ListEntry(value);
-            entry.setCommentsBefore(commentsBefore);
+            List<AdjacentLine> leading = new ArrayList<>();
+            for (String comment : commentsBefore) {
+                leading.add(AdjacentLine.comment(comment));
+            }
+            for (int i = 0; i < emptyLinesBefore; i++) {
+                leading.add(AdjacentLine.blank());
+            }
+            entry.setLeadingLines(leading);
             entry.setInlineComment(inlineComment);
-            entry.setEmptyLinesBefore(emptyLinesBefore);
             return entry;
         }
     }

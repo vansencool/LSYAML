@@ -1,5 +1,6 @@
 package net.vansencool.lsyaml.parser.parse;
 
+import net.vansencool.lsyaml.node.AdjacentLine;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
@@ -26,7 +27,7 @@ public final class ComplexKey {
      * Returns the complex key entry at the cursor, or null when the line is not one.
      */
     @Nullable
-    public MapNode.MapEntry parse(@NotNull List<String> pendingComments, int pendingEmptyLines, int indent) {
+    public MapNode.MapEntry parse(@NotNull List<AdjacentLine> pendingLeading, int indent) {
         Cursor cursor = session.cursor();
         Slice trimmed = cursor.trimmedContent();
         if (trimmed.isEmpty() || trimmed.charAt(0) != '?') return null;
@@ -44,8 +45,7 @@ public final class ComplexKey {
 
         MapNode.MapEntry entry = new MapNode.MapEntry(keyString, value);
         entry.setComplexKey(complexKey);
-        entry.setCommentsBefore(pendingComments);
-        entry.setEmptyLinesBefore(pendingEmptyLines);
+        entry.setLeadingLines(pendingLeading);
         return entry;
     }
 
@@ -114,8 +114,8 @@ public final class ComplexKey {
 
     private @NotNull YamlNode descend(int indent, boolean keyContext) {
         Cursor cursor = session.cursor();
-        List<String> nestedComments = new ArrayList<>();
-        int nestedEmptyLines = session.skipBlanksAndComments(nestedComments);
+        List<AdjacentLine> nested = new ArrayList<>();
+        session.skipBlanksAndComments(nested);
         if (!cursor.hasMore()) return new ScalarNode(null);
 
         int nextIndent = cursor.indent();
@@ -124,8 +124,8 @@ public final class ComplexKey {
         if (!deeper) return new ScalarNode(null);
 
         return nextFirst == '-'
-                ? session.list().parse(nextIndent, nestedComments, nestedEmptyLines)
-                : session.map().parse(nextIndent, nestedComments, nestedEmptyLines);
+                ? session.list().parse(nextIndent, nested)
+                : session.map().parse(nextIndent, nested);
     }
 
     private @NotNull String keyString(@NotNull YamlNode node) {

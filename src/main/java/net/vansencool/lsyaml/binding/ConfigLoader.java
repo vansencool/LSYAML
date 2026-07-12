@@ -605,8 +605,7 @@ public final class ConfigLoader {
                 mergedEntry = latestEntry.copy();
             }
 
-            mergedEntry.setCommentsBefore(latestEntry.getCommentsBefore());
-            mergedEntry.setEmptyLinesBefore(latestEntry.getEmptyLinesBefore());
+            mergedEntry.setLeadingLines(new ArrayList<>(latestEntry.getLeadingLines()));
             mergedEntry.setInlineComment(latestEntry.getInlineComment());
 
             merged.putEntry(mergedEntry);
@@ -657,8 +656,7 @@ public final class ConfigLoader {
             } else {
                 MapNode.MapEntry normalized = new MapNode.MapEntry(
                         preferred, entry.getValue(), entry.getKeyStyle());
-                normalized.setCommentsBefore(entry.getCommentsBefore());
-                normalized.setEmptyLinesBefore(entry.getEmptyLinesBefore());
+                normalized.setLeadingLines(new ArrayList<>(entry.getLeadingLines()));
                 normalized.setInlineComment(entry.getInlineComment());
                 result.putEntry(normalized);
             }

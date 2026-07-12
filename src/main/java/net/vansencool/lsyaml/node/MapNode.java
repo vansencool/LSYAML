@@ -390,7 +390,16 @@ public class MapNode extends AbstractYamlNode {
     public @NotNull MapNode setComments(@NotNull String key, @NotNull String... comments) {
         MapEntry entry = entries.get(key);
         if (entry != null) {
-            entry.setCommentsBefore(Arrays.asList(comments));
+            List<AdjacentLine> lines = new ArrayList<>();
+            for (String comment : comments) {
+                lines.add(AdjacentLine.comment(comment));
+            }
+            for (AdjacentLine line : entry.getLeadingLines()) {
+                if (line.isBlank()) {
+                    lines.add(line);
+                }
+            }
+            entry.setLeadingLines(lines);
         }
         return this;
     }
@@ -406,7 +415,7 @@ public class MapNode extends AbstractYamlNode {
     public @NotNull MapNode addComment(@NotNull String key, @NotNull String comment) {
         MapEntry entry = entries.get(key);
         if (entry != null) {
-            entry.addCommentBefore(comment);
+            entry.addLeadingLine(AdjacentLine.comment(comment));
         }
         return this;
     }
@@ -421,7 +430,13 @@ public class MapNode extends AbstractYamlNode {
     public @NotNull MapNode clearComments(@NotNull String key) {
         MapEntry entry = entries.get(key);
         if (entry != null) {
-            entry.setCommentsBefore(new ArrayList<>());
+            List<AdjacentLine> lines = new ArrayList<>();
+            for (AdjacentLine line : entry.getLeadingLines()) {
+                if (line.isBlank()) {
+                    lines.add(line);
+                }
+            }
+            entry.setLeadingLines(lines);
         }
         return this;
     }
@@ -454,7 +469,16 @@ public class MapNode extends AbstractYamlNode {
     public @NotNull MapNode setEmptyLinesBefore(@NotNull String key, int count) {
         MapEntry entry = entries.get(key);
         if (entry != null) {
-            entry.setEmptyLinesBefore(count);
+            List<AdjacentLine> lines = new ArrayList<>();
+            for (AdjacentLine line : entry.getLeadingLines()) {
+                if (line.isComment()) {
+                    lines.add(line);
+                }
+            }
+            for (int i = 0; i < Math.max(0, count); i++) {
+                lines.add(AdjacentLine.blank());
+            }
+            entry.setLeadingLines(lines);
         }
         return this;
     }
@@ -466,10 +490,7 @@ public class MapNode extends AbstractYamlNode {
      * @return this map for chaining
      */
     public @NotNull MapNode addTrailingComment(@NotNull String comment) {
-        if (trailingComments == null) {
-            trailingComments = new ArrayList<>();
-        }
-        trailingComments.add(comment);
+        addTrailingLine(AdjacentLine.comment(comment));
         return this;
     }
 
@@ -480,11 +501,7 @@ public class MapNode extends AbstractYamlNode {
      * @return this map for chaining
      */
     public @NotNull MapNode setTrailingComments(@NotNull String... comments) {
-        if (trailingComments == null) {
-            trailingComments = new ArrayList<>();
-        }
-        trailingComments.clear();
-        trailingComments.addAll(Arrays.asList(comments));
+        setTrailingComments(Arrays.asList(comments));
         return this;
     }
 
@@ -494,9 +511,7 @@ public class MapNode extends AbstractYamlNode {
      * @return this map for chaining
      */
     public @NotNull MapNode clearTrailingComments() {
-        if (trailingComments != null) {
-            trailingComments.clear();
-        }
+        setTrailingLines(List.of());
         return this;
     }
 
@@ -1123,10 +1138,12 @@ public class MapNode extends AbstractYamlNode {
             }
             first = false;
 
-            sb.append("\n".repeat(Math.max(0, entry.getEmptyLinesBefore())));
-
-            for (String comment : entry.getCommentsBefore()) {
-                sb.append(indentStr).append("#").append(comment).append("\n");
+            for (AdjacentLine line : entry.getLeadingLines()) {
+                if (line.isComment()) {
+                    sb.append(indentStr).append("#").append(line.content()).append("\n");
+                } else {
+                    sb.append("\n");
+                }
             }
 
             sb.append(indentStr).append(entry.formatKey()).append(":");
@@ -1181,9 +1198,8 @@ public class MapNode extends AbstractYamlNode {
         private @Nullable YamlNode complexKey;
         private @NotNull YamlNode value;
         private @NotNull ScalarStyle keyStyle;
-        private @NotNull List<String> commentsBefore;
+        private @Nullable List<AdjacentLine> leadingLines;
         private @Nullable String inlineComment;
-        private int emptyLinesBefore;
         private @Nullable MapNode resolvedMergeMap;
 
         /**
@@ -1196,9 +1212,7 @@ public class MapNode extends AbstractYamlNode {
             this.key = key;
             this.value = value;
             this.keyStyle = ScalarStyle.PLAIN;
-            this.commentsBefore = new ArrayList<>();
             this.inlineComment = null;
-            this.emptyLinesBefore = 0;
         }
 
         /**
@@ -1212,9 +1226,7 @@ public class MapNode extends AbstractYamlNode {
             this.key = key;
             this.value = value;
             this.keyStyle = keyStyle;
-            this.commentsBefore = new ArrayList<>();
             this.inlineComment = null;
-            this.emptyLinesBefore = 0;
         }
 
         /**
@@ -1307,7 +1319,7 @@ public class MapNode extends AbstractYamlNode {
          * @return list of comment texts (without #)
          */
         public @NotNull List<String> getCommentsBefore() {
-            return commentsBefore;
+            return AbstractYamlNode.commentsOf(leadingLines);
         }
 
         /**
@@ -1316,7 +1328,7 @@ public class MapNode extends AbstractYamlNode {
          * @param comments the comment texts (without #)
          */
         public void setCommentsBefore(@NotNull List<String> comments) {
-            this.commentsBefore = new ArrayList<>(comments);
+            this.leadingLines = AbstractYamlNode.mergeComments(leadingLines, comments);
         }
 
         /**
@@ -1325,7 +1337,55 @@ public class MapNode extends AbstractYamlNode {
          * @param comment the comment text (without #)
          */
         public void addCommentBefore(@NotNull String comment) {
-            this.commentsBefore.add(comment);
+            addLeadingLine(AdjacentLine.comment(comment));
+        }
+
+        /**
+         * Returns the number of blank lines before this entry.
+         *
+         * @return the blank line count
+         */
+        public int getEmptyLinesBefore() {
+            return AbstractYamlNode.blanksOf(leadingLines);
+        }
+
+        /**
+         * Sets the number of blank lines before this entry.
+         *
+         * @param count the blank line count
+         */
+        public void setEmptyLinesBefore(int count) {
+            this.leadingLines = AbstractYamlNode.mergeBlanks(leadingLines, Math.max(0, count));
+        }
+
+        /**
+         * Returns the blank and comment lines before this entry, in source order.
+         *
+         * @return the ordered leading lines
+         */
+        public @NotNull List<AdjacentLine> getLeadingLines() {
+            return leadingLines == null ? List.of() : leadingLines;
+        }
+
+        /**
+         * Replaces the ordered blank and comment lines before this entry.
+         *
+         * @param lines the ordered leading lines
+         */
+        public void setLeadingLines(@NotNull List<AdjacentLine> lines) {
+            this.leadingLines = lines.isEmpty() ? null : new ArrayList<>(lines);
+        }
+
+        /**
+         * Appends one blank or comment line before this entry.
+         *
+         * @param line the leading line
+         */
+        public void addLeadingLine(@NotNull AdjacentLine line) {
+            if (this.leadingLines == null) {
+                this.leadingLines = new ArrayList<>();
+            }
+            this.leadingLines.add(line);
         }
 
         /**
@@ -1344,24 +1404,6 @@ public class MapNode extends AbstractYamlNode {
          */
         public void setInlineComment(@Nullable String inlineComment) {
             this.inlineComment = inlineComment;
-        }
-
-        /**
-         * Returns the number of blank lines before this entry.
-         *
-         * @return the number of empty lines
-         */
-        public int getEmptyLinesBefore() {
-            return emptyLinesBefore;
-        }
-
-        /**
-         * Sets the number of blank lines before this entry. Negative values are treated as zero.
-         *
-         * @param count the number of empty lines
-         */
-        public void setEmptyLinesBefore(int count) {
-            this.emptyLinesBefore = Math.max(0, count);
         }
 
         /**
@@ -1414,9 +1456,8 @@ public class MapNode extends AbstractYamlNode {
          */
         public @NotNull MapEntry copy() {
             MapEntry copy = new MapEntry(key, value.copy(), keyStyle);
-            copy.commentsBefore = new ArrayList<>(this.commentsBefore);
+            copy.leadingLines = this.leadingLines == null ? null : new ArrayList<>(this.leadingLines);
             copy.inlineComment = this.inlineComment;
-            copy.emptyLinesBefore = this.emptyLinesBefore;
             copy.resolvedMergeMap = this.resolvedMergeMap;
             copy.complexKey = this.complexKey != null ? this.complexKey.copy() : null;
             return copy;

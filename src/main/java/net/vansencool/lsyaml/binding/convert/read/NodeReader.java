@@ -4,14 +4,14 @@ import net.vansencool.lsyaml.binding.ConfigAdapter;
 import net.vansencool.lsyaml.binding.adapter.AdapterRegistry;
 import net.vansencool.lsyaml.binding.key.FieldKeys;
 import net.vansencool.lsyaml.binding.type.TypeKinds;
+import net.vansencool.lsyaml.diagnostic.Diagnostic;
+import net.vansencool.lsyaml.diagnostic.DiagnosticBuilder;
+import net.vansencool.lsyaml.diagnostic.Severity;
 import net.vansencool.lsyaml.logger.LSYAMLLogger;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
-import net.vansencool.lsyaml.diagnostic.Diagnostic;
-import net.vansencool.lsyaml.diagnostic.DiagnosticBuilder;
-import net.vansencool.lsyaml.diagnostic.Severity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
