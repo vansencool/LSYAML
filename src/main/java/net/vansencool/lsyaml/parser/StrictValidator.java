@@ -153,11 +153,11 @@ public final class StrictValidator {
                 continue;
             }
             int prevIndent = lines.indent(prev);
-            if (prevIndent < indent) {
-                String prevTrimmed = text[prev].substring(prevIndent);
-                return prevTrimmed.endsWith("|") || prevTrimmed.endsWith(">") || prevTrimmed.endsWith("|+") || prevTrimmed.endsWith(">-") || prevTrimmed.endsWith("|-") || prevTrimmed.endsWith(">+");
+            if (prevIndent >= indent) {
+                continue;
             }
-            return false;
+            String prevTrimmed = text[prev].substring(prevIndent);
+            return prevTrimmed.endsWith("|") || prevTrimmed.endsWith(">") || prevTrimmed.endsWith("|+") || prevTrimmed.endsWith(">-") || prevTrimmed.endsWith("|-") || prevTrimmed.endsWith(">+");
         }
         return false;
     }
