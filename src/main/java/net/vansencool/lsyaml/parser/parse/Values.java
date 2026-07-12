@@ -20,7 +20,7 @@ public final class Values {
      */
     @NotNull
     public YamlNode parse(@NotNull String value, int indent) {
-        String v = value.trim();
+        String v = value;
         if (v.isEmpty()) return new ScalarNode(null);
 
         char first = v.charAt(0);
@@ -44,7 +44,6 @@ public final class Values {
         if (first == '&') {
             anchor = Anchors.leading(v);
             if (anchor != null) {
-                session.markAnchors();
                 v = Anchors.withoutLeading(v);
             }
         }
@@ -59,7 +58,10 @@ public final class Values {
         }
 
         ScalarNode scalar = Scalars.of(v);
-        if (anchor != null) scalar.getMetadata().setAnchor(anchor);
+        if (anchor != null) {
+            scalar.getMetadata().setAnchor(anchor);
+            session.markAnchor(scalar);
+        }
         if (tag != null) scalar.setTag(tag);
         return scalar;
     }

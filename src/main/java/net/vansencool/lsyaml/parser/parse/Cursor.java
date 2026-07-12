@@ -3,6 +3,7 @@ package net.vansencool.lsyaml.parser.parse;
 import net.vansencool.lsyaml.parser.source.LineIndex;
 import net.vansencool.lsyaml.parser.source.Source;
 import net.vansencool.lsyaml.parser.text.Scan;
+import net.vansencool.lsyaml.parser.text.Slice;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -14,7 +15,7 @@ public final class Cursor {
     private final @NotNull LineIndex lines;
     private int line;
     private int overrideLine = -1;
-    private @NotNull String overrideContent = "";
+    private char @NotNull [] overrideContent = new char[0];
     private int overrideIndent;
 
     public Cursor(@NotNull Source source, @NotNull LineIndex lines) {
@@ -28,7 +29,7 @@ public final class Cursor {
      */
     public void override(int line, @NotNull String content, int indent) {
         this.overrideLine = line;
-        this.overrideContent = content;
+        this.overrideContent = content.toCharArray();
         this.overrideIndent = indent;
     }
 
@@ -89,7 +90,7 @@ public final class Cursor {
      * Returns the first non-whitespace character of the current line, or zero when blank.
      */
     public char firstChar() {
-        return overridden() ? overrideContent.charAt(0) : lines.firstChar(line);
+        return overridden() ? overrideContent[0] : lines.firstChar(line);
     }
 
     /**
@@ -114,11 +115,11 @@ public final class Cursor {
     }
 
     /**
-     * Materializes the current line content from its first non-whitespace character to its end.
+     * Returns a zero-copy view of the current line from its first non-whitespace character to its end.
      */
-    public @NotNull String trimmedContent() {
+    public @NotNull Slice trimmedContent() {
         if (overridden()) {
-            return overrideContent;
+            return Slice.of(overrideContent, 0, overrideContent.length);
         }
         int s = lines.contentStart(line);
         int e = Scan.trimEnd(source, s, lines.end(line));

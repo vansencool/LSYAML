@@ -2,56 +2,49 @@ package net.vansencool.lsyaml.parser.source;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
+
 /**
  * Precomputed line boundaries, indentation, and first non-whitespace character over a source.
  */
 public final class LineIndex {
 
     private final @NotNull Source source;
-    private final int[] start;
-    private final int[] end;
-    private final int[] indent;
-    private final char[] firstChar;
-    private final int count;
+    private int[] start;
+    private int[] end;
+    private int[] indent;
+    private char[] firstChar;
+    private int count;
 
     public LineIndex(@NotNull Source source) {
         this.source = source;
         int len = source.length();
+        int cap = (len >> 4) + 2;
+        this.start = new int[cap];
+        this.end = new int[cap];
+        this.indent = new int[cap];
+        this.firstChar = new char[cap];
 
-        int lines = 1;
-        for (int i = 0; i < len; i++) {
-            char c = source.charAt(i);
-            if (c == '\n') {
-                lines++;
-            } else if (c == '\r') {
-                lines++;
-                if (i + 1 < len && source.charAt(i + 1) == '\n') i++;
-            }
-        }
-
-        this.start = new int[lines];
-        this.end = new int[lines];
-        this.indent = new int[lines];
-        this.firstChar = new char[lines];
-        this.count = lines;
-
-        int idx = 0;
         int lineStart = 0;
         for (int i = 0; i < len; i++) {
             char c = source.charAt(i);
             if (c == '\n') {
-                record(idx++, lineStart, i);
+                record(lineStart, i);
                 lineStart = i + 1;
             } else if (c == '\r') {
-                record(idx++, lineStart, i);
+                record(lineStart, i);
                 if (i + 1 < len && source.charAt(i + 1) == '\n') i++;
                 lineStart = i + 1;
             }
         }
-        record(idx, lineStart, len);
+        record(lineStart, len);
     }
 
-    private void record(int idx, int lineStart, int lineEnd) {
+    private void record(int lineStart, int lineEnd) {
+        if (count == start.length) {
+            grow();
+        }
+        int idx = count++;
         start[idx] = lineStart;
         end[idx] = lineEnd;
 
@@ -70,6 +63,14 @@ public final class LineIndex {
         }
         indent[idx] = ind;
         firstChar[idx] = first;
+    }
+
+    private void grow() {
+        int cap = start.length << 1;
+        start = Arrays.copyOf(start, cap);
+        end = Arrays.copyOf(end, cap);
+        indent = Arrays.copyOf(indent, cap);
+        firstChar = Arrays.copyOf(firstChar, cap);
     }
 
     /**

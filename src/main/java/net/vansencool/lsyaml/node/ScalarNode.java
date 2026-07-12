@@ -14,7 +14,6 @@ public class ScalarNode extends AbstractYamlNode {
 
     private @Nullable Object value;
     private @NotNull ScalarStyle style;
-    private @Nullable String rawValue;
     private @Nullable String tag;
 
     /**
@@ -24,7 +23,6 @@ public class ScalarNode extends AbstractYamlNode {
         super();
         this.value = null;
         this.style = ScalarStyle.PLAIN;
-        this.rawValue = null;
         this.tag = null;
     }
 
@@ -37,7 +35,6 @@ public class ScalarNode extends AbstractYamlNode {
         super();
         this.value = value;
         this.style = ScalarStyle.PLAIN;
-        this.rawValue = null;
         this.tag = null;
     }
 
@@ -51,22 +48,20 @@ public class ScalarNode extends AbstractYamlNode {
         super();
         this.value = value;
         this.style = style;
-        this.rawValue = null;
         this.tag = null;
     }
 
     /**
      * Creates a new scalar node with the given value, style, and metadata.
      *
-     * @param value    the scalar value (string, number, boolean, or null)
+     * @param value    the scalar value
      * @param style    the quoting style to use when emitting this scalar
-     * @param metadata the metadata for this node (position, comments, etc.)
+     * @param metadata the metadata for this node
      */
     public ScalarNode(@Nullable Object value, @NotNull ScalarStyle style, @NotNull NodeMetadata metadata) {
         super(metadata);
         this.value = value;
         this.style = style;
-        this.rawValue = null;
         this.tag = null;
     }
 
@@ -286,24 +281,6 @@ public class ScalarNode extends AbstractYamlNode {
     }
 
     /**
-     * Returns the raw value string as it appeared in the source.
-     *
-     * @return the raw value, or null if generated
-     */
-    public @Nullable String getRawValue() {
-        return rawValue;
-    }
-
-    /**
-     * Sets the raw value string.
-     *
-     * @param rawValue the raw value
-     */
-    public void setRawValue(@Nullable String rawValue) {
-        this.rawValue = rawValue;
-    }
-
-    /**
      * Returns the YAML tag if specified.
      *
      * @return the tag, or null
@@ -324,7 +301,6 @@ public class ScalarNode extends AbstractYamlNode {
     @Override
     public @NotNull YamlNode copy() {
         ScalarNode copy = new ScalarNode(value, style, metadata.copy());
-        copy.rawValue = this.rawValue;
         copy.tag = this.tag;
         copyCommentsTo(copy);
         return copy;

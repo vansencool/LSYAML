@@ -1,6 +1,7 @@
 package net.vansencool.lsyaml.parser.parse;
 
 import net.vansencool.lsyaml.metadata.ScalarStyle;
+import net.vansencool.lsyaml.parser.text.Slice;
 import net.vansencool.lsyaml.parser.text.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -23,30 +24,32 @@ public final class KeyLine {
     }
 
     /**
-     * Returns the parsed key line for a trimmed content string, or null when it is not a key line.
+     * Returns the parsed key line for a trimmed content view, or null when it is not a key line.
      */
-    public static @Nullable KeyLine parse(@NotNull String trimmed) {
+    public static @Nullable KeyLine parse(@NotNull Slice trimmed) {
         int colonIdx = unquotedColon(trimmed);
         if (colonIdx <= 0) return null;
 
-        String keyPart = trimmed.substring(0, colonIdx).trim();
-        String valuePart = trimmed.substring(colonIdx + 1).trim();
+        char[] chars = trimmed.array();
+        int base = trimmed.start();
+        Slice valuePart = Slice.of(chars, base + colonIdx + 1, trimmed.end()).trim();
+        Slice keyPart = trimmed.sub(0, colonIdx).trim();
 
         String inlineComment;
-        if (valuePart.startsWith("#")) {
-            inlineComment = valuePart.substring(1);
-            valuePart = "";
+        if (valuePart.startsWith('#')) {
+            inlineComment = valuePart.sub(1).toString();
+            valuePart = Slice.empty();
         } else {
             int hash = inlineHash(valuePart);
             if (hash >= 0) {
-                inlineComment = valuePart.substring(hash + 1);
-                valuePart = valuePart.substring(0, hash - 1).trim();
+                inlineComment = valuePart.sub(hash + 1).toString();
+                valuePart = valuePart.sub(0, hash - 1).trim();
             } else {
                 inlineComment = null;
             }
         }
 
-        return new KeyLine(unquoteKey(keyPart), keyStyle(keyPart), valuePart, inlineComment);
+        return new KeyLine(unquoteKey(keyPart), keyStyle(keyPart), valuePart.toString(), inlineComment);
     }
 
     /**
@@ -77,7 +80,7 @@ public final class KeyLine {
         return inlineComment;
     }
 
-    private static int unquotedColon(@NotNull String s) {
+    private static int unquotedColon(@NotNull Slice s) {
         boolean single = false;
         boolean dbl = false;
         for (int i = 0; i < s.length(); i++) {
@@ -89,7 +92,7 @@ public final class KeyLine {
         return -1;
     }
 
-    private static int inlineHash(@NotNull String s) {
+    private static int inlineHash(@NotNull Slice s) {
         boolean single = false;
         boolean dbl = false;
         for (int i = 0; i < s.length(); i++) {
@@ -101,19 +104,20 @@ public final class KeyLine {
         return -1;
     }
 
-    private static @NotNull String unquoteKey(@NotNull String key) {
-        if (key.startsWith("'") && key.endsWith("'") && key.length() >= 2) {
-            return key.substring(1, key.length() - 1).replace("''", "'");
+    private static @NotNull String unquoteKey(@NotNull Slice key) {
+        if (key.length() >= 2 && key.startsWith('\'') && key.endsWith('\'')) {
+            String inner = key.sub(1, key.length() - 1).toString();
+            return inner.indexOf('\'') >= 0 ? inner.replace("''", "'") : inner;
         }
-        if (key.startsWith("\"") && key.endsWith("\"") && key.length() >= 2) {
-            return Strings.unescape(key.substring(1, key.length() - 1));
+        if (key.length() >= 2 && key.startsWith('"') && key.endsWith('"')) {
+            return Strings.unescape(key.sub(1, key.length() - 1).toString());
         }
-        return key;
+        return key.toString();
     }
 
-    private static @NotNull ScalarStyle keyStyle(@NotNull String key) {
-        if (key.startsWith("'") && key.endsWith("'")) return ScalarStyle.SINGLE_QUOTED;
-        if (key.startsWith("\"") && key.endsWith("\"")) return ScalarStyle.DOUBLE_QUOTED;
+    private static @NotNull ScalarStyle keyStyle(@NotNull Slice key) {
+        if (key.startsWith('\'') && key.endsWith('\'')) return ScalarStyle.SINGLE_QUOTED;
+        if (key.startsWith('"') && key.endsWith('"')) return ScalarStyle.DOUBLE_QUOTED;
         return ScalarStyle.PLAIN;
     }
 }

@@ -13,8 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Represents a YAML sequence (list).
- * Preserves order and all formatting metadata.
+ * Represents a YAML list.
  */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
@@ -417,6 +416,9 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      */
     public @NotNull ListNode addTrailingComment(@NotNull String comment) {
+        if (trailingComments == null) {
+            trailingComments = new ArrayList<>();
+        }
         trailingComments.add(comment);
         return this;
     }
@@ -428,6 +430,9 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      */
     public @NotNull ListNode setTrailingComments(@NotNull String... comments) {
+        if (trailingComments == null) {
+            trailingComments = new ArrayList<>();
+        }
         trailingComments.clear();
         trailingComments.addAll(Arrays.asList(comments));
         return this;
@@ -439,7 +444,9 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      */
     public @NotNull ListNode clearTrailingComments() {
-        trailingComments.clear();
+        if (trailingComments != null) {
+            trailingComments.clear();
+        }
         return this;
     }
 
@@ -486,7 +493,19 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
 
     @Override
     public @NotNull Iterator<YamlNode> iterator() {
-        return entries.stream().map(ListEntry::getValue).iterator();
+        return new Iterator<>() {
+            private int at = 0;
+
+            @Override
+            public boolean hasNext() {
+                return at < entries.size();
+            }
+
+            @Override
+            public @NotNull YamlNode next() {
+                return entries.get(at++).getValue();
+            }
+        };
     }
 
     @Override

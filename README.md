@@ -41,7 +41,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'net.vansencool:LSYAML:1.5.0'
+    implementation 'net.vansencool:LSYAML:1.5.5'
 }
 ```
 
@@ -60,7 +60,7 @@ dependencies {
 <dependency>
     <groupId>net.vansencool</groupId>
     <artifactId>LSYAML</artifactId>
-    <version>1.5.0</version>
+    <version>1.5.5</version>
 </dependency>
 ```
 
@@ -176,7 +176,7 @@ losing original comments, spacing, and document structure.
 Benchmarks performed using JMH on:
 
 * **CPU:** AMD Ryzen 9 9900X3D
-* **RAM:** 32 GB DDR5 (5200 MT/s)
+* **RAM:** 32 GB DDR5 (5200 MT/s, one ram stick)
 * **JVM:** 25.0.2 (Oracle)
 * **OS:** Linux 6.8
 

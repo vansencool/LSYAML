@@ -5,14 +5,12 @@ import net.vansencool.lsyaml.metadata.ScalarStyle;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.YamlNode;
+import net.vansencool.lsyaml.parser.text.Slice;
 import net.vansencool.lsyaml.parser.text.Strings;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Parsing of flow-style maps and lists from a single materialized content string.
+ * Parsing of flow-style maps and lists over a character view.
  */
 public final class Flow {
 
@@ -23,93 +21,124 @@ public final class Flow {
      * Returns a flow map parsed from a brace-delimited string.
      */
     public static @NotNull MapNode map(@NotNull String str) {
-        MapNode map = new MapNode(CollectionStyle.FLOW);
-        String inner = strip(str, '{', '}');
-        mapContent(map, inner.trim());
-        return map;
+        return map(Slice.of(str.toCharArray(), 0, str.length()));
     }
 
     /**
      * Returns a flow list parsed from a bracket-delimited string.
      */
     public static @NotNull ListNode list(@NotNull String str) {
-        ListNode list = new ListNode(CollectionStyle.FLOW);
-        String inner = strip(str, '[', ']');
-        for (String item : split(inner.trim())) {
-            if (!item.trim().isEmpty()) {
-                list.addEntry(new ListNode.ListEntry(value(item.trim())));
-            }
-        }
-        return list;
+        return list(Slice.of(str.toCharArray(), 0, str.length()));
     }
 
     /**
      * Returns the node for a single flow value, recursing into nested flow collections.
      */
     public static @NotNull YamlNode value(@NotNull String value) {
-        String v = value.trim();
-        if (v.startsWith("{")) return map(v);
-        if (v.startsWith("[")) return list(v);
-        return Scalars.of(v);
+        return value(Slice.of(value.toCharArray(), 0, value.length()));
     }
 
-    private static void mapContent(@NotNull MapNode map, @NotNull String content) {
-        if (content.isEmpty()) return;
-        for (String pair : split(content)) {
-            int colonIdx = unquotedColon(pair);
-            if (colonIdx > 0) {
-                String keyPart = pair.substring(0, colonIdx).trim();
-                String value = pair.substring(colonIdx + 1).trim();
-                String key = unquoteKey(keyPart);
-                ScalarStyle keyStyle = keyStyle(keyPart);
-                map.putEntry(new MapNode.MapEntry(key, value(value), keyStyle));
-            }
-        }
+    private static @NotNull MapNode map(@NotNull Slice str) {
+        MapNode map = new MapNode(CollectionStyle.FLOW);
+        mapContent(map, strip(str, '{', '}'));
+        return map;
     }
 
-    private static @NotNull String strip(@NotNull String str, char open, char close) {
-        String s = str.trim();
-        if (!s.isEmpty() && s.charAt(0) == open) s = s.substring(1);
-        if (!s.isEmpty() && s.charAt(s.length() - 1) == close) s = s.substring(0, s.length() - 1);
-        return s;
-    }
-
-    private static @NotNull List<String> split(@NotNull String content) {
-        List<String> parts = new ArrayList<>();
+    private static @NotNull ListNode list(@NotNull Slice str) {
+        ListNode list = new ListNode(CollectionStyle.FLOW);
+        Slice content = strip(str, '[', ']');
+        int start = content.start();
+        int end = content.end();
+        char[] chars = content.array();
         int depth = 0;
         boolean single = false;
         boolean dbl = false;
-        StringBuilder current = new StringBuilder();
-        for (int i = 0; i < content.length(); i++) {
-            char c = content.charAt(i);
+        int itemStart = start;
+        for (int i = start; i < end; i++) {
+            char c = chars[i];
             if (c == '\'' && !dbl) {
                 single = !single;
-                current.append(c);
             } else if (c == '"' && !single) {
                 dbl = !dbl;
-                current.append(c);
             } else if (!single && !dbl) {
                 if (c == '{' || c == '[') {
                     depth++;
-                    current.append(c);
                 } else if (c == '}' || c == ']') {
                     depth--;
-                    current.append(c);
                 } else if (c == ',' && depth == 0) {
-                    parts.add(current.toString().trim());
-                    current = new StringBuilder();
-                } else {
-                    current.append(c);
+                    addItem(list, Slice.of(chars, itemStart, i).trim());
+                    itemStart = i + 1;
                 }
-            } else {
-                current.append(c);
             }
         }
-        if (!current.isEmpty()) parts.add(current.toString().trim());
-        return parts;
+        addItem(list, Slice.of(chars, itemStart, end).trim());
+        return list;
     }
 
-    private static int unquotedColon(@NotNull String str) {
+    private static void addItem(@NotNull ListNode list, @NotNull Slice item) {
+        if (!item.isEmpty()) {
+            list.addEntry(new ListNode.ListEntry(value(item)));
+        }
+    }
+
+    private static @NotNull YamlNode value(@NotNull Slice value) {
+        Slice v = value.trim();
+        if (v.startsWith('{')) return map(v);
+        if (v.startsWith('[')) return list(v);
+        return Scalars.of(v.toString());
+    }
+
+    private static void mapContent(@NotNull MapNode map, @NotNull Slice content) {
+        if (content.isEmpty()) return;
+        int start = content.start();
+        int end = content.end();
+        char[] chars = content.array();
+        int depth = 0;
+        boolean single = false;
+        boolean dbl = false;
+        int pairStart = start;
+        for (int i = start; i < end; i++) {
+            char c = chars[i];
+            if (c == '\'' && !dbl) {
+                single = !single;
+            } else if (c == '"' && !single) {
+                dbl = !dbl;
+            } else if (!single && !dbl) {
+                if (c == '{' || c == '[') {
+                    depth++;
+                } else if (c == '}' || c == ']') {
+                    depth--;
+                } else if (c == ',' && depth == 0) {
+                    putPair(map, Slice.of(chars, pairStart, i).trim());
+                    pairStart = i + 1;
+                }
+            }
+        }
+        putPair(map, Slice.of(chars, pairStart, end).trim());
+    }
+
+    private static void putPair(@NotNull MapNode map, @NotNull Slice pair) {
+        if (pair.isEmpty()) return;
+        int colonIdx = unquotedColon(pair);
+        if (colonIdx <= 0) return;
+        char[] chars = pair.array();
+        int base = pair.start();
+        Slice valuePart = Slice.of(chars, base + colonIdx + 1, pair.end()).trim();
+        Slice keyPart = pair.sub(0, colonIdx).trim();
+        map.putEntry(new MapNode.MapEntry(unquoteKey(keyPart), value(valuePart), keyStyle(keyPart)));
+    }
+
+    private static @NotNull Slice strip(@NotNull Slice str, char open, char close) {
+        Slice s = str.trim();
+        int start = s.start();
+        int end = s.end();
+        char[] chars = s.array();
+        if (start < end && chars[start] == open) start++;
+        if (start < end && chars[end - 1] == close) end--;
+        return Slice.of(chars, start, end).trim();
+    }
+
+    private static int unquotedColon(@NotNull Slice str) {
         boolean single = false;
         boolean dbl = false;
         for (int i = 0; i < str.length(); i++) {
@@ -121,19 +150,20 @@ public final class Flow {
         return -1;
     }
 
-    private static @NotNull String unquoteKey(@NotNull String key) {
-        if (key.startsWith("'") && key.endsWith("'") && key.length() >= 2) {
-            return key.substring(1, key.length() - 1).replace("''", "'");
+    private static @NotNull String unquoteKey(@NotNull Slice key) {
+        if (key.length() >= 2 && key.startsWith('\'') && key.endsWith('\'')) {
+            String inner = key.sub(1, key.length() - 1).toString();
+            return inner.indexOf('\'') >= 0 ? inner.replace("''", "'") : inner;
         }
-        if (key.startsWith("\"") && key.endsWith("\"") && key.length() >= 2) {
-            return Strings.unescape(key.substring(1, key.length() - 1));
+        if (key.length() >= 2 && key.startsWith('"') && key.endsWith('"')) {
+            return Strings.unescape(key.sub(1, key.length() - 1).toString());
         }
-        return key;
+        return key.toString();
     }
 
-    private static @NotNull ScalarStyle keyStyle(@NotNull String key) {
-        if (key.startsWith("'") && key.endsWith("'")) return ScalarStyle.SINGLE_QUOTED;
-        if (key.startsWith("\"") && key.endsWith("\"")) return ScalarStyle.DOUBLE_QUOTED;
+    private static @NotNull ScalarStyle keyStyle(@NotNull Slice key) {
+        if (key.startsWith('\'') && key.endsWith('\'')) return ScalarStyle.SINGLE_QUOTED;
+        if (key.startsWith('"') && key.endsWith('"')) return ScalarStyle.DOUBLE_QUOTED;
         return ScalarStyle.PLAIN;
     }
 }

@@ -3,6 +3,7 @@ package net.vansencool.lsyaml.parser.parse;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
+import net.vansencool.lsyaml.parser.text.Slice;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ public final class BlockList {
                 break;
             }
 
-            String lineContent = cursor.trimmedContent();
+            Slice lineContent = cursor.trimmedContent();
             if (lineContent.length() > 1 && lineContent.charAt(1) != ' ' && lineContent.charAt(1) != '\t') {
                 attachTrailing(list, pendingComments, pendingEmptyLines);
                 break;
@@ -67,15 +68,15 @@ public final class BlockList {
             pendingComments = new ArrayList<>();
             pendingEmptyLines = 0;
 
-            String valueStr = valueAfterDash(lineContent);
-            int hash = session.inlineHash(valueStr);
+            Slice valueSlice = valueAfterDash(lineContent);
+            int hash = session.inlineHash(valueSlice);
             if (hash >= 0) {
-                entry.setInlineComment(valueStr.substring(hash + 1));
-                valueStr = valueStr.substring(0, hash - 1).trim();
+                entry.setInlineComment(valueSlice.sub(hash + 1).toString());
+                valueSlice = valueSlice.sub(0, hash - 1).trim();
             }
 
             cursor.advance();
-            pendingEmptyLines += fillEntry(entry, valueStr, indent);
+            pendingEmptyLines += fillEntry(entry, valueSlice.toString(), indent);
 
             list.addEntry(entry);
             if (list.size() == 1) expectedIndent = indent;
@@ -125,7 +126,7 @@ public final class BlockList {
         return 0;
     }
 
-    private @NotNull String valueAfterDash(@NotNull String lineContent) {
+    private @NotNull Slice valueAfterDash(@NotNull Slice lineContent) {
         int start = 1;
         while (start < lineContent.length() && (lineContent.charAt(start) == ' ' || lineContent.charAt(start) == '\t')) {
             start++;
@@ -134,7 +135,7 @@ public final class BlockList {
         while (end > start && (lineContent.charAt(end - 1) == ' ' || lineContent.charAt(end - 1) == '\t')) {
             end--;
         }
-        return start >= end ? "" : lineContent.substring(start, end);
+        return start >= end ? Slice.empty() : lineContent.sub(start, end);
     }
 
     private boolean containsUnquotedColon(@NotNull String value) {

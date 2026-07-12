@@ -48,7 +48,7 @@ public interface YamlNode {
     /**
      * Sets comments that appear before this node.
      *
-     * @param comments the comments to set
+     * @param comments the comments to set, may retain a reference to the provided list
      */
     void setCommentsBefore(@NotNull List<String> comments);
 

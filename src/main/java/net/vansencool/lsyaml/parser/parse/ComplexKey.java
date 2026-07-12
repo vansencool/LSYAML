@@ -4,6 +4,7 @@ import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
+import net.vansencool.lsyaml.parser.text.Slice;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,11 +28,11 @@ public final class ComplexKey {
     @Nullable
     public MapNode.MapEntry parse(@NotNull List<String> pendingComments, int pendingEmptyLines, int indent) {
         Cursor cursor = session.cursor();
-        String trimmed = cursor.trimmedContent();
+        Slice trimmed = cursor.trimmedContent();
         if (trimmed.isEmpty() || trimmed.charAt(0) != '?') return null;
 
         cursor.advance();
-        String keyContent = trimmed.length() > 1 ? trimmed.substring(1).trim() : "";
+        String keyContent = trimmed.length() > 1 ? trimmed.sub(1).trim().toString() : "";
         YamlNode complexKey = parseKey(keyContent, indent);
         String keyString = keyString(complexKey);
 
@@ -68,7 +69,7 @@ public final class ComplexKey {
             return null;
         }
 
-        KeyLine key = KeyLine.parse(content);
+        KeyLine key = KeyLine.parse(Slice.of(content.toCharArray(), 0, content.length()));
         if (key == null || key.inlineComment() != null || key.value().isEmpty()) {
             return null;
         }
@@ -76,7 +77,7 @@ public final class ComplexKey {
         if (vf == '{' || vf == '[' || vf == '|' || vf == '>' || vf == '&' || vf == '*' || vf == '!') {
             return null;
         }
-        if (Anchors.anchorOnly(key.value()) != null) {
+        if (Anchors.anchorOnly(key.value().toString()) != null) {
             return null;
         }
 
@@ -85,7 +86,7 @@ public final class ComplexKey {
         map.getMetadata().setLine(line);
         map.getMetadata().setIndentation(mapIndent);
 
-        YamlNode value = session.values().parse(key.value(), mapIndent);
+        YamlNode value = session.values().parse(key.value().toString(), mapIndent);
         if (value.getMetadata().getLine() < 0) {
             value.getMetadata().setLine(line);
             value.getMetadata().setColumn(mapIndent + key.key().length() + 3);
@@ -99,12 +100,12 @@ public final class ComplexKey {
         Cursor cursor = session.cursor();
         if (!cursor.hasMore()) return new ScalarNode(null);
 
-        String valueTrimmed = cursor.trimmedContent();
+        Slice valueTrimmed = cursor.trimmedContent();
         int valueIndent = cursor.indent();
-        if (!valueTrimmed.startsWith(":")) return new ScalarNode(null);
+        if (!valueTrimmed.startsWith(':')) return new ScalarNode(null);
 
         cursor.advance();
-        String valueContent = valueTrimmed.length() > 1 ? valueTrimmed.substring(1).trim() : "";
+        String valueContent = valueTrimmed.length() > 1 ? valueTrimmed.sub(1).trim().toString() : "";
         if (!valueContent.isEmpty()) {
             return session.values().parse(valueContent, valueIndent);
         }

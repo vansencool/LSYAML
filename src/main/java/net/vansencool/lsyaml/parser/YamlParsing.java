@@ -73,7 +73,7 @@ public final class YamlParsing {
         if (firstChar == '-') {
             result = session.list().parse(0, pendingComments, pendingEmptyLines);
         } else if (firstChar == '{' || firstChar == '[') {
-            result = session.flow(cursor.trimmedContent(), firstChar);
+            result = session.flow(cursor.trimmedContent().toString(), firstChar);
             cursor.advance();
             if (!pendingComments.isEmpty()) result.setCommentsBefore(pendingComments);
             if (pendingEmptyLines > 0) result.setEmptyLinesBefore(pendingEmptyLines);
@@ -81,8 +81,10 @@ public final class YamlParsing {
             result = session.map().parse(0, pendingComments, pendingEmptyLines);
         }
 
-        if (session.hasAnchors()) {
-            AnchorResolver.resolve(result);
+        List<YamlNode> anchored = session.anchored();
+        List<MapNode.MapEntry> mergeEntries = session.mergeEntries();
+        if (anchored != null && mergeEntries != null) {
+            AnchorResolver.resolve(anchored, mergeEntries);
         }
         return result;
     }

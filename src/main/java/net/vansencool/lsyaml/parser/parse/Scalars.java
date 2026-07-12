@@ -25,21 +25,15 @@ public final class Scalars {
             if (first == '\'' && last == '\'') {
                 String content = value.substring(1, len - 1);
                 if (content.indexOf('\'') >= 0) content = content.replace("''", "'");
-                ScalarNode scalar = new ScalarNode(content, ScalarStyle.SINGLE_QUOTED);
-                scalar.setRawValue(value);
-                return scalar;
+                return new ScalarNode(content, ScalarStyle.SINGLE_QUOTED);
             }
             if (first == '"' && last == '"') {
                 String inner = value.substring(1, len - 1);
                 String content = Strings.unescape(inner);
-                ScalarNode scalar = new ScalarNode(content, ScalarStyle.DOUBLE_QUOTED);
-                scalar.setRawValue(value);
-                return scalar;
+                return new ScalarNode(content, ScalarStyle.DOUBLE_QUOTED);
             }
         }
-        ScalarNode scalar = new ScalarNode(typed(value), ScalarStyle.PLAIN);
-        scalar.setRawValue(value);
-        return scalar;
+        return new ScalarNode(typed(value), ScalarStyle.PLAIN);
     }
 
     /**
@@ -72,11 +66,26 @@ public final class Scalars {
 
         boolean fractional = false;
         int start = (first == '+' || first == '-') ? 1 : 0;
+        int digits = 0;
+        int dots = 0;
+        int exponents = 0;
         for (int i = start; i < len; i++) {
             char c = value.charAt(i);
-            if (c >= '0' && c <= '9') continue;
-            if (c == '.' || c == 'e' || c == 'E') { fractional = true; continue; }
-            if ((c == '+' || c == '-') && i > start) continue;
+            if (c >= '0' && c <= '9') {
+                digits++;
+            } else if (c == '.') {
+                if (++dots > 1 || exponents > 0) return value;
+                fractional = true;
+            } else if (c == 'e' || c == 'E') {
+                if (++exponents > 1 || digits == 0) return value;
+                fractional = true;
+            } else if ((c == '+' || c == '-') && value.charAt(i - 1) != 'e' && value.charAt(i - 1) != 'E') {
+                return value;
+            } else if (c != '+' && c != '-') {
+                return value;
+            }
+        }
+        if (digits == 0) {
             return value;
         }
 

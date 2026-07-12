@@ -88,7 +88,6 @@ public final class BlockMap {
             } else {
                 String anchor = Anchors.anchorOnly(key.value());
                 if (anchor != null) {
-                    session.markAnchors();
                     pendingEmptyLines += fillAnchoredValue(entry, indent, anchor);
                 } else {
                     entry.setValue(session.values().parse(key.value(), indent));
@@ -150,6 +149,7 @@ public final class BlockMap {
                         ? session.list().parse(nextIndent, nestedComments, nestedEmptyLines)
                         : parse(nextIndent, nestedComments, nestedEmptyLines);
                 value.getMetadata().setAnchor(anchor);
+                session.markAnchor(value);
                 entry.setValue(value);
                 int trailing = value.getTrailingEmptyLines();
                 value.setTrailingEmptyLines(0);
@@ -159,6 +159,7 @@ public final class BlockMap {
 
         ScalarNode nullNode = new ScalarNode(null);
         nullNode.getMetadata().setAnchor(anchor);
+        session.markAnchor(nullNode);
         entry.setValue(nullNode);
         if (!nestedComments.isEmpty() || nestedEmptyLines > 0) {
             cursor.line(cursor.line() - (nestedComments.size() + nestedEmptyLines));
@@ -174,8 +175,11 @@ public final class BlockMap {
     }
 
     private void put(@NotNull MapNode map, @NotNull MapNode.MapEntry entry) {
-        if (map.get(entry.getKey()) == null) {
-            map.putEntry(entry);
+        if (entry.getKey().equals("<<") && entry.getValue().getMetadata().isAlias()) {
+            session.markMergeEntry(entry);
+        }
+        if (!map.containsKey(entry.getKey())) {
+            map.appendEntry(entry);
             return;
         }
         switch (session.options().getDuplicateKeyBehavior()) {

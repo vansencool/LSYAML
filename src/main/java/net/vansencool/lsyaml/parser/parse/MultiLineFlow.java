@@ -17,7 +17,7 @@ public final class MultiLineFlow {
     public static @NotNull Result collect(@NotNull Cursor cursor, @NotNull String initial, char open, char close) {
         StringBuilder content = new StringBuilder(initial);
         boolean[] quotes = new boolean[2];
-        int depth = depthOf(initial, 0, initial.length(), open, close, quotes);
+        int depth = depthOf(initial, initial.length(), open, close, quotes);
         boolean multiLine = false;
         int flowIndent = 2;
 
@@ -35,15 +35,15 @@ public final class MultiLineFlow {
             content.append(' ').append(src.slice(from, trimEnd));
             cursor.advance();
 
-            depth += depthOf(src.text(), from, trimEnd, open, close, quotes);
+            depth += depthOf(src.slice(from, trimEnd), trimEnd - from, open, close, quotes);
         }
 
         return new Result(content.toString(), multiLine, flowIndent);
     }
 
-    private static int depthOf(@NotNull String text, int start, int end, char open, char close, boolean[] quotes) {
+    private static int depthOf(@NotNull CharSequence text, int end, char open, char close, boolean[] quotes) {
         int delta = 0;
-        for (int i = start; i < end; i++) {
+        for (int i = 0; i < end; i++) {
             char c = text.charAt(i);
             if (c == '\'' && !quotes[1]) {
                 quotes[0] = !quotes[0];

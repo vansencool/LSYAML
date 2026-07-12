@@ -178,7 +178,7 @@ public final class StrictValidator {
         int count = lines.count();
         String[] text = new String[count];
         for (int i = 0; i < count; i++) {
-            text[i] = source.slice(lines.start(i), lines.end(i));
+            text[i] = source.slice(lines.start(i), lines.end(i)).toString();
         }
         return text;
     }

@@ -1,11 +1,11 @@
 package net.vansencool.lsyaml.parser.parse;
 
-import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.YamlNode;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -17,46 +17,22 @@ public final class AnchorResolver {
     }
 
     /**
-     * Links merge keys within a node tree to their anchor targets.
+     * Binds each merge entry to the map named by its alias, using anchors collected during parsing.
      */
-    public static void resolve(@NotNull YamlNode root) {
+    public static void resolve(@NotNull List<YamlNode> anchored, @NotNull List<MapNode.MapEntry> mergeEntries) {
         Map<String, YamlNode> anchors = new HashMap<>();
-        collect(root, anchors);
-        link(root, anchors);
-    }
-
-    private static void collect(@NotNull YamlNode node, @NotNull Map<String, YamlNode> anchors) {
-        String anchor = node.getMetadata().getAnchor();
-        if (anchor != null && !anchor.isEmpty()) {
-            anchors.put(anchor, node);
-        }
-        if (node instanceof MapNode mapNode) {
-            for (MapNode.MapEntry entry : mapNode.entries()) {
-                collect(entry.getValue(), anchors);
-            }
-        } else if (node instanceof ListNode listNode) {
-            for (YamlNode item : listNode) {
-                collect(item, anchors);
+        for (int i = 0, n = anchored.size(); i < n; i++) {
+            YamlNode node = anchored.get(i);
+            String anchor = node.getMetadata().getAnchor();
+            if (anchor != null && !anchor.isEmpty()) {
+                anchors.put(anchor, node);
             }
         }
-    }
-
-    private static void link(@NotNull YamlNode node, @NotNull Map<String, YamlNode> anchors) {
-        if (node instanceof MapNode mapNode) {
-            MapNode.MapEntry mergeEntry = mapNode.getEntry("<<");
-            if (mergeEntry != null && mergeEntry.getValue().getMetadata().isAlias()) {
-                String aliasName = mergeEntry.getValue().getMetadata().getAlias();
-                YamlNode target = anchors.get(aliasName);
-                if (target instanceof MapNode resolvedMap) {
-                    mergeEntry.setResolvedMergeMap(resolvedMap);
-                }
-            }
-            for (MapNode.MapEntry entry : mapNode.entries()) {
-                link(entry.getValue(), anchors);
-            }
-        } else if (node instanceof ListNode listNode) {
-            for (YamlNode item : listNode) {
-                link(item, anchors);
+        for (int i = 0, n = mergeEntries.size(); i < n; i++) {
+            MapNode.MapEntry mergeEntry = mergeEntries.get(i);
+            YamlNode target = anchors.get(mergeEntry.getValue().getMetadata().getAlias());
+            if (target instanceof MapNode resolvedMap) {
+                mergeEntry.setResolvedMergeMap(resolvedMap);
             }
         }
     }

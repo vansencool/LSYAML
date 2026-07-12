@@ -6,7 +6,9 @@ import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
 import net.vansencool.lsyaml.parser.ParseOptions;
 import net.vansencool.lsyaml.parser.text.Scan;
+import net.vansencool.lsyaml.parser.text.Slice;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +24,8 @@ public final class ParseSession {
     private final @NotNull BlockList list;
     private final @NotNull ComplexKey complexKey;
     private final @NotNull Values values;
-    private boolean hasAnchors;
+    private @Nullable List<YamlNode> anchored;
+    private @Nullable List<MapNode.MapEntry> mergeEntries;
 
     public ParseSession(@NotNull Cursor cursor, @NotNull ParseOptions options) {
         this.cursor = cursor;
@@ -76,17 +79,37 @@ public final class ParseSession {
     }
 
     /**
-     * Records that the document contains at least one anchor.
+     * Records a node that carries an anchor.
      */
-    public void markAnchors() {
-        this.hasAnchors = true;
+    public void markAnchor(@NotNull YamlNode node) {
+        if (anchored == null) {
+            anchored = new ArrayList<>();
+        }
+        anchored.add(node);
     }
 
     /**
-     * Returns whether the document contains any anchor.
+     * Returns the nodes carrying anchors, or null when there are none.
      */
-    public boolean hasAnchors() {
-        return hasAnchors;
+    public @Nullable List<YamlNode> anchored() {
+        return anchored;
+    }
+
+    /**
+     * Records a merge key entry whose value is an alias.
+     */
+    public void markMergeEntry(@NotNull MapNode.MapEntry entry) {
+        if (mergeEntries == null) {
+            mergeEntries = new ArrayList<>();
+        }
+        mergeEntries.add(entry);
+    }
+
+    /**
+     * Returns the merge key entries, or null when there are none.
+     */
+    public @Nullable List<MapNode.MapEntry> mergeEntries() {
+        return mergeEntries;
     }
 
     /**
@@ -94,13 +117,13 @@ public final class ParseSession {
      */
     public @NotNull String comment(@NotNull Cursor c) {
         int hash = Scan.standaloneHash(c.source(), c.contentStart(), c.end());
-        return c.source().slice(hash, c.end());
+        return c.source().slice(hash, c.end()).toString();
     }
 
     /**
-     * Returns the index of an inline comment hash in a value string, or minus one.
+     * Returns the index of an inline comment hash in a value view, or minus one.
      */
-    public int inlineHash(@NotNull String value) {
+    public int inlineHash(@NotNull Slice value) {
         boolean single = false;
         boolean dbl = false;
         for (int i = 0; i < value.length(); i++) {

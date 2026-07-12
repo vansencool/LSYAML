@@ -1,18 +1,19 @@
 package net.vansencool.lsyaml.parser.source;
 
+import net.vansencool.lsyaml.parser.text.Slice;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Immutable view over the YAML input that exposes characters and slices by index.
+ * Immutable view over the YAML input.
  */
 public final class Source {
 
-    private final @NotNull String text;
+    private final char @NotNull [] chars;
     private final int length;
 
     public Source(@NotNull String text) {
-        this.text = text;
-        this.length = text.length();
+        this.chars = text.toCharArray();
+        this.length = chars.length;
     }
 
     /**
@@ -26,20 +27,20 @@ public final class Source {
      * Returns the character at an index.
      */
     public char charAt(int index) {
-        return text.charAt(index);
+        return chars[index];
     }
 
     /**
-     * Materializes the slice between two indices as a String.
+     * Returns a zero-copy view over the range between two indices.
      */
-    public @NotNull String slice(int start, int end) {
-        return text.substring(start, end);
+    public @NotNull Slice slice(int start, int end) {
+        return Slice.of(chars, start, end);
     }
 
     /**
-     * Returns the backing text.
+     * Returns the backing character array.
      */
-    public @NotNull String text() {
-        return text;
+    public char @NotNull [] chars() {
+        return chars;
     }
 }

@@ -5,25 +5,23 @@ import net.vansencool.lsyaml.metadata.NodeMetadata;
 import net.vansencool.lsyaml.metadata.ScalarStyle;
 import net.vansencool.lsyaml.node.modifier.EntryModifier;
 import net.vansencool.lsyaml.node.type.NodeType;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
  * Represents a YAML mapping (key-value pairs).
- * Preserves insertion order and all formatting metadata.
  */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class MapNode extends AbstractYamlNode {
 
-    private final @NotNull LinkedHashMap<String, MapEntry> entries;
+    private final @NotNull EntryMap entries;
     private @NotNull CollectionStyle style;
     private boolean multiLineFlow;
     private int flowIndent;
@@ -33,7 +31,7 @@ public class MapNode extends AbstractYamlNode {
      */
     public MapNode() {
         super();
-        this.entries = new LinkedHashMap<>();
+        this.entries = new EntryMap();
         this.style = CollectionStyle.BLOCK;
         this.multiLineFlow = false;
         this.flowIndent = 2;
@@ -46,7 +44,7 @@ public class MapNode extends AbstractYamlNode {
      */
     public MapNode(@NotNull CollectionStyle style) {
         super();
-        this.entries = new LinkedHashMap<>();
+        this.entries = new EntryMap();
         this.style = style;
         this.multiLineFlow = false;
         this.flowIndent = 2;
@@ -59,7 +57,7 @@ public class MapNode extends AbstractYamlNode {
      */
     public MapNode(@NotNull NodeMetadata metadata) {
         super(metadata);
-        this.entries = new LinkedHashMap<>();
+        this.entries = new EntryMap();
         this.style = CollectionStyle.BLOCK;
         this.multiLineFlow = false;
         this.flowIndent = 2;
@@ -130,16 +128,20 @@ public class MapNode extends AbstractYamlNode {
      * @return set of keys
      */
     public @NotNull Set<String> keys() {
-        return entries.keySet();
+        Set<String> keys = new LinkedHashSet<>();
+        for (MapEntry entry : entries.entries()) {
+            keys.add(entry.getKey());
+        }
+        return keys;
     }
 
     /**
      * Returns all entries in order.
      *
-     * @return collection of entries
+     * @return list of entries
      */
-    public @NotNull Collection<MapEntry> entries() {
-        return entries.values();
+    public @NotNull List<MapEntry> entries() {
+        return entries.entries();
     }
 
     /**
@@ -211,7 +213,7 @@ public class MapNode extends AbstractYamlNode {
         if (existing != null) {
             existing.setValue(value);
         } else {
-            entries.put(key, new MapEntry(key, value));
+            entries.put(new MapEntry(key, value));
         }
         return this;
     }
@@ -278,7 +280,19 @@ public class MapNode extends AbstractYamlNode {
      * @return this map for chaining
      */
     public @NotNull MapNode putEntry(@NotNull MapEntry entry) {
-        entries.put(entry.getKey(), entry);
+        entries.put(entry);
+        return this;
+    }
+
+    /**
+     * Appends an entry whose key is known to be absent, without a duplicate lookup.
+     *
+     * @param entry the entry to append
+     * @return this map for chaining
+     */
+    @ApiStatus.Internal
+    public @NotNull MapNode appendEntry(@NotNull MapEntry entry) {
+        entries.append(entry);
         return this;
     }
 
@@ -312,18 +326,11 @@ public class MapNode extends AbstractYamlNode {
      * @return this map for chaining
      */
     public @NotNull MapNode insertBefore(@NotNull MapEntry entry, @NotNull String beforeKey) {
-        if (!entries.containsKey(beforeKey)) {
+        int at = entries.indexOf(beforeKey);
+        if (at < 0) {
             return putEntry(entry);
         }
-        LinkedHashMap<String, MapEntry> newEntries = new LinkedHashMap<>();
-        for (Map.Entry<String, MapEntry> e : entries.entrySet()) {
-            if (e.getKey().equals(beforeKey)) {
-                newEntries.put(entry.getKey(), entry);
-            }
-            newEntries.put(e.getKey(), e.getValue());
-        }
-        entries.clear();
-        entries.putAll(newEntries);
+        entries.insertAt(at, entry);
         return this;
     }
 
@@ -347,18 +354,11 @@ public class MapNode extends AbstractYamlNode {
      * @return this map for chaining
      */
     public @NotNull MapNode insertAfter(@NotNull MapEntry entry, @NotNull String afterKey) {
-        if (!entries.containsKey(afterKey)) {
+        int at = entries.indexOf(afterKey);
+        if (at < 0) {
             return putEntry(entry);
         }
-        LinkedHashMap<String, MapEntry> newEntries = new LinkedHashMap<>();
-        for (Map.Entry<String, MapEntry> e : entries.entrySet()) {
-            newEntries.put(e.getKey(), e.getValue());
-            if (e.getKey().equals(afterKey)) {
-                newEntries.put(entry.getKey(), entry);
-            }
-        }
-        entries.clear();
-        entries.putAll(newEntries);
+        entries.insertAt(at + 1, entry);
         return this;
     }
 
@@ -370,21 +370,12 @@ public class MapNode extends AbstractYamlNode {
      * @return this map for chaining
      */
     public @NotNull MapNode renameKey(@NotNull String oldKey, @NotNull String newKey) {
-        if (!entries.containsKey(oldKey) || oldKey.equals(newKey)) {
+        MapEntry entry = entries.get(oldKey);
+        if (entry == null || oldKey.equals(newKey)) {
             return this;
         }
-        LinkedHashMap<String, MapEntry> newEntries = new LinkedHashMap<>();
-        for (Map.Entry<String, MapEntry> e : entries.entrySet()) {
-            if (e.getKey().equals(oldKey)) {
-                MapEntry entry = e.getValue();
-                entry.setKey(newKey);
-                newEntries.put(newKey, entry);
-            } else {
-                newEntries.put(e.getKey(), e.getValue());
-            }
-        }
-        entries.clear();
-        entries.putAll(newEntries);
+        entry.setKey(newKey);
+        entries.rekey(oldKey, newKey);
         return this;
     }
 
@@ -475,6 +466,9 @@ public class MapNode extends AbstractYamlNode {
      * @return this map for chaining
      */
     public @NotNull MapNode addTrailingComment(@NotNull String comment) {
+        if (trailingComments == null) {
+            trailingComments = new ArrayList<>();
+        }
         trailingComments.add(comment);
         return this;
     }
@@ -486,6 +480,9 @@ public class MapNode extends AbstractYamlNode {
      * @return this map for chaining
      */
     public @NotNull MapNode setTrailingComments(@NotNull String... comments) {
+        if (trailingComments == null) {
+            trailingComments = new ArrayList<>();
+        }
         trailingComments.clear();
         trailingComments.addAll(Arrays.asList(comments));
         return this;
@@ -497,7 +494,9 @@ public class MapNode extends AbstractYamlNode {
      * @return this map for chaining
      */
     public @NotNull MapNode clearTrailingComments() {
-        trailingComments.clear();
+        if (trailingComments != null) {
+            trailingComments.clear();
+        }
         return this;
     }
 
@@ -1041,7 +1040,7 @@ public class MapNode extends AbstractYamlNode {
         copy.style = this.style;
         copy.multiLineFlow = this.multiLineFlow;
         copy.flowIndent = this.flowIndent;
-        for (MapEntry entry : entries.values()) {
+        for (MapEntry entry : entries.entries()) {
             copy.putEntry(entry.copy());
         }
         copyCommentsTo(copy);
@@ -1087,7 +1086,7 @@ public class MapNode extends AbstractYamlNode {
         }
         StringBuilder sb = new StringBuilder("{");
         boolean first = true;
-        for (MapEntry entry : entries.values()) {
+        for (MapEntry entry : entries.entries()) {
             if (!first) sb.append(", ");
             first = false;
             sb.append(entry.formatKey()).append(": ");
@@ -1103,7 +1102,7 @@ public class MapNode extends AbstractYamlNode {
         String entryIndent = " ".repeat(indent * parentLevel + indent);
         String closingIndent = " ".repeat(indent * parentLevel);
         boolean first = true;
-        for (MapEntry entry : entries.values()) {
+        for (MapEntry entry : entries.entries()) {
             if (!first) sb.append(",\n");
             first = false;
             sb.append(entryIndent).append(entry.formatKey()).append(": ");
@@ -1118,7 +1117,7 @@ public class MapNode extends AbstractYamlNode {
         String indentStr = " ".repeat(indent * currentLevel);
 
         boolean first = true;
-        for (MapEntry entry : entries.values()) {
+        for (MapEntry entry : entries.entries()) {
             if (!first || currentLevel > 0) {
                 sb.append("\n");
             }

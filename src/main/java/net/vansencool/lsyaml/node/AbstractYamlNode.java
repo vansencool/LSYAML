@@ -21,12 +21,12 @@ public abstract class AbstractYamlNode implements YamlNode {
     /**
      * Comment lines that appear before this node.
      */
-    protected @NotNull List<String> commentsBefore;
+    protected @Nullable List<String> commentsBefore;
 
     /**
      * Comment lines that appear after this node.
      */
-    protected @NotNull List<String> trailingComments;
+    protected @Nullable List<String> trailingComments;
 
     /**
      * Comment on the same line as this node.
@@ -48,8 +48,8 @@ public abstract class AbstractYamlNode implements YamlNode {
      */
     protected AbstractYamlNode() {
         this.metadata = new NodeMetadata();
-        this.commentsBefore = new ArrayList<>();
-        this.trailingComments = new ArrayList<>();
+        this.commentsBefore = null;
+        this.trailingComments = null;
         this.inlineComment = null;
         this.emptyLinesBefore = 0;
         this.trailingEmptyLines = 0;
@@ -62,8 +62,8 @@ public abstract class AbstractYamlNode implements YamlNode {
      */
     protected AbstractYamlNode(@NotNull NodeMetadata metadata) {
         this.metadata = metadata;
-        this.commentsBefore = new ArrayList<>();
-        this.trailingComments = new ArrayList<>();
+        this.commentsBefore = null;
+        this.trailingComments = null;
         this.inlineComment = null;
         this.emptyLinesBefore = 0;
         this.trailingEmptyLines = 0;
@@ -81,12 +81,12 @@ public abstract class AbstractYamlNode implements YamlNode {
 
     @Override
     public @NotNull List<String> getCommentsBefore() {
-        return commentsBefore;
+        return commentsBefore == null ? List.of() : commentsBefore;
     }
 
     @Override
     public void setCommentsBefore(@NotNull List<String> comments) {
-        this.commentsBefore = new ArrayList<>(comments);
+        this.commentsBefore = comments;
     }
 
     @Override
@@ -101,6 +101,9 @@ public abstract class AbstractYamlNode implements YamlNode {
 
     @Override
     public void addCommentBefore(@NotNull String comment) {
+        if (this.commentsBefore == null) {
+            this.commentsBefore = new ArrayList<>();
+        }
         this.commentsBefore.add(comment);
     }
 
@@ -115,11 +118,11 @@ public abstract class AbstractYamlNode implements YamlNode {
     }
 
     public @NotNull List<String> getTrailingComments() {
-        return trailingComments;
+        return trailingComments == null ? List.of() : trailingComments;
     }
 
     public void setTrailingComments(@NotNull List<String> comments) {
-        this.trailingComments = new ArrayList<>(comments);
+        this.trailingComments = comments;
     }
 
     public int getTrailingEmptyLines() {
@@ -141,8 +144,10 @@ public abstract class AbstractYamlNode implements YamlNode {
 
         sb.append("\n".repeat(Math.max(0, emptyLinesBefore)));
 
-        for (String comment : commentsBefore) {
-            sb.append(indentStr).append("#").append(comment).append("\n");
+        if (commentsBefore != null) {
+            for (String comment : commentsBefore) {
+                sb.append(indentStr).append("#").append(comment).append("\n");
+            }
         }
 
         return sb.toString();
@@ -156,7 +161,7 @@ public abstract class AbstractYamlNode implements YamlNode {
     }
 
     protected @NotNull String buildTrailingComments(int indent, int currentLevel) {
-        if (trailingComments.isEmpty()) {
+        if (trailingComments == null || trailingComments.isEmpty()) {
             return "";
         }
         StringBuilder sb = new StringBuilder();
@@ -170,8 +175,8 @@ public abstract class AbstractYamlNode implements YamlNode {
     }
 
     protected void copyCommentsTo(@NotNull AbstractYamlNode target) {
-        target.commentsBefore = new ArrayList<>(this.commentsBefore);
-        target.trailingComments = new ArrayList<>(this.trailingComments);
+        target.commentsBefore = this.commentsBefore == null ? null : new ArrayList<>(this.commentsBefore);
+        target.trailingComments = this.trailingComments == null ? null : new ArrayList<>(this.trailingComments);
         target.inlineComment = this.inlineComment;
         target.emptyLinesBefore = this.emptyLinesBefore;
         target.trailingEmptyLines = this.trailingEmptyLines;
