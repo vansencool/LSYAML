@@ -14,7 +14,7 @@ LSYAML offers lightning-fast parsing while retaining the original formatting of 
 
 ## Features at a glance
 
-- Very fast parsing (**up to ~9× faster than SnakeYAML** in [large-scale benchmarks](#benchmarks))
+- Very fast parsing (**up to ~30× faster than SnakeYAML** in [large-scale benchmarks](#benchmarks))
 - **Full format preservation** - comments, empty lines, indentation retained
 - **Strict and lenient** parsing modes with detailed error reporting
 - **Runtime editing** of YAML nodes
@@ -184,44 +184,45 @@ Benchmarks performed using JMH on:
 
 ### Throughput (higher is better)
 
-### Standard Workloads
+Hot throughput (JMH, steady state) across four workloads, LSYAML lenient vs SnakeYAML:
 
-| Workload | LSYAML (lenient) | LSYAML (strict) | SnakeYAML   | Speedup (lenient) |
-| -------- | ---------------- | --------------- | ----------- |-------------------|
-| Simple   | 589 ops/ms       | 526 ops/ms      | 293 ops/ms  | **~2.0×**         |
-| Medium   | 47.6 ops/ms      | 44.3 ops/ms     | 44.3 ops/ms | ~1.07×            |
-| Complex  | 0.138 ops/ms      | 0.127 ops/ms     | 0.100 ops/ms | **~1.38×**        |
+| Workload | LSYAML (lenient) | SnakeYAML    | Speedup         |
+| -------- | ---------------- | ------------ | --------------- |
+| Simple   | 7867 ops/ms      | 280 ops/ms   | **~28× faster** |
+| Medium   | 520 ops/ms       | 39 ops/ms    | **~13× faster** |
+| Complex  | 1.272 ops/ms     | 0.099 ops/ms | **~13× faster** |
+| Insane   | 0.089 ops/ms     | 0.003 ops/ms | **~30× faster** |
 
-### Large / Insane Workload
+*Simple: flat key/value. Medium: nested sections. Complex: 218 KB, ~9k lines. Insane: 1.4 MB stress test with anchors, flow collections, and block scalars.*
 
-(723k characters, 135k+ lines YAML)
+### Since the previous release
 
-| Mode    | LSYAML       | SnakeYAML    | Speedup        |
-| ------- | ------------ | ------------ | -------------- |
-| Lenient | 0.027 ops/ms | 0.003 ops/ms | **~9× faster** |
-| Strict  | 0.025 ops/ms | 0.003 ops/ms | **~8× faster** |
+Recent versions rewrote the parser onto an offset engine and eliminated the
+biggest allocation and control-flow costs. Compared to `1.2.5`:
+
+| Workload | 1.2.5        | Current      | Speedup     |
+| -------- | ------------ | ------------ | ----------- |
+| Simple   | 572 ops/ms   | 7867 ops/ms  | **~13×**    |
+| Medium   | 46.3 ops/ms  | 520 ops/ms   | **~11×**    |
+| Complex  | 0.129 ops/ms | 1.272 ops/ms | **~10×**    |
+| Insane   | 0.024 ops/ms | 0.089 ops/ms | **~3.7×**   |
 
 ---
 
 ### Allocation (bytes per operation, lower is better)
 
-#### Standard Workloads
-
-| Workload | LSYAML      | SnakeYAML    | Reduction     |
-| -------- | ----------- | ------------ | ------------- |
-| Simple   | 3,928 B/op  | 15,672 B/op  | **~75% less** |
-| Medium   | 45,072 B/op | 92,264 B/op  | **~51% less** |
-| Complex  | 68,952 B/op | 180,680 B/op | **~62% less** |
-
-#### Large / Insane Workload
-
-| Workload | LSYAML    | SnakeYAML | Reduction     |
-| -------- | --------- | --------- | ------------- |
-| Insane   | 132 MB/op | 384 MB/op | **~65% less** |
+| Workload | LSYAML     | SnakeYAML   | Reduction     |
+| -------- | ---------- | ----------- | ------------- |
+| Simple   | 1.7 KB/op  | 15.7 KB/op  | **~89% less** |
+| Medium   | 18 KB/op   | 92 KB/op    | **~80% less** |
+| Complex  | 5.7 MB/op  | 30 MB/op    | **~81% less** |
+| Insane   | 77 MB/op   | 380 MB/op   | **~80% less** |
 
 ---
 
-> LSYAML consistently allocates significantly less memory and scales better under heavy workloads, achieving up to **~9× higher throughput** in extreme scenarios.
+> LSYAML consistently allocates far less memory and scales better under heavy
+> workloads, achieving over **~28× higher throughput** than SnakeYAML while
+> preserving comments, blank lines, and formatting that SnakeYAML discards.
 
 Full benchmark source: https://github.com/vansencool/LSYAML-Benchmark
 

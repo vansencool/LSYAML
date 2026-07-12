@@ -1,5 +1,7 @@
 package net.vansencool.lsyaml.parser;
 
+import net.vansencool.lsyaml.diagnostic.Diagnostic;
+import net.vansencool.lsyaml.diagnostic.Severity;
 import net.vansencool.lsyaml.exceptions.YamlParseException;
 import net.vansencool.lsyaml.node.YamlNode;
 import org.jetbrains.annotations.NotNull;
@@ -8,27 +10,23 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * Result of parsing YAML with detailed issue reporting.
- * Provides access to the parsed node and any issues encountered.
+ * Result of parsing YAML with detailed diagnostics.
  */
 @SuppressWarnings("unused")
 public final class ParseResult {
 
     private final YamlNode node;
-    private final List<ParseIssue> issues;
+    private final List<Diagnostic> diagnostics;
     private final boolean success;
 
-    private ParseResult(@Nullable YamlNode node, @NotNull List<ParseIssue> issues, boolean success) {
+    private ParseResult(@Nullable YamlNode node, @NotNull List<Diagnostic> diagnostics, boolean success) {
         this.node = node;
-        this.issues = List.copyOf(issues);
+        this.diagnostics = List.copyOf(diagnostics);
         this.success = success;
     }
 
     /**
      * Creates a successful result.
-     *
-     * @param node the parsed node
-     * @return the result
      */
     public static @NotNull ParseResult success(@NotNull YamlNode node) {
         return new ParseResult(node, List.of(), true);
@@ -36,77 +34,71 @@ public final class ParseResult {
 
     /**
      * Creates a successful result with warnings.
-     *
-     * @param node     the parsed node
-     * @param warnings the warnings encountered
-     * @return the result
      */
-    public static @NotNull ParseResult successWithWarnings(@NotNull YamlNode node, @NotNull List<ParseIssue> warnings) {
+    public static @NotNull ParseResult successWithWarnings(@NotNull YamlNode node, @NotNull List<Diagnostic> warnings) {
         return new ParseResult(node, warnings, true);
     }
 
     /**
      * Creates a failed result.
-     *
-     * @param issues the issues that caused failure
-     * @return the result
      */
-    public static @NotNull ParseResult failure(@NotNull List<ParseIssue> issues) {
-        return new ParseResult(null, issues, false);
+    public static @NotNull ParseResult failure(@NotNull List<Diagnostic> diagnostics) {
+        return new ParseResult(null, diagnostics, false);
     }
 
     /**
-     * Creates a result with node and issues.
-     *
-     * @param node   the parsed node (may be partial)
-     * @param issues all issues encountered
-     * @return the result
+     * Creates a result with a node and diagnostics, failing when any is an error.
      */
-    public static @NotNull ParseResult withIssues(@Nullable YamlNode node, @NotNull List<ParseIssue> issues) {
-        boolean hasErrors = issues.stream().anyMatch(ParseIssue::isError);
-        return new ParseResult(node, issues, !hasErrors);
+    public static @NotNull ParseResult withIssues(@Nullable YamlNode node, @NotNull List<Diagnostic> diagnostics) {
+        boolean hasErrors = diagnostics.stream().anyMatch(ParseResult::isError);
+        return new ParseResult(node, diagnostics, !hasErrors);
+    }
+
+    private static boolean isError(@NotNull Diagnostic d) {
+        return d.severity() == Severity.ERROR;
+    }
+
+    private static boolean isWarning(@NotNull Diagnostic d) {
+        return d.severity() == Severity.WARNING;
     }
 
     /**
-     * @return true if parsing succeeded without errors
+     * Returns whether parsing succeeded without errors.
      */
     public boolean isSuccess() {
         return success;
     }
 
     /**
-     * @return true if there are any issues (errors or warnings)
+     * Returns whether there are any diagnostics.
      */
     public boolean hasIssues() {
-        return !issues.isEmpty();
+        return !diagnostics.isEmpty();
     }
 
     /**
-     * @return true if there are any errors
+     * Returns whether there are any errors.
      */
     public boolean hasErrors() {
-        return issues.stream().anyMatch(ParseIssue::isError);
+        return diagnostics.stream().anyMatch(ParseResult::isError);
     }
 
     /**
-     * @return true if there are any warnings
+     * Returns whether there are any warnings.
      */
     public boolean hasWarnings() {
-        return issues.stream().anyMatch(ParseIssue::isWarning);
+        return diagnostics.stream().anyMatch(ParseResult::isWarning);
     }
 
     /**
-     * @return the parsed node, or null if parsing failed
+     * Returns the parsed node, or null when parsing failed.
      */
     public @Nullable YamlNode getNode() {
         return node;
     }
 
     /**
-     * Gets the parsed node, throwing if parsing failed.
-     *
-     * @return the parsed node
-     * @throws YamlParseException if parsing failed
+     * Returns the parsed node, throwing when parsing failed.
      */
     public @NotNull YamlNode getNodeOrThrow() {
         if (node == null || !success) {
@@ -116,77 +108,68 @@ public final class ParseResult {
     }
 
     /**
-     * @return all issues (errors and warnings)
+     * Returns all diagnostics.
      */
-    public @NotNull List<ParseIssue> getIssues() {
-        return issues;
+    public @NotNull List<Diagnostic> getIssues() {
+        return diagnostics;
     }
 
     /**
-     * @return only error issues
+     * Returns only error diagnostics.
      */
-    public @NotNull List<ParseIssue> getErrors() {
-        return issues.stream().filter(ParseIssue::isError).toList();
+    public @NotNull List<Diagnostic> getErrors() {
+        return diagnostics.stream().filter(ParseResult::isError).toList();
     }
 
     /**
-     * @return only warning issues
+     * Returns only warning diagnostics.
      */
-    public @NotNull List<ParseIssue> getWarnings() {
-        return issues.stream().filter(ParseIssue::isWarning).toList();
+    public @NotNull List<Diagnostic> getWarnings() {
+        return diagnostics.stream().filter(ParseResult::isWarning).toList();
     }
 
     /**
-     * @return the number of issues
+     * Returns the number of diagnostics.
      */
     public int getIssueCount() {
-        return issues.size();
+        return diagnostics.size();
     }
 
     /**
-     * @return the number of errors
+     * Returns the number of errors.
      */
     public int getErrorCount() {
-        return (int) issues.stream().filter(ParseIssue::isError).count();
+        return (int) diagnostics.stream().filter(ParseResult::isError).count();
     }
 
     /**
-     * @return the number of warnings
+     * Returns the number of warnings.
      */
     public int getWarningCount() {
-        return (int) issues.stream().filter(ParseIssue::isWarning).count();
+        return (int) diagnostics.stream().filter(ParseResult::isWarning).count();
     }
 
     /**
-     * Formats all issues as a detailed string.
-     *
-     * @return formatted issues
+     * Returns a rendering of all diagnostics.
      */
     public @NotNull String formatIssues() {
-        if (issues.isEmpty()) {
+        if (diagnostics.isEmpty()) {
             return "No issues";
         }
-
         StringBuilder sb = new StringBuilder();
-        sb.append(getErrorCount()).append(" error(s), ")
-                .append(getWarningCount()).append(" warning(s)\n");
-
-        for (ParseIssue issue : issues) {
-            sb.append(issue.format());
+        for (Diagnostic d : diagnostics) {
+            sb.append(d.format());
         }
-
         return sb.toString();
     }
 
     @Override
     public String toString() {
-        if (success && issues.isEmpty()) {
+        if (success && diagnostics.isEmpty()) {
             return "ParseResult[success]";
         } else if (success) {
             return String.format("ParseResult[success with %d warning(s)]", getWarningCount());
-        } else {
-            return String.format("ParseResult[failed with %d error(s), %d warning(s)]",
-                    getErrorCount(), getWarningCount());
         }
+        return String.format("ParseResult[failed with %d error(s), %d warning(s)]", getErrorCount(), getWarningCount());
     }
 }

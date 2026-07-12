@@ -8,7 +8,7 @@ import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
-import net.vansencool.lsyaml.parser.ParseIssue;
+import net.vansencool.lsyaml.diagnostic.Diagnostic;
 import net.vansencool.lsyaml.parser.ParseOptions;
 import net.vansencool.lsyaml.parser.ParseResult;
 import net.vansencool.lsyaml.parser.YamlParsing;
@@ -134,12 +134,11 @@ public final class LSYAML {
      * @return the parse result with node and any issues
      */
     public static @NotNull ParseResult parseDetailed(@NotNull String yaml, @NotNull ParseOptions options) {
-        List<ParseIssue> issues = new ArrayList<>();
+        List<Diagnostic> issues = new ArrayList<>();
         try {
             YamlNode node = YamlParsing.parseDetailed(yaml, options, issues);
             return issues.isEmpty() ? ParseResult.success(node) : ParseResult.withIssues(node, issues);
         } catch (YamlParseException e) {
-            issues.add(ParseIssue.error(e.getMessage() != null ? e.getMessage() : "Unknown error", 0, 0, new String[0]));
             return ParseResult.failure(issues);
         }
     }

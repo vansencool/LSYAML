@@ -1,5 +1,7 @@
 package net.vansencool.lsyaml.parser;
 
+import net.vansencool.lsyaml.diagnostic.Diagnostic;
+import net.vansencool.lsyaml.diagnostic.Severity;
 import net.vansencool.lsyaml.exceptions.YamlParseException;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.YamlNode;
@@ -26,10 +28,10 @@ public final class YamlParsing {
      */
     public static @NotNull YamlNode parse(@NotNull String yaml, @NotNull ParseOptions options) {
         if (options.isStrict()) {
-            List<ParseIssue> issues = new ArrayList<>();
+            List<Diagnostic> issues = new ArrayList<>();
             YamlNode node = parseInternal(yaml, options, issues);
-            for (ParseIssue issue : issues) {
-                if (issue.isError()) {
+            for (Diagnostic issue : issues) {
+                if (issue.severity() == Severity.ERROR) {
                     throw new YamlParseException(issue.format());
                 }
             }
@@ -39,13 +41,13 @@ public final class YamlParsing {
     }
 
     /**
-     * Returns the root node and collects strict validation issues into the given list.
+     * Returns the root node and collects strict validation diagnostics into the given list.
      */
-    public static @NotNull YamlNode parseDetailed(@NotNull String yaml, @NotNull ParseOptions options, @NotNull List<ParseIssue> issues) {
+    public static @NotNull YamlNode parseDetailed(@NotNull String yaml, @NotNull ParseOptions options, @NotNull List<Diagnostic> issues) {
         return parseInternal(yaml, options, issues);
     }
 
-    private static @NotNull YamlNode parseInternal(@NotNull String yaml, @NotNull ParseOptions options, List<ParseIssue> issues) {
+    private static @NotNull YamlNode parseInternal(@NotNull String yaml, @NotNull ParseOptions options, List<Diagnostic> issues) {
         if (yaml.isEmpty() || isBlank(yaml)) {
             return new MapNode();
         }

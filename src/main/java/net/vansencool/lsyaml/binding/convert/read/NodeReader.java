@@ -9,7 +9,9 @@ import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
-import net.vansencool.lsyaml.parser.ParseIssue;
+import net.vansencool.lsyaml.diagnostic.Diagnostic;
+import net.vansencool.lsyaml.diagnostic.DiagnosticBuilder;
+import net.vansencool.lsyaml.diagnostic.Severity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -46,9 +48,9 @@ public final class NodeReader {
 
         Class<?> type = field.getType();
 
-        if (List.class.isAssignableFrom(type)) return fromListNode(node, field);
+        if (List.class.isAssignableFrom(type)) return fromListNode(node, field, lines);
         if (Set.class.isAssignableFrom(type)) {
-            List<?> list = fromListNode(node, field);
+            List<?> list = fromListNode(node, field, lines);
             return list != null ? new LinkedHashSet<>(list) : null;
         }
         if (Map.class.isAssignableFrom(type)) return fromMapNode(node, field);
@@ -162,70 +164,37 @@ public final class NodeReader {
     }
 
     /**
-     * Logs a formatted warning for a type conversion failure in the {@link ParseIssue} box style.
+     * Logs a warning describing a type conversion failure.
      */
     private static void warnConversion(@NotNull YamlNode node, @Nullable String keyName, @NotNull String expectedType, @NotNull String message, @Nullable String[] lines) {
         int nodeLine = node.getMetadata().getLine();
-
         if (lines == null || nodeLine < 1 || nodeLine > lines.length) {
-            String prefix = keyName != null ? "Key '" + keyName + "': " : "";
+            String prefix = keyName != null ? "key '" + keyName + "': " : "";
             LSYAMLLogger.warn(prefix + message);
             return;
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append('\n');
-        sb.append("+-").append("-".repeat(70)).append("-+\n");
-
-        String header = "! WARNING at line " + nodeLine;
-        if (keyName != null) {
-            header += ", key '" + keyName + "'";
+        String sourceLine = lines[nodeLine - 1];
+        int col = Math.max(0, node.getMetadata().getColumn() - 1);
+        DiagnosticBuilder builder = Diagnostic.builder()
+                .severity(Severity.WARNING)
+                .title(keyName != null ? "'" + keyName + "': " + message : message)
+                .at(nodeLine, sourceLine)
+                .highlight(col, sourceLine.length())
+                .note("expected " + expectedType + ", the default value will be used");
+        for (int i = Math.max(0, nodeLine - 3); i < nodeLine - 1; i++) {
+            builder.context(i + 1, lines[i], 0, 0, null);
         }
-        int pad = Math.max(0, 70 - header.length());
-        sb.append("| ").append(header).append(" ".repeat(pad)).append(" |\n");
-        sb.append("+-").append("-".repeat(70)).append("-+\n");
-
-        int msgPad = Math.max(0, 70 - message.length());
-        sb.append("| ").append(message).append(" ".repeat(msgPad)).append(" |\n");
-
-        String hint = "Expected type: " + expectedType + ". Default value will be used.";
-        int hintPad = Math.max(0, 70 - hint.length());
-        sb.append("| ").append(hint).append(" ".repeat(hintPad)).append(" |\n");
-        sb.append("+-").append("-".repeat(70)).append("-+\n");
-
-        sb.append("|\n");
-
-        int start = Math.max(0, nodeLine - 3);
-        int end = Math.min(lines.length, nodeLine + 2);
-        for (int i = start; i < end; i++) {
-            if (i == nodeLine - 1) {
-                sb.append("| > ").append(String.format("%4d", i + 1)).append(" | ").append(lines[i]).append('\n');
-                int col = node.getMetadata().getColumn();
-                if (col > 0) {
-                    sb.append("|        ").append(" ".repeat(col - 1)).append("^");
-                    if (col < lines[i].length()) {
-                        sb.append("~".repeat(Math.min(5, lines[i].length() - col)));
-                    }
-                    sb.append('\n');
-                }
-            } else {
-                sb.append("|   ").append(String.format("%4d", i + 1)).append(" | ").append(lines[i]).append('\n');
-            }
-        }
-
-        sb.append("|\n");
-        sb.append("+").append("-".repeat(72)).append("+");
-
-        LSYAMLLogger.warn(sb.toString());
+        LSYAMLLogger.warn(builder.build().format());
     }
 
     /**
      * Returns the list value for a field from a list node.
      */
-    private static @Nullable List<?> fromListNode(@Nullable YamlNode node, @NotNull Field field) {
+    private static @Nullable List<?> fromListNode(@Nullable YamlNode node, @NotNull Field field, @Nullable String[] lines) {
         if (!(node instanceof ListNode listNode)) {
             if (node != null) {
-                LSYAMLLogger.warn("Expected a list for field '" + field.getName() + "' but got " + node.getType());
+                LSYAMLLogger.warn("expected a list for field '" + field.getName() + "' but got " + node.getType());
             }
             return null;
         }
@@ -233,11 +202,13 @@ public final class NodeReader {
         Class<?> elementType = TypeKinds.elementType(field.getGenericType());
 
         List<Object> result = new ArrayList<>();
+        int index = 0;
         for (YamlNode item : listNode) {
-            Object value = convertFromNode(item, elementType);
+            Object value = convertFromNode(item, elementType, field.getName() + "[" + index + "]", lines);
             if (value != null) {
                 result.add(value);
             }
+            index++;
         }
         return result;
     }
