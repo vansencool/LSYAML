@@ -55,8 +55,9 @@ public final class YamlParsing {
 
         Source source = new Source(yaml);
         LineIndex lines = new LineIndex(source);
-        if (issues != null) {
-            new StrictValidator(source, lines).validate(issues);
+        YamlValidator validator = options.getValidator();
+        if (issues != null && validator != null) {
+            validator.validate(source, lines, null, issues);
         }
         Cursor cursor = new Cursor(source, lines);
         ParseSession session = new ParseSession(cursor, options);

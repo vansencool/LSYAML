@@ -1,6 +1,7 @@
 package net.vansencool.lsyaml.parser;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Options for configuring YAML parsing behavior.
@@ -8,32 +9,43 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("unused")
 public final class ParseOptions {
 
-    private final boolean strict;
+    private final @Nullable YamlValidator validator;
     private final @NotNull DuplicateKeyBehavior duplicateKeyBehavior;
 
-    private ParseOptions(boolean strict, @NotNull DuplicateKeyBehavior duplicateKeyBehavior) {
-        this.strict = strict;
+    private ParseOptions(@Nullable YamlValidator validator, @NotNull DuplicateKeyBehavior duplicateKeyBehavior) {
+        this.validator = validator;
         this.duplicateKeyBehavior = duplicateKeyBehavior;
     }
 
     /**
-     * Creates default parse options (strict mode enabled, duplicate keys silently overridden).
+     * Creates default parse options that validate with rich diagnostics.
      * Each call returns a new independent instance.
      *
      * @return default options
      */
     public static @NotNull ParseOptions defaults() {
-        return new ParseOptions(true, DuplicateKeyBehavior.SILENT);
+        return new ParseOptions(RichYamlValidator.newInstance(), DuplicateKeyBehavior.SILENT);
     }
 
     /**
-     * Creates lenient parse options (strict mode disabled, duplicate keys silently overridden).
+     * Creates lenient parse options that skip validation.
      * Each call returns a new independent instance.
      *
      * @return lenient options
      */
     public static @NotNull ParseOptions lenient() {
-        return new ParseOptions(false, DuplicateKeyBehavior.SILENT);
+        return new ParseOptions(null, DuplicateKeyBehavior.SILENT);
+    }
+
+    /**
+     * Creates strict parse options validated by the given validator.
+     * Each call returns a new independent instance.
+     *
+     * @param validator the validator to run against the document
+     * @return strict options
+     */
+    public static @NotNull ParseOptions strict(@NotNull YamlValidator validator) {
+        return new ParseOptions(validator, DuplicateKeyBehavior.SILENT);
     }
 
     /**
@@ -46,10 +58,19 @@ public final class ParseOptions {
     }
 
     /**
-     * @return true if strict mode is enabled (default: true)
+     * Returns the validator to run, or null when parsing is lenient.
+     *
+     * @return the validator, or null
+     */
+    public @Nullable YamlValidator getValidator() {
+        return validator;
+    }
+
+    /**
+     * @return true if a validator is configured
      */
     public boolean isStrict() {
-        return strict;
+        return validator != null;
     }
 
     /**
@@ -88,21 +109,31 @@ public final class ParseOptions {
      * Builder for {@link ParseOptions}.
      */
     public static final class Builder {
-        private boolean strict = true;
+        private @Nullable YamlValidator validator = RichYamlValidator.newInstance();
         private @NotNull DuplicateKeyBehavior duplicateKeyBehavior = DuplicateKeyBehavior.SILENT;
 
         private Builder() {
         }
 
         /**
-         * Enables or disables strict mode.
-         * When enabled, the parser validates YAML structure more rigorously.
+         * Enables rich validation or disables validation entirely.
          *
-         * @param strict true to enable strict mode
+         * @param strict true to validate with rich diagnostics, false to skip validation
          * @return this builder
          */
         public @NotNull Builder strict(boolean strict) {
-            this.strict = strict;
+            this.validator = strict ? RichYamlValidator.newInstance() : null;
+            return this;
+        }
+
+        /**
+         * Sets the validator to run, or null to skip validation.
+         *
+         * @param validator the validator, or null
+         * @return this builder
+         */
+        public @NotNull Builder validator(@Nullable YamlValidator validator) {
+            this.validator = validator;
             return this;
         }
 
@@ -123,7 +154,7 @@ public final class ParseOptions {
          * @return the options
          */
         public @NotNull ParseOptions build() {
-            return new ParseOptions(strict, duplicateKeyBehavior);
+            return new ParseOptions(validator, duplicateKeyBehavior);
         }
     }
 }
