@@ -1,6 +1,7 @@
 package net.vansencool.lsyaml.parser;
 
 import net.vansencool.lsyaml.diagnostic.Diagnostic;
+import net.vansencool.lsyaml.parser.diagnostic.DuplicateAnchorDiagnostic;
 import net.vansencool.lsyaml.parser.diagnostic.DuplicateKeyDiagnostic;
 import net.vansencool.lsyaml.parser.diagnostic.EmptyKeyDiagnostic;
 import net.vansencool.lsyaml.parser.diagnostic.IndentationDiagnostic;
@@ -11,6 +12,7 @@ import net.vansencool.lsyaml.parser.diagnostic.TabIndentDiagnostic;
 import net.vansencool.lsyaml.parser.diagnostic.UnclosedQuoteDiagnostic;
 import net.vansencool.lsyaml.parser.source.LineIndex;
 import net.vansencool.lsyaml.parser.source.Source;
+import net.vansencool.lsyaml.parser.text.Scan;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,6 +32,7 @@ public final class StrictValidator {
     private String @NotNull [] text = new String[0];
     private @NotNull String fullSource = "";
     private @NotNull List<Diagnostic> out = List.of();
+    private final @NotNull Map<String, int[]> seenAnchors = new HashMap<>();
 
     /**
      * Creates a validator over the given source and line index.
@@ -54,6 +57,7 @@ public final class StrictValidator {
         this.out = diagnostics;
         this.text = materializeLines();
         this.fullSource = String.join("\n", text);
+        this.seenAnchors.clear();
 
         Map<Integer, Map<String, Integer>> seenKeys = new HashMap<>();
         int[] indentStack = new int[256];
@@ -95,7 +99,9 @@ public final class StrictValidator {
                 }
                 String itemValue = trimmed.length() > 1 ? trimmed.substring(1).trim() : "";
                 if (!itemValue.isEmpty()) {
-                    checkScalar(lineNum, line, line.lastIndexOf(itemValue), itemValue);
+                    int itemColumn = line.lastIndexOf(itemValue);
+                    checkAnchor(lineNum, line, itemColumn, itemValue);
+                    checkScalar(lineNum, line, itemColumn, itemValue);
                 }
                 continue;
             }
@@ -157,11 +163,33 @@ public final class StrictValidator {
         if (valStart < valuePart.length()) {
             char valFirst = valuePart.charAt(valStart);
             int valColumn = indent + colonIdx + 1 + valStart;
+            String value = valuePart.substring(valStart).trim();
+            checkAnchor(lineNum, line, valColumn, value);
             if ((valFirst == '\'' || valFirst == '"') && valuePart.substring(valStart + 1).indexOf(valFirst) < 0) {
                 out.add(UnclosedQuoteDiagnostic.build(sourceFile, fullSource, lineNum + 1, line, valColumn, valFirst, false));
             } else {
-                checkScalar(lineNum, line, valColumn, valuePart.substring(valStart).trim());
+                checkScalar(lineNum, line, valColumn, value);
             }
+        }
+    }
+
+    private void checkAnchor(int lineNum, @NotNull String line, int column, @NotNull String value) {
+        if (value.isEmpty() || value.charAt(0) != '&' || column < 0) {
+            return;
+        }
+        int end = 1;
+        while (end < value.length() && Scan.isWord(value.charAt(end))) {
+            end++;
+        }
+        if (end == 1) {
+            return;
+        }
+        String anchor = value.substring(1, end);
+        int[] first = seenAnchors.get(anchor);
+        if (first != null) {
+            out.add(DuplicateAnchorDiagnostic.build(sourceFile, fullSource, anchor, lineNum + 1, line, column, first[0] + 1, text[first[0]], first[1], seenAnchors.keySet()));
+        } else {
+            seenAnchors.put(anchor, new int[]{lineNum, column});
         }
     }
 
