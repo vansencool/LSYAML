@@ -108,6 +108,7 @@ public final class StrictValidator {
 
             if (firstChar == '?') {
                 complexKeyIndent = indent;
+                seenKeys.keySet().removeIf(level -> level > indent);
                 continue;
             }
             if (firstChar == ':' && complexKeyIndent == indent) {
