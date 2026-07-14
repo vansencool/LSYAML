@@ -196,10 +196,10 @@ Hot throughput (JMH, steady state) across four workloads:
 
 | Workload | Lenient      | Fast validator | Rich validator | SnakeYAML    |
 | -------- | ------------ | -------------- | -------------- | ------------ |
-| Simple   | 8277 ops/ms  | 6623 ops/ms    | 2929 ops/ms    | 276 ops/ms   |
-| Medium   | 491 ops/ms   | 428 ops/ms     | 352 ops/ms     | 39 ops/ms    |
-| Complex  | 1.473 ops/ms | 0.863 ops/ms   | 0.880 ops/ms   | 0.104 ops/ms |
-| Insane   | 0.104 ops/ms | 0.089 ops/ms   | 0.085 ops/ms   | 0.003 ops/ms |
+| Simple   | 8117 ops/ms  | 6321 ops/ms    | 2903 ops/ms    | 278 ops/ms   |
+| Medium   | 630 ops/ms   | 483 ops/ms     | 388 ops/ms     | 41 ops/ms    |
+| Complex  | 1.651 ops/ms | 0.999 ops/ms   | 0.907 ops/ms   | 0.096 ops/ms |
+| Insane   | 0.115 ops/ms | 0.108 ops/ms   | 0.100 ops/ms   | 0.003 ops/ms |
 
 Fast validation stays close to lenient while still rejecting invalid documents. Rich costs more on small documents where diagnostic setup dominates, and converges with Fast on large ones where parsing dominates. Even Rich runs many times faster than SnakeYAML across the board.
 
@@ -207,17 +207,16 @@ Fast validation stays close to lenient while still rejecting invalid documents. 
 
 ### Since the previous release
 
-Recent versions rewrote the parser onto an offset engine and eliminated the
-biggest allocation and control-flow costs. Compared to `1.2.5`:
+Recent versions completely rewrote the parser and did many optimizations. Compared to `1.2.5`:
 
 Numbers are lenient throughput on both versions.
 
 | Workload | 1.2.5        | Current      | Speedup     |
 | -------- | ------------ | ------------ | ----------- |
-| Simple   | 572 ops/ms   | 7668 ops/ms  | **~13×**    |
-| Medium   | 46.3 ops/ms  | 535 ops/ms   | **~12×**    |
-| Complex  | 0.129 ops/ms | 1.439 ops/ms | **~11×**    |
-| Insane   | 0.024 ops/ms | 0.104 ops/ms | **~4.3×**   |
+| Simple   | 572 ops/ms   | 8117 ops/ms  | **~14×**    |
+| Medium   | 46.3 ops/ms  | 630 ops/ms   | **~14×**    |
+| Complex  | 0.129 ops/ms | 1.651 ops/ms | **~13×**    |
+| Insane   | 0.024 ops/ms | 0.115 ops/ms | **~4.8×**   |
 
 ---
 
