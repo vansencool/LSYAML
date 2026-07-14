@@ -357,12 +357,7 @@ public class YamlWriter {
             case DOUBLE_QUOTED -> "\"" + escapeDoubleQuoted(strValue) + "\"";
             case LITERAL -> formatLiteralBlock(strValue);
             case FOLDED -> formatFoldedBlock(strValue);
-            default -> {
-                if (needsQuoting(strValue) && !(value instanceof Number) && !(value instanceof Boolean)) {
-                    yield "\"" + escapeDoubleQuoted(strValue) + "\"";
-                }
-                yield strValue;
-            }
+            default -> strValue;
         };
     }
 

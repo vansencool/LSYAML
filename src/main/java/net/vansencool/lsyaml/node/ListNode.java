@@ -215,7 +215,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @return this list for chaining
      */
     public @NotNull ListNode add(@NotNull String value) {
-        return add(new ScalarNode(value));
+        return add(ScalarNode.ofString(value));
     }
 
     /**
@@ -269,7 +269,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
      * @throws IndexOutOfBoundsException if index is invalid
      */
     public @NotNull ListNode setString(int index, @NotNull String value) {
-        return set(index, new ScalarNode(value));
+        return set(index, ScalarNode.ofString(value));
     }
 
     /**
@@ -412,29 +412,6 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
         return this;
     }
 
-    /**
-     * Adds a value with a comment before it.
-     *
-     * @param value         the value to add
-     * @param commentBefore the comment text (without #)
-     * @return this list for chaining
-     */
-    public @NotNull ListNode addWithComment(@NotNull YamlNode value, @NotNull String commentBefore) {
-        ListEntry entry = new ListEntry(value);
-        entry.addLeadingLine(AdjacentLine.comment(commentBefore));
-        return addEntry(entry);
-    }
-
-    /**
-     * Adds a string value with a comment before it.
-     *
-     * @param value         the string value
-     * @param commentBefore the comment text (without #)
-     * @return this list for chaining
-     */
-    public @NotNull ListNode addWithComment(@NotNull String value, @NotNull String commentBefore) {
-        return addWithComment(new ScalarNode(value), commentBefore);
-    }
 
     /**
      * Adds a trailing comment at the end of this list.

@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class Slice implements CharSequence {
 
-    private char @NotNull [] chars;
+    private final char @NotNull [] chars;
     private int start;
     private int end;
 
@@ -167,6 +167,27 @@ public final class Slice implements CharSequence {
             }
         }
         return true;
+    }
+
+    /**
+     * Returns whether the window equals a string ignoring ASCII case.
+     */
+    public boolean equalsIgnoreCase(@NotNull String other) {
+        if (other.length() != end - start) {
+            return false;
+        }
+        for (int i = 0; i < other.length(); i++) {
+            char a = chars[start + i];
+            char b = other.charAt(i);
+            if (a != b && lower(a) != lower(b)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static char lower(char c) {
+        return c >= 'A' && c <= 'Z' ? (char) (c + 32) : c;
     }
 
     @Override

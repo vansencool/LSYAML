@@ -81,7 +81,7 @@ public final class Scan {
     /**
      * Returns whether a string holds a colon outside single or double quotes, ignoring a quoted first character.
      */
-    public static boolean hasUnquotedColon(String value) {
+    public static boolean hasUnquotedColon(Slice value) {
         int len = value.length();
         if (len == 0) return false;
         char first = value.charAt(0);

@@ -15,7 +15,7 @@ public final class Cursor {
     private final @NotNull LineIndex lines;
     private int line;
     private int overrideLine = -1;
-    private char @NotNull [] overrideContent = new char[0];
+    private @NotNull Slice overrideContent = Slice.empty();
     private int overrideIndent;
 
     public Cursor(@NotNull Source source, @NotNull LineIndex lines) {
@@ -27,9 +27,9 @@ public final class Cursor {
     /**
      * Installs a synthetic content and indent for one line so an inline value reparses as a block.
      */
-    public void override(int line, @NotNull String content, int indent) {
+    public void override(int line, @NotNull Slice content, int indent) {
         this.overrideLine = line;
-        this.overrideContent = content.toCharArray();
+        this.overrideContent = content;
         this.overrideIndent = indent;
     }
 
@@ -90,7 +90,7 @@ public final class Cursor {
      * Returns the first non-whitespace character of the current line, or zero when blank.
      */
     public char firstChar() {
-        return overridden() ? overrideContent[0] : lines.firstChar(line);
+        return overridden() ? overrideContent.charAt(0) : lines.firstChar(line);
     }
 
     /**
@@ -119,7 +119,7 @@ public final class Cursor {
      */
     public @NotNull Slice trimmedContent() {
         if (overridden()) {
-            return Slice.of(overrideContent, 0, overrideContent.length);
+            return overrideContent.copy();
         }
         int s = lines.contentStart(line);
         int e = Scan.trimEnd(source, s, lines.end(line));

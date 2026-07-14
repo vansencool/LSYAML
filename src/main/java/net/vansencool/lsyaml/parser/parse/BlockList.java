@@ -70,11 +70,11 @@ public final class BlockList {
             int hash = Scan.inlineHash(valueSlice.array(), valueSlice.start(), valueSlice.end());
             if (hash >= 0) {
                 entry.setInlineComment(valueSlice.copy().sub(hash + 1).toString());
-                valueSlice = valueSlice.sub(0, hash - 1).trim();
+                valueSlice.sub(0, hash - 1).trim();
             }
 
             cursor.advance();
-            for (int i = 0, n = fillEntry(entry, valueSlice.toString(), indent); i < n; i++) {
+            for (int i = 0, n = fillEntry(entry, valueSlice, indent); i < n; i++) {
                 pending.add(AdjacentLine.blank());
             }
 
@@ -86,7 +86,7 @@ public final class BlockList {
         return list;
     }
 
-    private int fillEntry(@NotNull ListNode.ListEntry entry, @NotNull String valueStr, int indent) {
+    private int fillEntry(@NotNull ListNode.ListEntry entry, @NotNull Slice valueStr, int indent) {
         Cursor cursor = session.cursor();
         if (valueStr.isEmpty()) {
             List<AdjacentLine> nested = session.skipBlanksAndComments();

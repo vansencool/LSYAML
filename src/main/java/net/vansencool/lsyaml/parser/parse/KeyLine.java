@@ -14,10 +14,10 @@ public final class KeyLine {
 
     private final @NotNull String key;
     private final @NotNull ScalarStyle keyStyle;
-    private final @NotNull String value;
+    private final @NotNull Slice value;
     private final @Nullable String inlineComment;
 
-    private KeyLine(@NotNull String key, @NotNull ScalarStyle keyStyle, @NotNull String value, @Nullable String inlineComment) {
+    private KeyLine(@NotNull String key, @NotNull ScalarStyle keyStyle, @NotNull Slice value, @Nullable String inlineComment) {
         this.key = key;
         this.keyStyle = keyStyle;
         this.value = value;
@@ -44,13 +44,13 @@ public final class KeyLine {
             int hash = Scan.inlineHash(valuePart.array(), valuePart.start(), valuePart.end());
             if (hash >= 0) {
                 inlineComment = valuePart.copy().sub(hash + 1).toString();
-                valuePart = valuePart.sub(0, hash - 1).trim();
+                valuePart.sub(0, hash - 1).trim();
             } else {
                 inlineComment = null;
             }
         }
 
-        return new KeyLine(unquoteKey(keyPart), keyStyle(keyPart), valuePart.toString(), inlineComment);
+        return new KeyLine(unquoteKey(keyPart), keyStyle(keyPart), valuePart, inlineComment);
     }
 
     /**
@@ -70,7 +70,7 @@ public final class KeyLine {
     /**
      * Returns the value text with any inline comment removed.
      */
-    public @NotNull String value() {
+    public @NotNull Slice value() {
         return value;
     }
 

@@ -147,7 +147,7 @@ public class ListBuilder {
      * @return this builder
      */
     public @NotNull ListBuilder add(@NotNull String value) {
-        items.add(new ItemBuilder(new ScalarNode(value)));
+        items.add(new ItemBuilder(ScalarNode.ofString(value)));
         return this;
     }
 
@@ -324,7 +324,7 @@ public class ListBuilder {
          * @return the parent ListBuilder
          */
         public @NotNull ListBuilder value(@NotNull String value) {
-            this.value = new ScalarNode(value);
+            this.value = ScalarNode.ofString(value);
             return ListBuilder.this;
         }
 

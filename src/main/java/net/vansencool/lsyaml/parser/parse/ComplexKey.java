@@ -33,7 +33,7 @@ public final class ComplexKey {
         if (trimmed.isEmpty() || trimmed.charAt(0) != '?') return null;
 
         cursor.advance();
-        String keyContent = trimmed.length() > 1 ? trimmed.sub(1).trim().toString() : "";
+        Slice keyContent = trimmed.length() > 1 ? trimmed.sub(1).trim() : Slice.empty();
         YamlNode complexKey = parseKey(keyContent, indent);
         String keyString = keyString(complexKey);
 
@@ -49,7 +49,7 @@ public final class ComplexKey {
         return entry;
     }
 
-    private @NotNull YamlNode parseKey(@NotNull String keyContent, int indent) {
+    private @NotNull YamlNode parseKey(@NotNull Slice keyContent, int indent) {
         if (keyContent.isEmpty()) {
             return descend(indent, true);
         }
@@ -63,13 +63,13 @@ public final class ComplexKey {
         return Scalars.of(keyContent);
     }
 
-    private @Nullable MapNode inlineMap(@NotNull String content, int mapIndent) {
+    private @Nullable MapNode inlineMap(@NotNull Slice content, int mapIndent) {
         Cursor cursor = session.cursor();
         if (cursor.hasMore() && cursor.firstChar() != 0 && cursor.indent() >= mapIndent) {
             return null;
         }
 
-        KeyLine key = KeyLine.parse(Slice.of(content.toCharArray(), 0, content.length()));
+        KeyLine key = KeyLine.parse(content);
         if (key == null || key.inlineComment() != null || key.value().isEmpty()) {
             return null;
         }
@@ -104,7 +104,7 @@ public final class ComplexKey {
         if (!valueTrimmed.startsWith(':')) return new ScalarNode(null);
 
         cursor.advance();
-        String valueContent = valueTrimmed.length() > 1 ? valueTrimmed.sub(1).trim().toString() : "";
+        Slice valueContent = valueTrimmed.length() > 1 ? valueTrimmed.sub(1).trim() : Slice.empty();
         if (!valueContent.isEmpty()) {
             return session.values().parse(valueContent, valueIndent);
         }

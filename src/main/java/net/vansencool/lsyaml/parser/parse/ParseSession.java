@@ -3,10 +3,10 @@ package net.vansencool.lsyaml.parser.parse;
 import net.vansencool.lsyaml.node.AdjacentLine;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
-import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
 import net.vansencool.lsyaml.parser.ParseOptions;
 import net.vansencool.lsyaml.parser.text.Scan;
+import net.vansencool.lsyaml.parser.text.Slice;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -154,7 +154,7 @@ public final class ParseSession {
     /**
      * Returns a flow node parsed from an inline value, collecting continuation lines.
      */
-    public @NotNull YamlNode flow(@NotNull String value, char open) {
+    public @NotNull YamlNode flow(@NotNull Slice value, char open) {
         char close = open == '{' ? '}' : ']';
         MultiLineFlow.Result collected = MultiLineFlow.collect(cursor, value, open, close);
         YamlNode node = open == '{' ? Flow.map(collected.content()) : Flow.list(collected.content());
@@ -171,16 +171,9 @@ public final class ParseSession {
     }
 
     /**
-     * Returns a block scalar node read from the cursor at the given indicator and indentation.
-     */
-    public @NotNull ScalarNode blockScalar(@NotNull String indicator, int indent) {
-        return BlockScalar.read(cursor, indicator, indent);
-    }
-
-    /**
      * Returns a node parsed by treating an inline value as a re-indented block at the prior line.
      */
-    public @NotNull YamlNode reparseInline(int indent, @NotNull String content, char marker) {
+    public @NotNull YamlNode reparseInline(int indent, @NotNull Slice content, char marker) {
         cursor.line(cursor.line() - 1);
         cursor.override(cursor.line(), content, indent);
         YamlNode node = marker == '-' ? list.parse(indent, new ArrayList<>()) : map.parse(indent, new ArrayList<>());

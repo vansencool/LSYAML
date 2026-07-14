@@ -3,6 +3,8 @@ package net.vansencool.lsyaml.node;
 import net.vansencool.lsyaml.metadata.NodeMetadata;
 import net.vansencool.lsyaml.metadata.ScalarStyle;
 import net.vansencool.lsyaml.node.type.NodeType;
+import net.vansencool.lsyaml.node.type.ScalarType;
+import net.vansencool.lsyaml.node.type.ScalarTypes;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,6 +17,7 @@ public class ScalarNode extends AbstractYamlNode {
     private @Nullable Object value;
     private @NotNull ScalarStyle style;
     private @Nullable String tag;
+    private @Nullable ScalarType type;
 
     /**
      * Creates a new scalar node with null value and plain style.
@@ -36,6 +39,25 @@ public class ScalarNode extends AbstractYamlNode {
         this.value = value;
         this.style = ScalarStyle.PLAIN;
         this.tag = null;
+    }
+
+    /**
+     * Returns a scalar node for a user-supplied string, quoting it when a bare form would reparse as another type or break syntax.
+     *
+     * @param value the string value
+     * @return the scalar node
+     */
+    public static @NotNull ScalarNode ofString(@NotNull String value) {
+        return new ScalarNode(value, needsQuoting(value) ? ScalarStyle.DOUBLE_QUOTED : ScalarStyle.PLAIN);
+    }
+
+    private static boolean needsQuoting(@NotNull String str) {
+        if (str.isEmpty()) return true;
+        if (str.contains(": ") || str.contains(" #") || str.contains("\n")) return true;
+        if (str.startsWith("&") || str.startsWith("*") || str.startsWith("!")) return true;
+        if (str.startsWith("-") || str.startsWith("[") || str.startsWith("{")) return true;
+        if (str.startsWith("'") || str.startsWith("\"")) return true;
+        return ScalarTypes.of(str) != ScalarType.STRING;
     }
 
     /**
@@ -86,6 +108,21 @@ public class ScalarNode extends AbstractYamlNode {
      */
     public void setValue(@Nullable Object value) {
         this.value = value;
+        this.type = null;
+    }
+
+    /**
+     * Returns the resolved scalar kind under the YAML 1.2 core schema, classified on first access.
+     *
+     * @return the scalar type
+     */
+    public @NotNull ScalarType type() {
+        ScalarType cached = type;
+        if (cached == null) {
+            cached = ScalarTypes.of(value);
+            type = cached;
+        }
+        return cached;
     }
 
     /**
@@ -136,7 +173,7 @@ public class ScalarNode extends AbstractYamlNode {
         if (value instanceof Number) {
             return ((Number) value).intValue();
         }
-        return Integer.parseInt(value.toString());
+        return parseInt(value.toString());
     }
 
     /**
@@ -149,7 +186,7 @@ public class ScalarNode extends AbstractYamlNode {
         if (value instanceof Number) {
             return ((Number) value).longValue();
         }
-        return Long.parseLong(value.toString());
+        return parseLong(value.toString());
     }
 
     /**
@@ -197,7 +234,7 @@ public class ScalarNode extends AbstractYamlNode {
         String val = getString();
         if (val == null) return null;
         try {
-            return Integer.parseInt(val);
+            return parseInt(val);
         } catch (NumberFormatException e) {
             return null;
         }
@@ -212,7 +249,7 @@ public class ScalarNode extends AbstractYamlNode {
         String val = getString();
         if (val == null) return null;
         try {
-            return Long.parseLong(val);
+            return parseLong(val);
         } catch (NumberFormatException e) {
             return null;
         }
@@ -341,12 +378,7 @@ public class ScalarNode extends AbstractYamlNode {
             case DOUBLE_QUOTED -> "\"" + escapeDoubleQuoted(strValue) + "\"";
             case LITERAL -> formatLiteralBlock(strValue);
             case FOLDED -> formatFoldedBlock(strValue);
-            default -> {
-                if (needsQuoting(strValue)) {
-                    yield "\"" + escapeDoubleQuoted(strValue) + "\"";
-                }
-                yield strValue;
-            }
+            default -> strValue;
         };
     }
 
@@ -358,24 +390,22 @@ public class ScalarNode extends AbstractYamlNode {
                 .replace("\t", "\\t");
     }
 
-    private boolean needsQuoting(@NotNull String str) {
-        if (str.isEmpty()) return true;
-        if (str.contains(": ") || str.contains(" #") || str.contains("\n")) return true;
-        if (str.startsWith("&") || str.startsWith("*") || str.startsWith("!")) return true;
-        if (str.startsWith("-") || str.startsWith("[") || str.startsWith("{")) return true;
-        if (str.startsWith("'") || str.startsWith("\"")) return true;
-        if ("true".equalsIgnoreCase(str) || "false".equalsIgnoreCase(str)) {
-            return !(value instanceof Boolean);
+    private static int parseInt(@NotNull String str) {
+        if (str.length() > 2 && str.charAt(0) == '0') {
+            char second = str.charAt(1);
+            if (second == 'x' || second == 'X') return Integer.parseInt(str.substring(2), 16);
+            if (second == 'o' || second == 'O') return Integer.parseInt(str.substring(2), 8);
         }
-        if ("null".equalsIgnoreCase(str) || "~".equals(str)) {
-            return value != null;
+        return Integer.parseInt(str);
+    }
+
+    private static long parseLong(@NotNull String str) {
+        if (str.length() > 2 && str.charAt(0) == '0') {
+            char second = str.charAt(1);
+            if (second == 'x' || second == 'X') return Long.parseLong(str.substring(2), 16);
+            if (second == 'o' || second == 'O') return Long.parseLong(str.substring(2), 8);
         }
-        try {
-            Double.parseDouble(str);
-            return !(value instanceof Number);
-        } catch (NumberFormatException e) {
-            return false;
-        }
+        return Long.parseLong(str);
     }
 
     private @NotNull String formatLiteralBlock(@NotNull String str) {

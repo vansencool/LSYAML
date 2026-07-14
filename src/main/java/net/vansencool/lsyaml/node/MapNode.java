@@ -226,7 +226,7 @@ public class MapNode extends AbstractYamlNode {
      * @return this map for chaining
      */
     public @NotNull MapNode put(@NotNull String key, @NotNull String value) {
-        return put(key, new ScalarNode(value));
+        return put(key, ScalarNode.ofString(value));
     }
 
     /**
@@ -912,7 +912,7 @@ public class MapNode extends AbstractYamlNode {
      * @param value the value to set
      */
     public void setString(@NotNull String path, @NotNull String value) {
-        setAtPath(path, new ScalarNode(value));
+        setAtPath(path, ScalarNode.ofString(value));
     }
 
     /**

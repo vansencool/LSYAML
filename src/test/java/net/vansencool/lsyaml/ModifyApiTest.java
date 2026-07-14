@@ -211,8 +211,9 @@ class ModifyApiTest {
     @Test
     void listAddWithComment() {
         ListNode list = new ListNode();
-        list.addWithComment("item1", " First item comment");
-        
+        list.add("item1");
+        list.modify(0).commentBefore(" First item comment");
+
         String yaml = list.toYaml();
         assertTrue(yaml.contains("# First item comment"));
         assertTrue(yaml.contains("- item1"));

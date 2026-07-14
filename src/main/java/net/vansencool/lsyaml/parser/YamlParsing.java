@@ -75,7 +75,7 @@ public final class YamlParsing {
         if (firstChar == '-') {
             result = session.list().parse(0, pending);
         } else if (firstChar == '{' || firstChar == '[') {
-            result = session.flow(cursor.trimmedContent().toString(), firstChar);
+            result = session.flow(cursor.trimmedContent(), firstChar);
             cursor.advance();
             if (!pending.isEmpty()) result.setLeadingLines(pending);
             List<AdjacentLine> trailing = session.skipBlanksAndComments();

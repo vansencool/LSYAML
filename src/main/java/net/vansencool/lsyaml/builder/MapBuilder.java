@@ -151,7 +151,7 @@ public class MapBuilder {
      * @return this builder
      */
     public @NotNull MapBuilder put(@NotNull String key, @NotNull String value) {
-        entries.add(new EntryBuilder(key, new ScalarNode(value)));
+        entries.add(new EntryBuilder(key, ScalarNode.ofString(value)));
         return this;
     }
 
@@ -398,7 +398,7 @@ public class MapBuilder {
          * @return the parent MapBuilder
          */
         public @NotNull MapBuilder value(@NotNull String value) {
-            this.value = new ScalarNode(value);
+            this.value = ScalarNode.ofString(value);
             return MapBuilder.this;
         }
 

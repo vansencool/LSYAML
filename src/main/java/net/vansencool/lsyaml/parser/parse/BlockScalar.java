@@ -3,6 +3,7 @@ package net.vansencool.lsyaml.parser.parse;
 import net.vansencool.lsyaml.metadata.ScalarStyle;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.parser.source.Source;
+import net.vansencool.lsyaml.parser.text.Slice;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -16,7 +17,7 @@ public final class BlockScalar {
     /**
      * Returns the block scalar read from the cursor below an indicator line at the given indentation.
      */
-    public static @NotNull ScalarNode read(@NotNull Cursor cursor, @NotNull String indicator, int indent) {
+    public static @NotNull ScalarNode read(@NotNull Cursor cursor, @NotNull Slice indicator, int indent) {
         ScalarStyle style = indicator.charAt(0) == '|' ? ScalarStyle.LITERAL : ScalarStyle.FOLDED;
         StringBuilder content = new StringBuilder();
         int contentIndent = -1;

@@ -21,31 +21,16 @@ public final class Flow {
     /**
      * Returns a flow map parsed from a brace-delimited string.
      */
-    public static @NotNull MapNode map(@NotNull String str) {
-        return map(Slice.of(str.toCharArray(), 0, str.length()));
-    }
-
-    /**
-     * Returns a flow list parsed from a bracket-delimited string.
-     */
-    public static @NotNull ListNode list(@NotNull String str) {
-        return list(Slice.of(str.toCharArray(), 0, str.length()));
-    }
-
-    /**
-     * Returns the node for a single flow value, recursing into nested flow collections.
-     */
-    public static @NotNull YamlNode value(@NotNull String value) {
-        return value(Slice.of(value.toCharArray(), 0, value.length()));
-    }
-
-    private static @NotNull MapNode map(@NotNull Slice str) {
+    public static @NotNull MapNode map(@NotNull Slice str) {
         MapNode map = new MapNode(CollectionStyle.FLOW);
         mapContent(map, strip(str, '{', '}'));
         return map;
     }
 
-    private static @NotNull ListNode list(@NotNull Slice str) {
+    /**
+     * Returns a flow list parsed from a bracket-delimited string.
+     */
+    public static @NotNull ListNode list(@NotNull Slice str) {
         ListNode list = new ListNode(CollectionStyle.FLOW);
         Slice content = strip(str, '[', ']');
         int start = content.start();
@@ -76,17 +61,20 @@ public final class Flow {
         return list;
     }
 
+    /**
+     * Returns the node for a single flow value, recursing into nested flow collections.
+     */
+    public static @NotNull YamlNode value(@NotNull Slice value) {
+        Slice v = value.trim();
+        if (v.startsWith('{')) return map(v);
+        if (v.startsWith('[')) return list(v);
+        return Scalars.of(v);
+    }
+
     private static void addItem(@NotNull ListNode list, @NotNull Slice item) {
         if (!item.isEmpty()) {
             list.addEntry(new ListNode.ListEntry(value(item)));
         }
-    }
-
-    private static @NotNull YamlNode value(@NotNull Slice value) {
-        Slice v = value.trim();
-        if (v.startsWith('{')) return map(v);
-        if (v.startsWith('[')) return list(v);
-        return Scalars.of(v.toString());
     }
 
     private static void mapContent(@NotNull MapNode map, @NotNull Slice content) {

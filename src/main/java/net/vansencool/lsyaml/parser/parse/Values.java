@@ -2,6 +2,7 @@ package net.vansencool.lsyaml.parser.parse;
 
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
+import net.vansencool.lsyaml.parser.text.Slice;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -19,8 +20,8 @@ public final class Values {
      * Returns the node for a value string at the given indentation.
      */
     @NotNull
-    public YamlNode parse(@NotNull String value, int indent) {
-        String v = value;
+    public YamlNode parse(@NotNull Slice value, int indent) {
+        Slice v = value;
         if (v.isEmpty()) return new ScalarNode(null);
 
         char first = v.charAt(0);
@@ -37,7 +38,7 @@ public final class Values {
             return session.flow(v, first);
         }
         if (first == '|' || first == '>') {
-            return session.blockScalar(v, indent);
+            return BlockScalar.read(session.cursor(), v, indent);
         }
 
         String anchor = null;
@@ -50,11 +51,8 @@ public final class Values {
 
         String tag = null;
         if (!v.isEmpty() && v.charAt(0) == '!') {
-            int tagEnd = 1;
-            while (tagEnd < v.length() && v.charAt(tagEnd) != ' ' && v.charAt(tagEnd) != '\t') tagEnd++;
-            tag = v.substring(0, tagEnd);
-            while (tagEnd < v.length() && (v.charAt(tagEnd) == ' ' || v.charAt(tagEnd) == '\t')) tagEnd++;
-            v = v.substring(tagEnd);
+            tag = Tags.leading(v);
+            v = Tags.withoutLeading(v);
         }
 
         ScalarNode scalar = Scalars.of(v);
