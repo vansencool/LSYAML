@@ -37,10 +37,10 @@ public final class IntHashMap {
     private int threshold;
 
     /**
-     * Creates an empty map.
+     * Creates an empty map with a small initial table.
      */
     public IntHashMap() {
-        this.threshold = 0;
+        this.threshold = 4;
     }
 
     /**

@@ -72,7 +72,7 @@ public abstract class AbstractYamlNode implements YamlNode {
      * Replaces the ordered blank and comment lines before this node.
      */
     public void setLeadingLines(@NotNull List<AdjacentLine> lines) {
-        this.leadingLines = lines.isEmpty() ? null : new ArrayList<>(lines);
+        this.leadingLines = lines.isEmpty() ? null : lines;
     }
 
     /**

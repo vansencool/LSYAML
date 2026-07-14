@@ -47,4 +47,53 @@ public final class Scan {
     public static boolean isWord(char c) {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
     }
+
+    /**
+     * Returns the start-relative index of the first unquoted colon in a span, or NONE.
+     */
+    public static int unquotedColon(char[] chars, int start, int end) {
+        boolean single = false;
+        boolean dbl = false;
+        for (int i = start; i < end; i++) {
+            char c = chars[i];
+            if (c == '\'' && !dbl) single = !single;
+            else if (c == '"' && !single) dbl = !dbl;
+            else if (c == ':' && !single && !dbl) return i - start;
+        }
+        return NONE;
+    }
+
+    /**
+     * Returns the start-relative index of the first unquoted inline comment hash in a span, or NONE.
+     */
+    public static int inlineHash(char[] chars, int start, int end) {
+        boolean single = false;
+        boolean dbl = false;
+        for (int i = start; i < end; i++) {
+            char c = chars[i];
+            if (c == '\'' && !dbl) single = !single;
+            else if (c == '"' && !single) dbl = !dbl;
+            else if (c == '#' && !single && !dbl && i > start && chars[i - 1] == ' ') return i - start;
+        }
+        return NONE;
+    }
+
+    /**
+     * Returns whether a string holds a colon outside single or double quotes, ignoring a quoted first character.
+     */
+    public static boolean hasUnquotedColon(String value) {
+        int len = value.length();
+        if (len == 0) return false;
+        char first = value.charAt(0);
+        if (first == '\'' || first == '"') return false;
+        boolean single = false;
+        boolean dbl = false;
+        for (int i = 0; i < len; i++) {
+            char c = value.charAt(i);
+            if (c == '\'' && !dbl) single = !single;
+            else if (c == '"' && !single) dbl = !dbl;
+            else if (c == ':' && !single && !dbl) return true;
+        }
+        return false;
+    }
 }

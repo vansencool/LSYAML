@@ -62,8 +62,7 @@ public final class YamlParsing {
         Cursor cursor = new Cursor(source, lines);
         ParseSession session = new ParseSession(cursor, options);
 
-        List<AdjacentLine> pending = new ArrayList<>();
-        session.skipBlanksAndComments(pending);
+        List<AdjacentLine> pending = session.skipBlanksAndComments();
 
         if (!cursor.hasMore()) {
             MapNode empty = new MapNode();
@@ -79,8 +78,7 @@ public final class YamlParsing {
             result = session.flow(cursor.trimmedContent().toString(), firstChar);
             cursor.advance();
             if (!pending.isEmpty()) result.setLeadingLines(pending);
-            List<AdjacentLine> trailing = new ArrayList<>();
-            session.skipBlanksAndComments(trailing);
+            List<AdjacentLine> trailing = session.skipBlanksAndComments();
             if (!trailing.isEmpty()) result.setTrailingLines(trailing);
         } else {
             result = session.map().parse(0, pending);

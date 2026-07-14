@@ -5,6 +5,7 @@ import net.vansencool.lsyaml.metadata.ScalarStyle;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.YamlNode;
+import net.vansencool.lsyaml.parser.text.Scan;
 import net.vansencool.lsyaml.parser.text.Slice;
 import net.vansencool.lsyaml.parser.text.Strings;
 import org.jetbrains.annotations.NotNull;
@@ -119,7 +120,7 @@ public final class Flow {
 
     private static void putPair(@NotNull MapNode map, @NotNull Slice pair) {
         if (pair.isEmpty()) return;
-        int colonIdx = unquotedColon(pair);
+        int colonIdx = Scan.unquotedColon(pair.array(), pair.start(), pair.end());
         if (colonIdx <= 0) return;
         char[] chars = pair.array();
         int base = pair.start();
@@ -138,17 +139,6 @@ public final class Flow {
         return Slice.of(chars, start, end).trim();
     }
 
-    private static int unquotedColon(@NotNull Slice str) {
-        boolean single = false;
-        boolean dbl = false;
-        for (int i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
-            if (c == '\'' && !dbl) single = !single;
-            else if (c == '"' && !single) dbl = !dbl;
-            else if (c == ':' && !single && !dbl) return i;
-        }
-        return -1;
-    }
 
     private static @NotNull String unquoteKey(@NotNull Slice key) {
         if (key.length() >= 2 && key.startsWith('\'') && key.endsWith('\'')) {

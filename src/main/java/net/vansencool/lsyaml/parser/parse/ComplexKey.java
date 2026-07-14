@@ -5,11 +5,11 @@ import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.MapNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
+import net.vansencool.lsyaml.parser.text.Scan;
 import net.vansencool.lsyaml.parser.text.Slice;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -56,7 +56,7 @@ public final class ComplexKey {
         char first = keyContent.charAt(0);
         if (first == '{') return Flow.map(keyContent);
         if (first == '[') return Flow.list(keyContent);
-        if (containsUnquotedColon(keyContent)) {
+        if (Scan.hasUnquotedColon(keyContent)) {
             YamlNode inline = inlineMap(keyContent, indent + 2);
             return inline != null ? inline : session.reparseInline(indent + 2, keyContent, '?');
         }
@@ -77,16 +77,15 @@ public final class ComplexKey {
         if (vf == '{' || vf == '[' || vf == '|' || vf == '>' || vf == '&' || vf == '*' || vf == '!') {
             return null;
         }
-        if (Anchors.anchorOnly(key.value().toString()) != null) {
+        if (Anchors.anchorOnly(key.value()) != null) {
             return null;
         }
 
         int line = cursor.line();
         MapNode map = new MapNode();
         map.getMetadata().setLine(line);
-        map.getMetadata().setIndentation(mapIndent);
 
-        YamlNode value = session.values().parse(key.value().toString(), mapIndent);
+        YamlNode value = session.values().parse(key.value(), mapIndent);
         if (value.getMetadata().getLine() < 0) {
             value.getMetadata().setLine(line);
             value.getMetadata().setColumn(mapIndent + key.key().length() + 3);
@@ -114,8 +113,7 @@ public final class ComplexKey {
 
     private @NotNull YamlNode descend(int indent, boolean keyContext) {
         Cursor cursor = session.cursor();
-        List<AdjacentLine> nested = new ArrayList<>();
-        session.skipBlanksAndComments(nested);
+        List<AdjacentLine> nested = session.skipBlanksAndComments();
         if (!cursor.hasMore()) return new ScalarNode(null);
 
         int nextIndent = cursor.indent();
@@ -156,18 +154,4 @@ public final class ComplexKey {
         return "";
     }
 
-    private boolean containsUnquotedColon(@NotNull String value) {
-        if (value.isEmpty()) return false;
-        char first = value.charAt(0);
-        if (first == '\'' || first == '"') return false;
-        boolean single = false;
-        boolean dbl = false;
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (c == '\'' && !dbl) single = !single;
-            else if (c == '"' && !single) dbl = !dbl;
-            else if (c == ':' && !single && !dbl) return true;
-        }
-        return false;
-    }
 }

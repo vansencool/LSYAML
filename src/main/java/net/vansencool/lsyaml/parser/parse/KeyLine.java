@@ -1,6 +1,7 @@
 package net.vansencool.lsyaml.parser.parse;
 
 import net.vansencool.lsyaml.metadata.ScalarStyle;
+import net.vansencool.lsyaml.parser.text.Scan;
 import net.vansencool.lsyaml.parser.text.Slice;
 import net.vansencool.lsyaml.parser.text.Strings;
 import org.jetbrains.annotations.NotNull;
@@ -27,7 +28,7 @@ public final class KeyLine {
      * Returns the parsed key line for a trimmed content view, or null when it is not a key line.
      */
     public static @Nullable KeyLine parse(@NotNull Slice trimmed) {
-        int colonIdx = unquotedColon(trimmed);
+        int colonIdx = Scan.unquotedColon(trimmed.array(), trimmed.start(), trimmed.end());
         if (colonIdx <= 0) return null;
 
         char[] chars = trimmed.array();
@@ -40,9 +41,9 @@ public final class KeyLine {
             inlineComment = valuePart.sub(1).toString();
             valuePart = Slice.empty();
         } else {
-            int hash = inlineHash(valuePart);
+            int hash = Scan.inlineHash(valuePart.array(), valuePart.start(), valuePart.end());
             if (hash >= 0) {
-                inlineComment = valuePart.sub(hash + 1).toString();
+                inlineComment = valuePart.copy().sub(hash + 1).toString();
                 valuePart = valuePart.sub(0, hash - 1).trim();
             } else {
                 inlineComment = null;
@@ -78,30 +79,6 @@ public final class KeyLine {
      */
     public @Nullable String inlineComment() {
         return inlineComment;
-    }
-
-    private static int unquotedColon(@NotNull Slice s) {
-        boolean single = false;
-        boolean dbl = false;
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c == '\'' && !dbl) single = !single;
-            else if (c == '"' && !single) dbl = !dbl;
-            else if (c == ':' && !single && !dbl) return i;
-        }
-        return -1;
-    }
-
-    private static int inlineHash(@NotNull Slice s) {
-        boolean single = false;
-        boolean dbl = false;
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c == '\'' && !dbl) single = !single;
-            else if (c == '"' && !single) dbl = !dbl;
-            else if (c == '#' && !single && !dbl && i > 0 && s.charAt(i - 1) == ' ') return i;
-        }
-        return -1;
     }
 
     private static @NotNull String unquoteKey(@NotNull Slice key) {

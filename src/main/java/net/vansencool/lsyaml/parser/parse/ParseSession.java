@@ -7,7 +7,6 @@ import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
 import net.vansencool.lsyaml.parser.ParseOptions;
 import net.vansencool.lsyaml.parser.text.Scan;
-import net.vansencool.lsyaml.parser.text.Slice;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -122,21 +121,6 @@ public final class ParseSession {
     }
 
     /**
-     * Returns the index of an inline comment hash in a value view, or minus one.
-     */
-    public int inlineHash(@NotNull Slice value) {
-        boolean single = false;
-        boolean dbl = false;
-        for (int i = 0; i < value.length(); i++) {
-            char ch = value.charAt(i);
-            if (ch == '\'' && !dbl) single = !single;
-            else if (ch == '"' && !single) dbl = !dbl;
-            else if (ch == '#' && !single && !dbl && i > 0 && value.charAt(i - 1) == ' ') return i;
-        }
-        return -1;
-    }
-
-    /**
      * Advances over blank and comment lines, appending each to the given list in source order.
      */
     public void skipBlanksAndComments(@NotNull List<AdjacentLine> leading) {
@@ -152,6 +136,19 @@ public final class ParseSession {
                 break;
             }
         }
+    }
+
+    /**
+     * Returns the ordered blank and comment lines the cursor skips, or an empty list when there are none.
+     */
+    public @NotNull List<AdjacentLine> skipBlanksAndComments() {
+        char first = cursor.firstChar();
+        if (!cursor.hasMore() || (first != 0 && first != '#')) {
+            return List.of();
+        }
+        List<AdjacentLine> leading = new ArrayList<>();
+        skipBlanksAndComments(leading);
+        return leading;
     }
 
     /**

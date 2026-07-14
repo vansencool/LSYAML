@@ -1374,7 +1374,7 @@ public class MapNode extends AbstractYamlNode {
          * @param lines the ordered leading lines
          */
         public void setLeadingLines(@NotNull List<AdjacentLine> lines) {
-            this.leadingLines = lines.isEmpty() ? null : new ArrayList<>(lines);
+            this.leadingLines = lines.isEmpty() ? null : lines;
         }
 
         /**

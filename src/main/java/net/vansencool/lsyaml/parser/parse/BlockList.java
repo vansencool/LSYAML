@@ -4,6 +4,7 @@ import net.vansencool.lsyaml.node.AdjacentLine;
 import net.vansencool.lsyaml.node.ListNode;
 import net.vansencool.lsyaml.node.ScalarNode;
 import net.vansencool.lsyaml.node.YamlNode;
+import net.vansencool.lsyaml.parser.text.Scan;
 import net.vansencool.lsyaml.parser.text.Slice;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,9 +30,8 @@ public final class BlockList {
         Cursor cursor = session.cursor();
         ListNode list = new ListNode();
         list.getMetadata().setLine(cursor.line() + 1);
-        list.getMetadata().setIndentation(expectedIndent);
 
-        List<AdjacentLine> pending = new ArrayList<>(initialLeading);
+        List<AdjacentLine> pending = initialLeading.isEmpty() ? new ArrayList<>() : initialLeading;
 
         while (cursor.hasMore()) {
             char firstChar = cursor.firstChar();
@@ -67,9 +67,9 @@ public final class BlockList {
             pending = new ArrayList<>();
 
             Slice valueSlice = valueAfterDash(lineContent);
-            int hash = session.inlineHash(valueSlice);
+            int hash = Scan.inlineHash(valueSlice.array(), valueSlice.start(), valueSlice.end());
             if (hash >= 0) {
-                entry.setInlineComment(valueSlice.sub(hash + 1).toString());
+                entry.setInlineComment(valueSlice.copy().sub(hash + 1).toString());
                 valueSlice = valueSlice.sub(0, hash - 1).trim();
             }
 
@@ -89,8 +89,7 @@ public final class BlockList {
     private int fillEntry(@NotNull ListNode.ListEntry entry, @NotNull String valueStr, int indent) {
         Cursor cursor = session.cursor();
         if (valueStr.isEmpty()) {
-            List<AdjacentLine> nested = new ArrayList<>();
-            session.skipBlanksAndComments(nested);
+            List<AdjacentLine> nested = session.skipBlanksAndComments();
             if (!cursor.hasMore()) {
                 entry.setValue(new ScalarNode(null));
                 return 0;
@@ -116,7 +115,7 @@ public final class BlockList {
         char first = valueStr.charAt(0);
         if (first == '{' || first == '[') {
             entry.setValue(Flow.value(valueStr));
-        } else if (containsUnquotedColon(valueStr)) {
+        } else if (Scan.hasUnquotedColon(valueStr)) {
             entry.setValue(session.reparseInline(indent + 2, valueStr, '?'));
         } else if (first == '-') {
             entry.setValue(session.reparseInline(indent + 2, valueStr, '-'));
@@ -136,21 +135,6 @@ public final class BlockList {
             end--;
         }
         return start >= end ? Slice.empty() : lineContent.sub(start, end);
-    }
-
-    private boolean containsUnquotedColon(@NotNull String value) {
-        if (value.isEmpty()) return false;
-        char first = value.charAt(0);
-        if (first == '\'' || first == '"') return false;
-        boolean single = false;
-        boolean dbl = false;
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (c == '\'' && !dbl) single = !single;
-            else if (c == '"' && !single) dbl = !dbl;
-            else if (c == ':' && !single && !dbl) return true;
-        }
-        return false;
     }
 
     private void attachTrailing(@NotNull ListNode list, @NotNull List<AdjacentLine> trailing) {

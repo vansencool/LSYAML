@@ -5,43 +5,36 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Metadata associated with a YAML node.
- * Contains position information, formatting details, and style preferences.
+ * Contains position information and anchor or alias references.
  */
 @SuppressWarnings("unused")
 public class NodeMetadata {
 
     private int line;
     private int column;
-    private int indentation;
-    private @NotNull String indentString;
     private @Nullable String anchor;
     private @Nullable String alias;
 
     /**
      * Creates a new NodeMetadata instance with default values.
-     * Line and column are set to -1 (unknown), indentation is 0, and no anchor or alias.
+     * Line and column are set to -1 (unknown), and no anchor or alias.
      */
     public NodeMetadata() {
         this.line = -1;
         this.column = -1;
-        this.indentation = 0;
-        this.indentString = "";
         this.anchor = null;
         this.alias = null;
     }
 
     /**
-     * Creates a new NodeMetadata instance with the specified line, column, and indentation.
+     * Creates a new NodeMetadata instance with the specified line and column.
      *
-     * @param line        the line number (1-based)
-     * @param column      the column number (1-based)
-     * @param indentation the indentation level in spaces
+     * @param line   the line number (1-based)
+     * @param column the column number (1-based)
      */
-    public NodeMetadata(int line, int column, int indentation) {
+    public NodeMetadata(int line, int column) {
         this.line = line;
         this.column = column;
-        this.indentation = indentation;
-        this.indentString = " ".repeat(indentation);
         this.anchor = null;
         this.alias = null;
     }
@@ -80,44 +73,6 @@ public class NodeMetadata {
      */
     public void setColumn(int column) {
         this.column = column;
-    }
-
-    /**
-     * Returns the indentation level in spaces.
-     *
-     * @return the indentation level
-     */
-    public int getIndentation() {
-        return indentation;
-    }
-
-    /**
-     * Sets the indentation level.
-     *
-     * @param indentation the indentation level in spaces
-     */
-    public void setIndentation(int indentation) {
-        this.indentation = indentation;
-        this.indentString = " ".repeat(indentation);
-    }
-
-    /**
-     * Returns the exact indentation string (may contain tabs).
-     *
-     * @return the indentation string
-     */
-    public @NotNull String getIndentString() {
-        return indentString;
-    }
-
-    /**
-     * Sets the exact indentation string.
-     *
-     * @param indentString the indentation string
-     */
-    public void setIndentString(@NotNull String indentString) {
-        this.indentString = indentString;
-        this.indentation = indentString.length();
     }
 
     /**
@@ -180,8 +135,7 @@ public class NodeMetadata {
      * @return a copy
      */
     public @NotNull NodeMetadata copy() {
-        NodeMetadata copy = new NodeMetadata(line, column, indentation);
-        copy.indentString = this.indentString;
+        NodeMetadata copy = new NodeMetadata(line, column);
         copy.anchor = this.anchor;
         copy.alias = this.alias;
         return copy;

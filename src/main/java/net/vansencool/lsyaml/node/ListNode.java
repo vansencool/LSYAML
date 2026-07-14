@@ -726,7 +726,7 @@ public class ListNode extends AbstractYamlNode implements Iterable<YamlNode> {
          * Replaces the ordered blank and comment lines before this entry.
          */
         public void setLeadingLines(@NotNull List<AdjacentLine> lines) {
-            this.leadingLines = lines.isEmpty() ? null : new ArrayList<>(lines);
+            this.leadingLines = lines.isEmpty() ? null : lines;
         }
 
         /**

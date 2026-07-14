@@ -30,9 +30,8 @@ public final class BlockMap {
         Cursor cursor = session.cursor();
         MapNode map = new MapNode();
         map.getMetadata().setLine(cursor.line() + 1);
-        map.getMetadata().setIndentation(expectedIndent);
 
-        List<AdjacentLine> pending = new ArrayList<>(initialLeading);
+        List<AdjacentLine> pending = initialLeading.isEmpty() ? new ArrayList<>() : initialLeading;
 
         while (cursor.hasMore()) {
             char firstChar = cursor.firstChar();
@@ -112,8 +111,7 @@ public final class BlockMap {
 
     private int fillEmptyValue(@NotNull MapNode.MapEntry entry, int indent) {
         Cursor cursor = session.cursor();
-        List<AdjacentLine> nested = new ArrayList<>();
-        session.skipBlanksAndComments(nested);
+        List<AdjacentLine> nested = session.skipBlanksAndComments();
 
         if (!cursor.hasMore()) {
             entry.setValue(new ScalarNode(null));
@@ -141,8 +139,7 @@ public final class BlockMap {
 
     private int fillAnchoredValue(@NotNull MapNode.MapEntry entry, int indent, @NotNull String anchor) {
         Cursor cursor = session.cursor();
-        List<AdjacentLine> nested = new ArrayList<>();
-        session.skipBlanksAndComments(nested);
+        List<AdjacentLine> nested = session.skipBlanksAndComments();
 
         if (cursor.hasMore()) {
             int nextIndent = cursor.indent();
