@@ -16,7 +16,7 @@ LSYAML offers lightning-fast parsing while retaining the original formatting of 
 
 - Very fast parsing (**up to ~30× faster than SnakeYAML** in [large-scale benchmarks](#benchmarks))
 - **Full format preservation** - comments, empty lines, indentation retained
-- **Strict and lenient** parsing modes with detailed error reporting
+- **Lenient, fast, and rich validation** modes, with Rust-style diagnostics (source spans, notes, suggested fixes)
 - **Runtime editing** of YAML nodes
 - Anchors and aliases support (`&anchor`, `*alias`)
 - Flow and block style collections
@@ -177,21 +177,31 @@ Benchmarks performed using JMH on:
 
 * **CPU:** AMD Ryzen 9 9900X3D
 * **RAM:** 32 GB DDR5 (5200 MT/s, one ram stick)
-* **JVM:** 25.0.2 (Oracle)
+* **JVM:** 26 (GraalVM), run with `-XX:+UseCompactObjectHeaders`
 * **OS:** Linux 6.8
+
+`-XX:+UseCompactObjectHeaders` (JDK 24+) shrinks object headers and helps every parser; the throughput table below uses it for all four columns.
 
 ---
 
 ### Throughput (higher is better)
 
-Hot throughput (JMH, steady state) across four workloads, LSYAML lenient vs SnakeYAML:
+Parsing runs in one of three modes:
 
-| Workload | LSYAML (lenient) | SnakeYAML    | Speedup         |
-| -------- | ---------------- | ------------ | --------------- |
-| Simple   | 7867 ops/ms      | 280 ops/ms   | **~28× faster** |
-| Medium   | 520 ops/ms       | 39 ops/ms    | **~13× faster** |
-| Complex  | 1.272 ops/ms     | 0.099 ops/ms | **~13× faster** |
-| Insane   | 0.089 ops/ms     | 0.003 ops/ms | **~30× faster** |
+- **Lenient** (`ParseOptions.lenient()`) - no validation, maximum speed.
+- **Fast validator** (`ParseOptions.strict(FastYamlValidator.newInstance())`) - checks the document is valid YAML 1.2 and reports where it is not, without the rich diagnostic machinery.
+- **Rich validator** (`ParseOptions.strict(RichYamlValidator.newInstance())`, the default) - full validation plus Rust-style diagnostics with source spans, notes, and suggested fixes.
+
+Hot throughput (JMH, steady state) across four workloads:
+
+| Workload | Lenient      | Fast validator | Rich validator | SnakeYAML    |
+| -------- | ------------ | -------------- | -------------- | ------------ |
+| Simple   | 8277 ops/ms  | 6623 ops/ms    | 2929 ops/ms    | 276 ops/ms   |
+| Medium   | 491 ops/ms   | 428 ops/ms     | 352 ops/ms     | 39 ops/ms    |
+| Complex  | 1.473 ops/ms | 0.863 ops/ms   | 0.880 ops/ms   | 0.104 ops/ms |
+| Insane   | 0.104 ops/ms | 0.089 ops/ms   | 0.085 ops/ms   | 0.003 ops/ms |
+
+Fast validation stays close to lenient while still rejecting invalid documents. Rich costs more on small documents where diagnostic setup dominates, and converges with Fast on large ones where parsing dominates. Even Rich runs many times faster than SnakeYAML across the board.
 
 *Simple: flat key/value. Medium: nested sections. Complex: 218 KB, ~9k lines. Insane: 1.4 MB stress test with anchors, flow collections, and block scalars.*
 
@@ -200,18 +210,20 @@ Hot throughput (JMH, steady state) across four workloads, LSYAML lenient vs Snak
 Recent versions rewrote the parser onto an offset engine and eliminated the
 biggest allocation and control-flow costs. Compared to `1.2.5`:
 
+Numbers are lenient throughput on both versions.
+
 | Workload | 1.2.5        | Current      | Speedup     |
 | -------- | ------------ | ------------ | ----------- |
-| Simple   | 572 ops/ms   | 7867 ops/ms  | **~13×**    |
-| Medium   | 46.3 ops/ms  | 520 ops/ms   | **~11×**    |
-| Complex  | 0.129 ops/ms | 1.272 ops/ms | **~10×**    |
-| Insane   | 0.024 ops/ms | 0.089 ops/ms | **~3.7×**   |
+| Simple   | 572 ops/ms   | 7668 ops/ms  | **~13×**    |
+| Medium   | 46.3 ops/ms  | 535 ops/ms   | **~12×**    |
+| Complex  | 0.129 ops/ms | 1.439 ops/ms | **~11×**    |
+| Insane   | 0.024 ops/ms | 0.104 ops/ms | **~4.3×**   |
 
 ---
 
 ### Allocation (bytes per operation, lower is better)
 
-| Workload | LSYAML     | SnakeYAML   | Reduction     |
+| Workload | LSYAML Lenient     | SnakeYAML   | Reduction     |
 | -------- | ---------- | ----------- | ------------- |
 | Simple   | 1.7 KB/op  | 15.7 KB/op  | **~89% less** |
 | Medium   | 18 KB/op   | 92 KB/op    | **~80% less** |
