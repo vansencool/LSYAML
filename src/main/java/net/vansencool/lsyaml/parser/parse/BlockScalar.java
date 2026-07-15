@@ -19,33 +19,62 @@ public final class BlockScalar {
      */
     public static @NotNull ScalarNode read(@NotNull Cursor cursor, @NotNull Slice indicator, int indent) {
         ScalarStyle style = indicator.charAt(0) == '|' ? ScalarStyle.LITERAL : ScalarStyle.FOLDED;
-        StringBuilder content = new StringBuilder();
+        int firstLine = cursor.line();
         int contentIndent = -1;
+        int lastLine = firstLine - 1;
 
         while (cursor.hasMore()) {
-            char first = cursor.firstChar();
-            if (first == 0) {
-                content.append('\n');
+            if (cursor.firstChar() == 0) {
+                lastLine = cursor.line();
                 cursor.advance();
                 continue;
             }
 
             int lineIndent = cursor.indent();
             if (contentIndent == -1) {
-                if (lineIndent > indent) contentIndent = lineIndent;
-                else break;
+                if (lineIndent > indent) {
+                    contentIndent = lineIndent;
+                } else {
+                    break;
+                }
             }
-            if (lineIndent < contentIndent) break;
-
-            if (!content.isEmpty()) content.append('\n');
-            Source src = cursor.source();
-            int start = cursor.start();
-            int end = cursor.end();
-            int from = Math.min(start + contentIndent, end);
-            content.append(src.slice(from, end));
+            if (lineIndent < contentIndent) {
+                break;
+            }
+            lastLine = cursor.line();
             cursor.advance();
         }
 
-        return new ScalarNode(content.toString(), style);
+        return new ScalarNode(join(cursor, firstLine, lastLine, contentIndent), style);
+    }
+
+    private static @NotNull String join(@NotNull Cursor cursor, int firstLine, int lastLine, int contentIndent) {
+        if (contentIndent == -1 || lastLine < firstLine) {
+            return "";
+        }
+        int resume = cursor.line();
+        int size = lastLine - firstLine;
+        for (int i = firstLine; i <= lastLine; i++) {
+            cursor.line(i);
+            int end = cursor.end();
+            size += end - Math.min(cursor.start() + contentIndent, end);
+        }
+
+        char[] chars = cursor.source().chars();
+        char[] buffer = new char[size];
+        int at = 0;
+        for (int i = firstLine; i <= lastLine; i++) {
+            if (i > firstLine) {
+                buffer[at++] = '\n';
+            }
+            cursor.line(i);
+            int end = cursor.end();
+            int from = Math.min(cursor.start() + contentIndent, end);
+            int length = end - from;
+            System.arraycopy(chars, from, buffer, at, length);
+            at += length;
+        }
+        cursor.line(resume);
+        return new String(buffer);
     }
 }

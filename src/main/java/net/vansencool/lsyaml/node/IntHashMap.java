@@ -126,6 +126,43 @@ public final class IntHashMap {
     }
 
     /**
+     * Associates a value with a key when absent, returning the existing value or ABSENT when it was added.
+     */
+    public int putIfAbsent(@NotNull String key, int value) {
+        Node[] tab = table;
+        int n;
+        if (tab == null || (n = tab.length) == 0) {
+            n = (tab = resize()).length;
+        }
+        int hash = hash(key);
+        int i = (n - 1) & hash;
+        Node p = tab[i];
+        if (p == null) {
+            tab[i] = new Node(hash, key, value, null);
+        } else {
+            String k;
+            if (p.hash == hash && ((k = p.key) == key || k.equals(key))) {
+                return p.value;
+            }
+            for (; ; ) {
+                Node e = p.next;
+                if (e == null) {
+                    p.next = new Node(hash, key, value, null);
+                    break;
+                }
+                if (e.hash == hash && ((k = e.key) == key || k.equals(key))) {
+                    return e.value;
+                }
+                p = e;
+            }
+        }
+        if (++size > threshold) {
+            resize();
+        }
+        return ABSENT;
+    }
+
+    /**
      * Removes a key and returns its value, or ABSENT when the key is not present.
      */
     public int remove(@NotNull String key) {

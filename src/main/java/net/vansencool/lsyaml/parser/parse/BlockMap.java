@@ -177,8 +177,7 @@ public final class BlockMap {
         if (entry.getKey().equals("<<") && entry.getValue().getMetadata().isAlias()) {
             session.markMergeEntry(entry);
         }
-        if (!map.containsKey(entry.getKey())) {
-            map.appendEntry(entry);
+        if (map.appendEntry(entry)) {
             return;
         }
         switch (session.options().getDuplicateKeyBehavior()) {

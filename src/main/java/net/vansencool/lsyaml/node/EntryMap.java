@@ -43,11 +43,14 @@ public final class EntryMap {
     }
 
     /**
-     * Appends an entry whose key the caller guarantees is absent, without a lookup.
+     * Appends an entry in one lookup, returning whether it was added rather than already present.
      */
-    public void append(@NotNull MapNode.MapEntry entry) {
-        index.put(entry.getKey(), order.size());
+    public boolean append(@NotNull MapNode.MapEntry entry) {
+        if (index.putIfAbsent(entry.getKey(), order.size()) != IntHashMap.ABSENT) {
+            return false;
+        }
         order.add(entry);
+        return true;
     }
 
     /**

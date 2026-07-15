@@ -291,9 +291,8 @@ public class MapNode extends AbstractYamlNode {
      * @return this map for chaining
      */
     @ApiStatus.Internal
-    public @NotNull MapNode appendEntry(@NotNull MapEntry entry) {
-        entries.append(entry);
-        return this;
+    public boolean appendEntry(@NotNull MapEntry entry) {
+        return entries.append(entry);
     }
 
     /**
