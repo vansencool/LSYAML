@@ -14,9 +14,9 @@ LSYAML offers lightning-fast parsing while retaining the original formatting of 
 
 ## Features at a glance
 
-- Very fast parsing (**up to ~30× faster than SnakeYAML** in [large-scale benchmarks](#benchmarks))
+- Very fast parsing (**up to ~35× faster than SnakeYAML** in [large-scale benchmarks](#benchmarks))
 - **Full format preservation** - comments, empty lines, indentation retained
-- **Lenient, fast, and rich validation** modes, with Rust-style diagnostics (source spans, notes, suggested fixes)
+- **Lenient, fast, standard, and rich validation** modes, with Rust-style diagnostics (source spans, notes, suggested fixes)
 - **Runtime editing** of YAML nodes
 - Anchors and aliases support (`&anchor`, `*alias`)
 - Flow and block style collections
@@ -186,22 +186,25 @@ Benchmarks performed using JMH on:
 
 ### Throughput (higher is better)
 
-Parsing runs in one of three modes:
+Parsing runs in one of four modes:
 
 - **Lenient** (`ParseOptions.lenient()`) - no validation, maximum speed.
 - **Fast validator** (`ParseOptions.strict(FastYamlValidator.newInstance())`) - checks the document is valid YAML 1.2 and reports where it is not, without the rich diagnostic machinery.
-- **Rich validator** (`ParseOptions.strict(RichYamlValidator.newInstance())`, the default) - full validation plus Rust-style diagnostics with source spans, notes, and suggested fixes.
+- **Standard validator** (`ParseOptions.defaults()`) - every validity error with full Rust-style diagnostics, leaving duplicate keys to the parser and skipping schema warnings.
+- **Rich validator** (`ParseOptions.strict(RichYamlValidator.newInstance())`) - everything Standard reports plus duplicate keys and YAML 1.2 schema warnings such as `yes` as a boolean.
 
 Hot throughput (JMH, steady state) across four workloads:
 
-| Workload | Lenient      | Fast validator | Rich validator | SnakeYAML    |
-| -------- | ------------ | -------------- | -------------- | ------------ |
-| Simple   | 8117 ops/ms  | 6321 ops/ms    | 2903 ops/ms    | 278 ops/ms   |
-| Medium   | 630 ops/ms   | 483 ops/ms     | 388 ops/ms     | 41 ops/ms    |
-| Complex  | 1.651 ops/ms | 0.999 ops/ms   | 0.907 ops/ms   | 0.096 ops/ms |
-| Insane   | 0.115 ops/ms | 0.108 ops/ms   | 0.100 ops/ms   | 0.003 ops/ms |
+| Workload | Lenient      | Fast validator | Standard validator | Rich validator | SnakeYAML    |
+| -------- | ------------ | -------------- | ------------------ | -------------- | ------------ |
+| Simple   | 7452 ops/ms  | 6469 ops/ms    | 3716 ops/ms        | 3095 ops/ms    | 280 ops/ms   |
+| Medium   | 613 ops/ms   | 468 ops/ms     | 462 ops/ms         | 385 ops/ms     | 40 ops/ms    |
+| Complex  | 1.640 ops/ms | 1.051 ops/ms   | 1.009 ops/ms       | 0.967 ops/ms   | 0.105 ops/ms |
+| Insane   | 0.132 ops/ms | 0.114 ops/ms   | 0.114 ops/ms       | 0.104 ops/ms   | 0.004 ops/ms |
 
-Fast validation stays close to lenient while still rejecting invalid documents. Rich costs more on small documents where diagnostic setup dominates, and converges with Fast on large ones where parsing dominates. Even Rich runs many times faster than SnakeYAML across the board.
+Standard, the default, tracks the Fast validator closely while still giving full diagnostics, because the checks it drops are the ones the parser already covers. Rich costs more for the extra duplicate key tracking and schema warnings. Every mode runs many times faster than SnakeYAML.
+
+The numbers above validate on the parsing thread. If you parse one large document at a time, `ParseOptions.builder().parallelValidation(true)` moves validation onto a second core so it overlaps the parse, reaching within a few percent of lenient past `DEFAULT_PARALLEL_THRESHOLD` (100 KB); below that it stays sequential, since the thread handoff costs more than the check itself.
 
 *Simple: flat key/value. Medium: nested sections. Complex: 218 KB, ~9k lines. Insane: 1.4 MB stress test with anchors, flow collections, and block scalars.*
 
@@ -213,10 +216,10 @@ Numbers are lenient throughput on both versions.
 
 | Workload | 1.2.5        | Current      | Speedup     |
 | -------- | ------------ | ------------ | ----------- |
-| Simple   | 572 ops/ms   | 8117 ops/ms  | **~14×**    |
-| Medium   | 46.3 ops/ms  | 630 ops/ms   | **~14×**    |
-| Complex  | 0.129 ops/ms | 1.651 ops/ms | **~13×**    |
-| Insane   | 0.024 ops/ms | 0.115 ops/ms | **~4.8×**   |
+| Simple   | 572 ops/ms   | 7452 ops/ms  | **~13×**    |
+| Medium   | 46.3 ops/ms  | 613 ops/ms   | **~13×**    |
+| Complex  | 0.129 ops/ms | 1.640 ops/ms | **~13×**    |
+| Insane   | 0.024 ops/ms | 0.132 ops/ms | **~5.5×**   |
 
 ---
 
@@ -232,7 +235,7 @@ Numbers are lenient throughput on both versions.
 ---
 
 > LSYAML consistently allocates far less memory and scales better under heavy
-> workloads, achieving over **~28× higher throughput** than SnakeYAML while
+> workloads, reaching up to **~35× higher throughput** than SnakeYAML while
 > preserving comments, blank lines, and formatting that SnakeYAML discards.
 
 Full benchmark source: https://github.com/vansencool/LSYAML-Benchmark
