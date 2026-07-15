@@ -22,7 +22,7 @@ import java.util.Set;
  */
 public final class FastYamlValidator implements YamlValidator {
 
-    private @NotNull LineIndex lines;
+    private LineIndex lines;
     private @Nullable String sourceFile;
     private char @NotNull [] chars = new char[0];
     private @Nullable String fullSource;

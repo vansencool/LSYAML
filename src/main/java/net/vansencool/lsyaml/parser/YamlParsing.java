@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Entry point that parses YAML text into a node tree over source offsets.
@@ -33,7 +34,7 @@ public final class YamlParsing {
             YamlNode node = parseInternal(yaml, options, issues);
             for (Diagnostic issue : issues) {
                 if (issue.severity() == Severity.ERROR) {
-                    throw new YamlParseException(issue.format());
+                    throw new YamlParseException(issues);
                 }
             }
             return node;
@@ -57,8 +58,36 @@ public final class YamlParsing {
         LineIndex lines = new LineIndex(source);
         YamlValidator validator = options.getValidator();
         if (issues != null && validator != null) {
+            if (options.isParallelValidation() && source.length() >= options.getParallelThreshold()) {
+                return parseValidatingInParallel(source, lines, options, validator, issues);
+            }
             validator.validate(source, lines, null, issues);
         }
+        return parseTree(source, lines, options);
+    }
+
+    private static @NotNull YamlNode parseValidatingInParallel(@NotNull Source source, @NotNull LineIndex lines, @NotNull ParseOptions options, @NotNull YamlValidator validator, @NotNull List<Diagnostic> issues) {
+        List<Diagnostic> found = new ArrayList<>();
+        CompletableFuture<Void> validation = CompletableFuture.runAsync(() -> validator.validate(source, lines, null, found));
+        YamlNode result = null;
+        RuntimeException parseFailure = null;
+        try {
+            result = parseTree(source, lines, options);
+        } catch (RuntimeException e) {
+            parseFailure = e;
+        }
+        validation.join();
+        issues.addAll(found);
+        if (result != null) {
+            return result;
+        }
+        if (!found.isEmpty()) {
+            throw new YamlParseException(found);
+        }
+        throw parseFailure;
+    }
+
+    private static @NotNull YamlNode parseTree(@NotNull Source source, @NotNull LineIndex lines, @NotNull ParseOptions options) {
         Cursor cursor = new Cursor(source, lines);
         ParseSession session = new ParseSession(cursor, options);
 

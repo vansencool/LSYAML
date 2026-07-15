@@ -1,14 +1,9 @@
 package net.vansencool.lsyaml.parser;
 
 import net.vansencool.lsyaml.diagnostic.Diagnostic;
-import net.vansencool.lsyaml.node.IntHashMap;
-import net.vansencool.lsyaml.parser.diagnostic.DuplicateAnchorDiagnostic;
-import net.vansencool.lsyaml.parser.diagnostic.DuplicateKeyDiagnostic;
 import net.vansencool.lsyaml.parser.diagnostic.EmptyKeyDiagnostic;
 import net.vansencool.lsyaml.parser.diagnostic.IndentationDiagnostic;
 import net.vansencool.lsyaml.parser.diagnostic.InvalidSyntaxDiagnostic;
-import net.vansencool.lsyaml.parser.diagnostic.LegacyBooleanDiagnostic;
-import net.vansencool.lsyaml.parser.diagnostic.LegacyOctalDiagnostic;
 import net.vansencool.lsyaml.parser.diagnostic.TabIndentDiagnostic;
 import net.vansencool.lsyaml.parser.diagnostic.UnclosedQuoteDiagnostic;
 import net.vansencool.lsyaml.parser.diagnostic.UndefinedAliasDiagnostic;
@@ -18,34 +13,30 @@ import net.vansencool.lsyaml.parser.text.Scan;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 /**
- * Validator that checks a document against the YAML 1.2 core schema and reports rich diagnostics.
+ * Validator that reports YAML 1.2 errors with rich diagnostics, leaving duplicate keys to the parser and skipping schema warnings.
  */
-public final class RichYamlValidator implements YamlValidator {
+public final class StandardYamlValidator implements YamlValidator {
 
     private LineIndex lines;
     private @Nullable String sourceFile;
     private char @NotNull [] chars = new char[0];
     private @Nullable String fullSource;
     private @NotNull List<Diagnostic> out = List.of();
-    private final @NotNull Map<String, int[]> seenAnchors = new HashMap<>();
-    private int @NotNull [] keyLevelIndent = new int[16];
-    private IntHashMap @NotNull [] keyLevelMap = new IntHashMap[16];
-    private int keyDepth;
+    private final @NotNull Set<String> seenAnchors = new HashSet<>();
 
-    private RichYamlValidator() {
+    private StandardYamlValidator() {
     }
 
     /**
      * Returns a new validator instance.
      */
-    public static @NotNull RichYamlValidator newInstance() {
-        return new RichYamlValidator();
+    public static @NotNull StandardYamlValidator newInstance() {
+        return new StandardYamlValidator();
     }
 
     @Override
@@ -56,7 +47,6 @@ public final class RichYamlValidator implements YamlValidator {
         this.chars = source.chars();
         this.fullSource = null;
         this.seenAnchors.clear();
-        this.keyDepth = 0;
 
         int[] indentStack = new int[256];
         int stackDepth = 0;
@@ -92,23 +82,20 @@ public final class RichYamlValidator implements YamlValidator {
             }
 
             if (firstChar == '-') {
-                pruneKeyLevels(indent);
                 stackDepth = pushOrPop(indentStack, stackDepth, indent);
                 if (lineEnd - contentStart > 2 && findUnquotedColon(contentStart, lineEnd) > contentStart + 2) {
                     indentStack[++stackDepth] = indent + 2;
                 }
                 int itemStart = skipSpaces(contentStart + 1, lineEnd);
                 if (itemStart < lineEnd) {
-                    checkAnchor(lineNum, itemStart, lineEnd);
+                    trackAnchor(itemStart, lineEnd);
                     checkAlias(lineNum, itemStart, lineEnd);
-                    checkScalar(lineNum, itemStart, lineEnd);
                 }
                 continue;
             }
 
             if (firstChar == '?') {
                 complexKeyIndent = indent;
-                pruneKeyLevels(indent);
                 continue;
             }
             if (firstChar == ':' && complexKeyIndent == indent) {
@@ -118,7 +105,6 @@ public final class RichYamlValidator implements YamlValidator {
 
             int colon = findUnquotedColon(contentStart, lineEnd);
             if (colon > contentStart) {
-                pruneKeyLevels(indent);
                 validateEntry(lineNum, contentStart, lineEnd, colon, indent, indentStack, stackDepth);
                 stackDepth = pushOrPop(indentStack, stackDepth, indent);
             } else if (firstChar == ':') {
@@ -147,30 +133,19 @@ public final class RichYamlValidator implements YamlValidator {
             out.add(IndentationDiagnostic.build(sourceFile, fullSource(), lineNum + 1, lineText(lineNum), indent, expected));
         }
 
-        String key = unquotedKey(keyStart, keyEnd);
-        IntHashMap atLevel = keyScope(indent);
-        int first = atLevel.get(key);
-        if (first != IntHashMap.ABSENT) {
-            out.add(DuplicateKeyDiagnostic.build(sourceFile, fullSource(), key, lineNum + 1, lineText(lineNum), indent, first + 1, lineText(first), lines.indent(first)));
-        } else {
-            atLevel.put(key, lineNum);
-        }
-
         int valStart = skipSpaces(colon + 1, lineEnd);
         if (valStart < lineEnd) {
             char valFirst = chars[valStart];
             int valColumn = indent + valStart - contentStart;
-            checkAnchor(lineNum, valStart, lineEnd);
+            trackAnchor(valStart, lineEnd);
             checkAlias(lineNum, valStart, lineEnd);
             if ((valFirst == '\'' || valFirst == '"') && indexOf(valStart + 1, lineEnd, valFirst) < 0) {
                 out.add(UnclosedQuoteDiagnostic.build(sourceFile, fullSource(), lineNum + 1, lineText(lineNum), valColumn, valFirst, false));
-            } else {
-                checkScalar(lineNum, valStart, lineEnd);
             }
         }
     }
 
-    private void checkAnchor(int lineNum, int from, int to) {
+    private void trackAnchor(int from, int to) {
         if (from >= to || chars[from] != '&') {
             return;
         }
@@ -178,16 +153,8 @@ public final class RichYamlValidator implements YamlValidator {
         while (end < to && Scan.isWord(chars[end])) {
             end++;
         }
-        if (end == from + 1) {
-            return;
-        }
-        String anchor = new String(chars, from + 1, end - from - 1);
-        int column = from - lines.start(lineNum);
-        int[] existing = seenAnchors.get(anchor);
-        if (existing != null) {
-            out.add(DuplicateAnchorDiagnostic.build(sourceFile, fullSource(), anchor, lineNum + 1, lineText(lineNum), column, existing[0] + 1, lineText(existing[0]), existing[1], seenAnchors.keySet()));
-        } else {
-            seenAnchors.put(anchor, new int[]{lineNum, column});
+        if (end > from + 1) {
+            seenAnchors.add(new String(chars, from + 1, end - from - 1));
         }
     }
 
@@ -203,81 +170,12 @@ public final class RichYamlValidator implements YamlValidator {
             return;
         }
         String alias = new String(chars, from + 1, end - from - 1);
-        if (!seenAnchors.containsKey(alias)) {
+        if (!seenAnchors.contains(alias)) {
             int column = from - lines.start(lineNum);
             out.add(UndefinedAliasDiagnostic.build(sourceFile, fullSource(), alias, lineNum + 1, lineText(lineNum), column));
         }
     }
 
-    private void checkScalar(int lineNum, int from, int to) {
-        int end = trimEnd(from, to);
-        if (from >= end) {
-            return;
-        }
-        char c0 = chars[from];
-        if (c0 == '"' || c0 == '\'' || c0 == '{' || c0 == '[' || c0 == '|' || c0 == '>' || c0 == '&' || c0 == '*' || c0 == '#') {
-            return;
-        }
-        int len = end - from;
-        int column = from - lines.start(lineNum);
-        if (isLegacyBoolean(from, end)) {
-            out.add(LegacyBooleanDiagnostic.build(sourceFile, fullSource(), lineNum + 1, lineText(lineNum), column, new String(chars, from, len)));
-        } else if (len > 1 && c0 == '0' && isOctalDigits(from, end)) {
-            out.add(LegacyOctalDiagnostic.build(sourceFile, fullSource(), lineNum + 1, lineText(lineNum), column, new String(chars, from, len)));
-        }
-    }
-
-    private boolean isLegacyBoolean(int from, int to) {
-        int len = to - from;
-        if (len == 2) {
-            char a = lower(chars[from]);
-            char b = lower(chars[from + 1]);
-            return (a == 'n' && b == 'o') || (a == 'o' && b == 'n');
-        }
-        if (len == 3) {
-            char a = lower(chars[from]);
-            char b = lower(chars[from + 1]);
-            char c = lower(chars[from + 2]);
-            return (a == 'y' && b == 'e' && c == 's') || (a == 'o' && b == 'f' && c == 'f');
-        }
-        return false;
-    }
-
-    private boolean isOctalDigits(int from, int to) {
-        for (int i = from + 1; i < to; i++) {
-            char c = chars[i];
-            if (c < '0' || c > '7') {
-                return false;
-            }
-        }
-        return to - from > 1;
-    }
-
-    private void pruneKeyLevels(int indent) {
-        while (keyDepth > 0 && keyLevelIndent[keyDepth - 1] > indent) {
-            keyDepth--;
-        }
-    }
-
-    private @NotNull IntHashMap keyScope(int indent) {
-        if (keyDepth > 0 && keyLevelIndent[keyDepth - 1] == indent) {
-            return keyLevelMap[keyDepth - 1];
-        }
-        if (keyDepth == keyLevelMap.length) {
-            keyLevelIndent = Arrays.copyOf(keyLevelIndent, keyDepth << 1);
-            keyLevelMap = Arrays.copyOf(keyLevelMap, keyDepth << 1);
-        }
-        IntHashMap map = keyLevelMap[keyDepth];
-        if (map == null) {
-            map = new IntHashMap();
-            keyLevelMap[keyDepth] = map;
-        } else {
-            map.clear();
-        }
-        keyLevelIndent[keyDepth] = indent;
-        keyDepth++;
-        return map;
-    }
 
     private int pushOrPop(int @NotNull [] indentStack, int stackDepth, int indent) {
         if (indent > indentStack[stackDepth]) {
@@ -368,16 +266,6 @@ public final class RichYamlValidator implements YamlValidator {
         return -1;
     }
 
-    private @NotNull String unquotedKey(int from, int to) {
-        if (to - from >= 2) {
-            char q = chars[from];
-            if ((q == '\'' || q == '"') && chars[to - 1] == q) {
-                return new String(chars, from + 1, to - from - 2);
-            }
-        }
-        return new String(chars, from, to - from);
-    }
-
     private char quoteChar(char c) {
         return c == '\'' || c == '"' ? c : 0;
     }
@@ -405,10 +293,6 @@ public final class RichYamlValidator implements YamlValidator {
             }
         }
         return -1;
-    }
-
-    private char lower(char c) {
-        return c >= 'A' && c <= 'Z' ? (char) (c + 32) : c;
     }
 
     private @NotNull String lineText(int lineNum) {

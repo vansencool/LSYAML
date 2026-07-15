@@ -1,55 +1,42 @@
 package net.vansencool.lsyaml.exceptions;
 
+import net.vansencool.lsyaml.diagnostic.Diagnostic;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+
 /**
- * Exception thrown when YAML parsing fails.
+ * Exception thrown when a document fails validation.
  */
 @SuppressWarnings("unused")
 public class YamlParseException extends RuntimeException {
 
-    private final int line;
-    private final int column;
+    private final @NotNull List<Diagnostic> diagnostics;
 
-    public YamlParseException(@NotNull String message) {
-        super(message);
-        this.line = -1;
-        this.column = -1;
+    /**
+     * Creates an exception reporting every diagnostic found in the document.
+     *
+     * @param diagnostics the diagnostics, rendered in order as the message
+     */
+    public YamlParseException(@NotNull List<Diagnostic> diagnostics) {
+        super(render(diagnostics));
+        this.diagnostics = List.copyOf(diagnostics);
     }
 
-    public YamlParseException(@NotNull String message, int line, int column) {
-        super(String.format("Line %d, column %d: %s", line, column, message));
-        this.line = line;
-        this.column = column;
-    }
-
-    public YamlParseException(@NotNull String message, @NotNull Throwable cause) {
-        super(message, cause);
-        this.line = -1;
-        this.column = -1;
-    }
-
-    public YamlParseException(@NotNull String message, int line, int column, @NotNull Throwable cause) {
-        super(String.format("Line %d, column %d: %s", line, column, message), cause);
-        this.line = line;
-        this.column = column;
+    private static @NotNull String render(@NotNull List<Diagnostic> diagnostics) {
+        StringBuilder sb = new StringBuilder();
+        for (Diagnostic diagnostic : diagnostics) {
+            sb.append(diagnostic.format());
+        }
+        return sb.toString();
     }
 
     /**
-     * Returns the line number where the error occurred.
+     * Returns every diagnostic that caused this failure.
      *
-     * @return line number (1-based), or -1 if unknown
+     * @return the diagnostics
      */
-    public int getLine() {
-        return line;
-    }
-
-    /**
-     * Returns the column number where the error occurred.
-     *
-     * @return column number (1-based), or -1 if unknown
-     */
-    public int getColumn() {
-        return column;
+    public @NotNull List<Diagnostic> diagnostics() {
+        return diagnostics;
     }
 }

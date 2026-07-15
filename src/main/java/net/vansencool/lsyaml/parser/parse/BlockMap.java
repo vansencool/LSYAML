@@ -188,7 +188,8 @@ public final class BlockMap {
             }
             case WARN_AND_KEEP -> LSYAMLLogger.warn("Duplicate key '" + entry.getKey() + "', keeping first value");
             case SILENT -> map.putEntry(entry);
-            case ERROR -> throw new YamlParseException("Duplicate key: '" + entry.getKey() + "'");
+            case SILENT_AND_KEEP -> {
+            }
         }
     }
 }

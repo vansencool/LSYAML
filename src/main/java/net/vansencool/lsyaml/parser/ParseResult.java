@@ -102,7 +102,7 @@ public final class ParseResult {
      */
     public @NotNull YamlNode getNodeOrThrow() {
         if (node == null || !success) {
-            throw new YamlParseException(formatIssues());
+            throw new YamlParseException(diagnostics);
         }
         return node;
     }

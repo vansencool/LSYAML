@@ -76,7 +76,7 @@ public final class LSYAML {
         if (node instanceof MapNode) {
             return (MapNode) node;
         }
-        throw new YamlParseException("Expected a map but got " + node.getType());
+        throw new IllegalStateException("Expected a map but got " + node.getType());
     }
 
     /**
@@ -91,7 +91,7 @@ public final class LSYAML {
         if (node instanceof MapNode) {
             return (MapNode) node;
         }
-        throw new YamlParseException("Expected a map but got " + node.getType());
+        throw new IllegalStateException("Expected a map but got " + node.getType());
     }
 
     /**
@@ -154,7 +154,7 @@ public final class LSYAML {
         if (node instanceof ListNode) {
             return (ListNode) node;
         }
-        throw new YamlParseException("Expected a list but got " + node.getType());
+        throw new IllegalStateException("Expected a list but got " + node.getType());
     }
 
     /**
@@ -168,7 +168,7 @@ public final class LSYAML {
         if (node instanceof ScalarNode) {
             return (ScalarNode) node;
         }
-        throw new YamlParseException("Expected a scalar but got " + node.getType());
+        throw new IllegalStateException("Expected a scalar but got " + node.getType());
     }
 
     /**

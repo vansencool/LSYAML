@@ -9,12 +9,21 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("unused")
 public final class ParseOptions {
 
+    /**
+     * The document size in characters from which validating alongside the parse pays for the thread handoff.
+     */
+    public static final int DEFAULT_PARALLEL_THRESHOLD = 100 * 1024;
+
     private final @Nullable YamlValidator validator;
     private final @NotNull DuplicateKeyBehavior duplicateKeyBehavior;
+    private final boolean parallelValidation;
+    private final int parallelThreshold;
 
-    private ParseOptions(@Nullable YamlValidator validator, @NotNull DuplicateKeyBehavior duplicateKeyBehavior) {
+    private ParseOptions(@Nullable YamlValidator validator, @NotNull DuplicateKeyBehavior duplicateKeyBehavior, boolean parallelValidation, int parallelThreshold) {
         this.validator = validator;
         this.duplicateKeyBehavior = duplicateKeyBehavior;
+        this.parallelValidation = parallelValidation;
+        this.parallelThreshold = parallelThreshold;
     }
 
     /**
@@ -24,7 +33,7 @@ public final class ParseOptions {
      * @return default options
      */
     public static @NotNull ParseOptions defaults() {
-        return new ParseOptions(RichYamlValidator.newInstance(), DuplicateKeyBehavior.SILENT);
+        return new ParseOptions(StandardYamlValidator.newInstance(), DuplicateKeyBehavior.SILENT, false, DEFAULT_PARALLEL_THRESHOLD);
     }
 
     /**
@@ -34,7 +43,7 @@ public final class ParseOptions {
      * @return lenient options
      */
     public static @NotNull ParseOptions lenient() {
-        return new ParseOptions(null, DuplicateKeyBehavior.SILENT);
+        return new ParseOptions(null, DuplicateKeyBehavior.SILENT, false, DEFAULT_PARALLEL_THRESHOLD);
     }
 
     /**
@@ -45,7 +54,7 @@ public final class ParseOptions {
      * @return strict options
      */
     public static @NotNull ParseOptions strict(@NotNull YamlValidator validator) {
-        return new ParseOptions(validator, DuplicateKeyBehavior.SILENT);
+        return new ParseOptions(validator, DuplicateKeyBehavior.SILENT, false, DEFAULT_PARALLEL_THRESHOLD);
     }
 
     /**
@@ -55,6 +64,24 @@ public final class ParseOptions {
      */
     public static @NotNull Builder builder() {
         return new Builder();
+    }
+
+    /**
+     * Returns whether validation runs alongside the parse for documents that reach the parallel threshold.
+     *
+     * @return true if parallel validation is enabled
+     */
+    public boolean isParallelValidation() {
+        return parallelValidation;
+    }
+
+    /**
+     * Returns the document size in characters from which validation runs alongside the parse.
+     *
+     * @return the threshold in characters
+     */
+    public int getParallelThreshold() {
+        return parallelThreshold;
     }
 
     /**
@@ -100,9 +127,9 @@ public final class ParseOptions {
          */
         SILENT,
         /**
-         * Throw an exception on the first duplicate key encountered.
+         * Silently keep the first value, ignoring subsequent duplicates.
          */
-        ERROR
+        SILENT_AND_KEEP
     }
 
     /**
@@ -111,6 +138,8 @@ public final class ParseOptions {
     public static final class Builder {
         private @Nullable YamlValidator validator = RichYamlValidator.newInstance();
         private @NotNull DuplicateKeyBehavior duplicateKeyBehavior = DuplicateKeyBehavior.SILENT;
+        private boolean parallelValidation;
+        private int parallelThreshold = DEFAULT_PARALLEL_THRESHOLD;
 
         private Builder() {
         }
@@ -149,12 +178,34 @@ public final class ParseOptions {
         }
 
         /**
+         * Runs validation alongside the parse for documents that reach the parallel threshold.
+         *
+         * @param parallelValidation true to validate on another thread
+         * @return this builder
+         */
+        public @NotNull Builder parallelValidation(boolean parallelValidation) {
+            this.parallelValidation = parallelValidation;
+            return this;
+        }
+
+        /**
+         * Sets the document size in characters from which validation runs alongside the parse.
+         *
+         * @param parallelThreshold the threshold in characters
+         * @return this builder
+         */
+        public @NotNull Builder parallelThreshold(int parallelThreshold) {
+            this.parallelThreshold = parallelThreshold;
+            return this;
+        }
+
+        /**
          * Builds the options.
          *
          * @return the options
          */
         public @NotNull ParseOptions build() {
-            return new ParseOptions(validator, duplicateKeyBehavior);
+            return new ParseOptions(validator, duplicateKeyBehavior, parallelValidation, parallelThreshold);
         }
     }
 }
